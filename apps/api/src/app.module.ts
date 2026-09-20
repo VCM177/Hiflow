@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { StorageModule } from './modules/storage/storage.module';
     StorageModule,
     DepartmentsModule,
     PositionsModule,
+    UsersModule,
     HealthModule,
   ],
 })
