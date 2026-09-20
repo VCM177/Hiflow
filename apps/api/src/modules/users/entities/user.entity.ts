@@ -31,7 +31,9 @@ export class User {
   @Column({ type: 'uuid', nullable: true })
   departmentId!: string | null;
 
-  @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
+  // RESTRICT, not SET NULL: deleting a department that still has members must
+  // be refused rather than silently detaching everyone from it.
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'department_id' })
   department?: Department | null;
 
