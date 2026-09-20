@@ -6,6 +6,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
+  departmentId: string | null;
   permissions: readonly GrantedPermission[];
 }
 

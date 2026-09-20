@@ -26,6 +26,7 @@ const userWithRole = (role: UserRole): AuthUser => ({
   email: `${role.toLowerCase()}@hiflow.local`,
   fullName: role,
   role,
+  departmentId: null,
   permissions: permissionsForRole(role),
 });
 

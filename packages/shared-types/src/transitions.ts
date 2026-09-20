@@ -1,4 +1,4 @@
-import { ApplicationStatus, RequisitionStatus } from './statuses';
+import { ApplicationStatus, JobStatus, RequisitionStatus } from './statuses';
 
 export type TransitionMap<S extends string> = Readonly<Record<S, readonly S[]>>;
 
@@ -37,6 +37,12 @@ export const APPLICATION_TRANSITIONS: TransitionMap<ApplicationStatus> = {
   [ApplicationStatus.HIRED]: [],
   [ApplicationStatus.REJECTED]: [],
   [ApplicationStatus.WITHDRAWN]: [],
+};
+
+export const JOB_TRANSITIONS: TransitionMap<JobStatus> = {
+  [JobStatus.DRAFT]: [JobStatus.OPEN],
+  [JobStatus.OPEN]: [JobStatus.CLOSED],
+  [JobStatus.CLOSED]: [],
 };
 
 export function canTransition<S extends string>(
