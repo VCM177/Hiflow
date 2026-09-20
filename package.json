@@ -15,7 +15,8 @@
     "dev": "npm run build:types && concurrently -k -n api,web -c blue,green \"npm run start:dev -w @hiflow/api\" \"npm run dev -w @hiflow/web\"",
     "build": "npm run build:types && npm run build -w @hiflow/api && npm run build -w @hiflow/web",
     "lint": "npm run lint -w @hiflow/api && npm run lint -w @hiflow/web",
-    "test": "npm run test -w @hiflow/api",
+    "test": "npm run build:types && npm run test -w @hiflow/api",
+    "test:e2e": "npm run build:types && npm run test:e2e -w @hiflow/api",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

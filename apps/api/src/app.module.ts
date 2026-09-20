@@ -1,7 +1,15 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { validateEnv } from './config/env.validation';
+import { dataSourceOptions } from './database/typeorm.config';
 import { HealthModule } from './health/health.module';
 
 @Module({
-  imports: [HealthModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    TypeOrmModule.forRoot(dataSourceOptions),
+    HealthModule,
+  ],
 })
 export class AppModule {}
