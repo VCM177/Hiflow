@@ -1,1 +1,7 @@
+# Refuse to commit anything that mentions another project's identity. The
+# scanner (and the words it looks for) is kept outside the repo on purpose.
+if [ -f ../tools/leak-scan.sh ]; then
+  sh ../tools/leak-scan.sh || exit 1
+fi
+
 npx lint-staged
