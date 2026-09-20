@@ -70,4 +70,13 @@ export class AuthService {
       },
     };
   }
+
+  /** How long the session cookie should live: as long as the token it carries. */
+  sessionMaxAgeMs(token: string): number | undefined {
+    const exp = this.jwt.decode<{ exp?: number } | null>(token)?.exp;
+
+    return typeof exp === 'number'
+      ? Math.max(0, exp * 1000 - Date.now())
+      : undefined;
+  }
 }

@@ -7,6 +7,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Repository } from 'typeorm';
 import { AuthUser, JwtPayload } from '../../common/types/auth-user';
 import { User } from '../users/entities/user.entity';
+import { tokenFromCookie } from './session-cookie';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -15,7 +16,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     @InjectRepository(User) private readonly users: Repository<User>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // An explicit Bearer header wins over the browser's cookie.
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        tokenFromCookie,
+      ]),
       ignoreExpiration: false,
       secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
     });

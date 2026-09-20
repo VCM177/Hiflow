@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
 import { parseAllowedOrigins } from './common/security/cors';
 import { proxySecretMiddleware } from './common/security/proxy-secret';
 import { parseTrustProxy } from './common/throttle/trust-proxy';
@@ -21,6 +22,8 @@ export function configureApp(app: INestApplication): void {
   if (proxySecret) {
     app.use(proxySecretMiddleware(proxySecret));
   }
+
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({
