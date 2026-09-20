@@ -209,7 +209,9 @@ describe('Dashboard (e2e)', () => {
       const jobId = await flow.openJob();
       const before = await overview(t.hr);
       const soon = await flow.toInterviewStage(jobId);
-      await flow.scheduleInterview(soon, { at: daysFromNow(2).toISOString() });
+      // The demo data books the interviewer two and four days out, and the
+      // double-booking rule (rightly) refuses anything within an hour of those.
+      await flow.scheduleInterview(soon, { at: daysFromNow(3).toISOString() });
       const later = await flow.toInterviewStage(jobId);
       await flow.scheduleInterview(later, {
         at: daysFromNow(20).toISOString(),
