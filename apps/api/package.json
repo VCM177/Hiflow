@@ -23,7 +23,8 @@
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
     "migration:show": "npm run typeorm -- migration:show",
-    "seed:base": "ts-node src/database/seeds/seed-base.ts"
+    "seed:base": "ts-node src/database/seeds/seed-base.ts",
+    "seed:demo": "ts-node src/database/seeds/seed-demo.ts"
   },
   "dependencies": {
     "@hiflow/shared-types": "^0.1.0",
