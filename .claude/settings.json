@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run format)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)",
+      "Bash(npm run build:types)",
+      "Bash(npm test)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch --show-current)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v code-review-graph >/dev/null 2>&1 && code-review-graph update || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v code-review-graph >/dev/null 2>&1 && code-review-graph build || true",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
