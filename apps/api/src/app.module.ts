@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from './common/cache/cache.module';
+import { ThrottleModule } from './common/throttle/throttle.module';
 import { validateEnv } from './config/env.validation';
 import { dataSourceOptions } from './database/typeorm.config';
 import { HealthModule } from './health/health.module';
@@ -25,6 +26,7 @@ import { UsersModule } from './modules/users/users.module';
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     TypeOrmModule.forRoot(dataSourceOptions),
     CacheModule,
+    ThrottleModule,
     AuthModule,
     ActivityLogsModule,
     StorageModule,

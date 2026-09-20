@@ -13,6 +13,25 @@ describe('validateEnv', () => {
     );
   });
 
+  it('needs Redis and the proxy depth in production, but not elsewhere', () => {
+    const base = { DATABASE_URL: 'postgresql://x', JWT_SECRET: 'secret' };
+
+    expect(() =>
+      validateEnv({ ...base, NODE_ENV: 'development' }),
+    ).not.toThrow();
+    expect(() => validateEnv({ ...base, NODE_ENV: 'production' })).toThrow(
+      'REDIS_URL, TRUST_PROXY',
+    );
+    expect(() =>
+      validateEnv({
+        ...base,
+        NODE_ENV: 'production',
+        REDIS_URL: 'rediss://x',
+        TRUST_PROXY: '2',
+      }),
+    ).not.toThrow();
+  });
+
   it('treats an empty string as missing', () => {
     expect(() =>
       validateEnv({ DATABASE_URL: 'postgresql://x', JWT_SECRET: '' }),

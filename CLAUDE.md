@@ -87,7 +87,7 @@ The backend is complete and passed its gate: 12 modules, 71 documented routes, 1
 ## Known gaps
 
 - Swagger documents request bodies but not responses (views are interfaces). The web app must follow the `*-view.ts` files.
-- No rate limiting anywhere yet.
-- Redis is not wired: `CacheService` uses an in-memory store (interface `CacheStore` is ready for a Redis one).
+- Rate limiting covers login only so far (per IP and per account, `common/throttle`). Counters live in Redis when `REDIS_URL` is set and fall back to per-process memory if Redis is down; e2e always counts in memory (`THROTTLE_STORAGE=memory`). The public routes still need their own policies.
+- `CacheService` still uses an in-memory store (interface `CacheStore` is ready for a Redis one); only the throttler talks to Redis.
 - Uploaded CVs are served from `/uploads` without authentication (unguessable file names). Fine on localhost; needs an authenticated download before deploying.
 - No notifications (email or in-app).
