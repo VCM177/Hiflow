@@ -10,9 +10,6 @@ export const REQUISITION_STATUS_LABEL: Readonly<
   [RequisitionStatus.CLOSED]: 'Đã đóng',
 };
 
-/** A user with no department must match no rows rather than every row. */
-export const NO_DEPARTMENT_ID = '00000000-0000-0000-0000-000000000000';
-
 export const REQUISITION_CODE_SEQUENCE = 'requisition_code_seq';
 
 /** Maps "METHOD route" of a logged write to the event shown on the timeline. */

@@ -15,8 +15,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository, SelectQueryBuilder } from 'typeorm';
 import { endOfDayExclusive, startOfDay, toDateOnly } from '../../common/dates';
-import { paginate, Paginated } from '../../common/pagination/paginate';
-import { containsPattern } from '../../common/pagination/paginate';
+import {
+  containsPattern,
+  paginate,
+  Paginated,
+} from '../../common/pagination/paginate';
+import { departmentScope } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
 import { ActivityLog } from '../activity-logs/entities/activity-log.entity';
 import { Department } from '../departments/entities/department.entity';
@@ -24,7 +28,6 @@ import { Job } from '../jobs/entities/job.entity';
 import { JobPosition } from '../positions/entities/job-position.entity';
 import { Requisition } from './entities/requisition.entity';
 import {
-  NO_DEPARTMENT_ID,
   REQUISITION_CODE_SEQUENCE,
   REQUISITION_EVENTS,
   REQUISITION_STATUS_LABEL,
@@ -323,10 +326,9 @@ export class RequisitionsService {
       .leftJoinAndSelect('req.createdBy', 'creator')
       .leftJoinAndSelect('req.approvedBy', 'approver');
 
-    if (actor.role === UserRole.DEPT_MANAGER) {
-      qb.andWhere('req.departmentId = :scopeDepartment', {
-        scopeDepartment: actor.departmentId ?? NO_DEPARTMENT_ID,
-      });
+    const scope = departmentScope(actor);
+    if (scope) {
+      qb.andWhere('req.departmentId = :scope', { scope });
     }
 
     return qb;
