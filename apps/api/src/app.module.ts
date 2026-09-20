@@ -6,6 +6,8 @@ import { dataSourceOptions } from './database/typeorm.config';
 import { HealthModule } from './health/health.module';
 import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
+import { PositionsModule } from './modules/positions/positions.module';
 import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
@@ -15,6 +17,8 @@ import { StorageModule } from './modules/storage/storage.module';
     AuthModule,
     ActivityLogsModule,
     StorageModule,
+    DepartmentsModule,
+    PositionsModule,
     HealthModule,
   ],
 })
