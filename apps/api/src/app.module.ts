@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { validateEnv } from './config/env.validation';
 import { dataSourceOptions } from './database/typeorm.config';
 import { HealthModule } from './health/health.module';
+import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { StorageModule } from './modules/storage/storage.module';
 
@@ -12,6 +13,7 @@ import { StorageModule } from './modules/storage/storage.module';
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     TypeOrmModule.forRoot(dataSourceOptions),
     AuthModule,
+    ActivityLogsModule,
     StorageModule,
     HealthModule,
   ],
