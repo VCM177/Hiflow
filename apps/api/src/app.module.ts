@@ -8,6 +8,7 @@ import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module
 import { AuthModule } from './modules/auth/auth.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
+import { RequisitionsModule } from './modules/requisitions/requisitions.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -21,6 +22,7 @@ import { UsersModule } from './modules/users/users.module';
     DepartmentsModule,
     PositionsModule,
     UsersModule,
+    RequisitionsModule,
     HealthModule,
   ],
 })
