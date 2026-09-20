@@ -22,6 +22,10 @@ export interface E2eContext {
  * exists, which is not the case in a testing module.
  */
 export async function createE2eApp(): Promise<E2eContext> {
+  // Caching is off unless a test opts in: otherwise dashboard and report
+  // numbers would be up to a minute stale and before/after checks would lie.
+  process.env.CACHE_TTL_SECONDS ??= '0';
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: false,
   });
