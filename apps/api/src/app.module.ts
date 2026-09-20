@@ -6,6 +6,7 @@ import { dataSourceOptions } from './database/typeorm.config';
 import { HealthModule } from './health/health.module';
 import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CandidatesModule } from './modules/candidates/candidates.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { PositionsModule } from './modules/positions/positions.module';
@@ -25,6 +26,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     RequisitionsModule,
     JobsModule,
+    CandidatesModule,
     HealthModule,
   ],
 })
