@@ -9,7 +9,9 @@ import { ApplicationsModule } from './modules/applications/applications.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CandidatesModule } from './modules/candidates/candidates.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
+import { InterviewsModule } from './modules/interviews/interviews.module';
 import { JobsModule } from './modules/jobs/jobs.module';
+import { OffersModule } from './modules/offers/offers.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { RequisitionsModule } from './modules/requisitions/requisitions.module';
 import { StorageModule } from './modules/storage/storage.module';
@@ -29,6 +31,8 @@ import { UsersModule } from './modules/users/users.module';
     JobsModule,
     CandidatesModule,
     ApplicationsModule,
+    InterviewsModule,
+    OffersModule,
     HealthModule,
   ],
 })
