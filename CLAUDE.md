@@ -28,6 +28,8 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 - The Neon project is dedicated to Hiflow and the Neon CLI is already logged in on this machine.
 - `.env` uses `sslmode=verify-full`; `psql` needs `sslmode=require` instead (libpq wants a root cert for verify-full).
 - Node 20. Pin every `@nestjs/*` package to major 11 (`swagger@^11`, `config@^4`, `serve-static@^5`...): the newest majors require Nest 12.
+- Production (`NODE_ENV=production`) refuses to boot without `REDIS_URL`, `TRUST_PROXY` and `PROXY_SECRET`. With `PROXY_SECRET` set, requests lacking the `x-hiflow-proxy-secret` header get a 404 (the web app's proxy adds it). `WEB_ORIGIN` is a comma-separated list of exact origins, never `*`.
+- `ConfigModule` snapshots `process.env` when `AppModule` is first imported. An e2e spec that needs its own env sets it in a helper module (`test/helpers/*-env.ts`, built on `overrideEnv`) imported before `helpers/e2e-app`.
 
 ## Backend rules
 

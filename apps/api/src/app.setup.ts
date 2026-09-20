@@ -1,6 +1,10 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { parseAllowedOrigins } from './common/security/cors';
+import { proxySecretMiddleware } from './common/security/proxy-secret';
 import { parseTrustProxy } from './common/throttle/trust-proxy';
+
+const LOCAL_WEB_ORIGIN = 'http://localhost:3000';
 
 /** Runtime configuration shared by `main.ts` and the e2e test harness. */
 export function configureApp(app: INestApplication): void {
@@ -13,6 +17,11 @@ export function configureApp(app: INestApplication): void {
     }
   ).set('trust proxy', parseTrustProxy(config.get<string>('TRUST_PROXY')));
 
+  const proxySecret = config.get<string>('PROXY_SECRET');
+  if (proxySecret) {
+    app.use(proxySecretMiddleware(proxySecret));
+  }
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -20,5 +29,15 @@ export function configureApp(app: INestApplication): void {
       transform: true,
     }),
   );
-  app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:3000' });
+
+  // In production the browser talks to the web app's own domain, which proxies
+  // to the API, so no cross-origin access is needed unless origins are listed.
+  const isProduction = config.get<string>('NODE_ENV') === 'production';
+  const origins = parseAllowedOrigins(
+    config.get<string>('WEB_ORIGIN') ??
+      (isProduction ? undefined : LOCAL_WEB_ORIGIN),
+  );
+  if (origins.length > 0) {
+    app.enableCors({ origin: origins, credentials: true });
+  }
 }

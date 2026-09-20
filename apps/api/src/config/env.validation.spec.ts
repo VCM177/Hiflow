@@ -13,14 +13,14 @@ describe('validateEnv', () => {
     );
   });
 
-  it('needs Redis and the proxy depth in production, but not elsewhere', () => {
+  it('needs Redis, the proxy depth and the proxy secret in production, but not elsewhere', () => {
     const base = { DATABASE_URL: 'postgresql://x', JWT_SECRET: 'secret' };
 
     expect(() =>
       validateEnv({ ...base, NODE_ENV: 'development' }),
     ).not.toThrow();
     expect(() => validateEnv({ ...base, NODE_ENV: 'production' })).toThrow(
-      'REDIS_URL, TRUST_PROXY',
+      'REDIS_URL, TRUST_PROXY, PROXY_SECRET',
     );
     expect(() =>
       validateEnv({
@@ -28,6 +28,7 @@ describe('validateEnv', () => {
         NODE_ENV: 'production',
         REDIS_URL: 'rediss://x',
         TRUST_PROXY: '2',
+        PROXY_SECRET: 'x',
       }),
     ).not.toThrow();
   });
