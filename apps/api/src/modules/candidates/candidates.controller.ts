@@ -12,15 +12,18 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import type { AuthUser } from '../../common/types/auth-user';
 import { CV_MAX_BYTES } from '../storage/cv-file.validator';
+import { sendDownload } from '../storage/send-download';
 import {
   CreateCandidateDto,
   ListCandidatesQueryDto,
@@ -71,6 +74,17 @@ export class CandidatesController {
     @CurrentUser() actor: AuthUser,
   ) {
     return this.candidates.setNote(id, dto.note, actor);
+  }
+
+  /** Redirects to a short-lived signed address, or streams the file, after the scope check. */
+  @Get(':id/cv')
+  @RequirePermissions(PERMISSIONS.candidate.listView)
+  async downloadCv(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+    @Res() response: Response,
+  ): Promise<void> {
+    sendDownload(response, await this.candidates.downloadCv(id, actor));
   }
 
   @Post(':id/cv')

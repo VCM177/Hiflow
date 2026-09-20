@@ -42,7 +42,7 @@ interface Detail {
   }[];
   interviews: { round: number; result: string; feedback: string | null }[];
   offer: { status: string } | null;
-  candidateDetail: { cvFileUrl: string | null } | null;
+  candidateDetail: { hasCv: boolean } | null;
 }
 
 /**
@@ -68,7 +68,6 @@ describe('Recruitment lifecycle (e2e)', () => {
     otherCandidateId: '',
     applicationId: '',
     interviewId: '',
-    cvUrl: '',
     overviewBefore: undefined as Overview | undefined,
   };
 
@@ -220,10 +219,13 @@ describe('Recruitment lifecycle (e2e)', () => {
           .set(bearer(t.recruiter))
           .attach('file', PDF, { filename: 'cv.pdf' })
           .expect(200)
-      ).body as { cvFileUrl: string };
-      s.cvUrl = withCv.cvFileUrl;
+      ).body as { hasCv: boolean };
+      expect(withCv.hasCv).toBe(true);
 
-      const download = await request(ctx.server).get(s.cvUrl).expect(200);
+      const download = await request(ctx.server)
+        .get(`/candidates/${s.candidateId}/cv`)
+        .set(bearer(t.recruiter))
+        .expect(200);
       expect(Buffer.from(download.body as Buffer).equals(PDF)).toBe(true);
     });
 
@@ -357,7 +359,7 @@ describe('Recruitment lifecycle (e2e)', () => {
         }),
       ]);
       expect(detail.offer?.status).toBe('ACCEPTED');
-      expect(detail.candidateDetail?.cvFileUrl).toBe(s.cvUrl);
+      expect(detail.candidateDetail?.hasCv).toBe(true);
 
       // HR can follow the application but is not allowed to see the offer.
       expect((await application(t.hr)).offer).toBeNull();
@@ -536,12 +538,18 @@ describe('Recruitment lifecycle (e2e)', () => {
   });
 
   describe('every endpoint is guarded', () => {
-    it('answers 401 to an anonymous caller on every route except the two public ones', async () => {
+    it('answers 401 to an anonymous caller on every route except the deliberately public ones', async () => {
       const document = SwaggerModule.createDocument(
         ctx.app,
         new DocumentBuilder().build(),
       );
-      const publicRoutes = new Set(['get /health', 'post /auth/login']);
+      // Every entry here is a decision: add one only for a route that must work
+      // without a login, and give it its own protections (see docs section 6).
+      const publicRoutes = new Set([
+        'get /health',
+        'post /auth/login',
+        'post /auth/logout',
+      ]);
       const anonymous: string[] = [];
       let checked = 0;
 
@@ -564,18 +572,19 @@ describe('Recruitment lifecycle (e2e)', () => {
         }
       }
 
-      // The API documents 71 operations today. This only guards against a
+      // The API documents 73 operations today. This only guards against a
       // route silently dropping out of the document (and so out of this check).
-      expect(checked).toBeGreaterThanOrEqual(71);
+      expect(checked).toBeGreaterThanOrEqual(73);
       expect(anonymous).toEqual([]);
     });
 
-    it('keeps the two public routes public', async () => {
+    it('keeps the public routes public', async () => {
       await request(ctx.server).get('/health').expect(200);
       await request(ctx.server)
         .post('/auth/login')
         .send({ email: 'nobody@hiflow.local', password: 'x' })
         .expect(401);
+      await request(ctx.server).post('/auth/logout').expect(204);
     });
   });
 

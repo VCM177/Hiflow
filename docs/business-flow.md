@@ -65,7 +65,7 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 Phạm vi:
 
 - Trang danh sách tin Đang tuyển và trang chi tiết tin, không cần đăng nhập.
-- Form ứng tuyển: họ tên, email, số điện thoại, CV (PDF, DOC, DOCX, tối đa 5MB).
+- Form ứng tuyển: họ tên, email, số điện thoại, CV (PDF hoặc DOCX, tối đa 5MB; định dạng .doc cũ bị từ chối).
 - Hồ sơ vào thẳng bậc Mới, nguồn ứng viên ghi là Website, chưa có người phụ trách (hiện ở việc cần xử lý của Tổng quan).
 - Nếu email đã có thì gắn hồ sơ vào ứng viên cũ thay vì tạo trùng; nếu ứng viên đã nộp vào tin này thì báo rõ, không tạo lần hai.
 
@@ -73,7 +73,7 @@ Yêu cầu bảo vệ, phải làm cùng lúc chứ không làm sau:
 
 - Giới hạn tần suất theo địa chỉ và theo email; cân nhắc captcha.
 - Chỉ công khai các trường an toàn của tin (không lộ người tạo, mã yêu cầu, số hồ sơ, ngân sách nội bộ).
-- Kiểm tra CV như hiện tại (đuôi tệp, chữ ký nhị phân, dung lượng); CV do người lạ tải lên không được tải xuống công khai.
+- Kiểm tra CV như hiện tại (đuôi tệp, nội dung thật của tệp phải khớp đuôi, dung lượng); CV do người lạ tải lên không được tải xuống công khai. **Đã cài đặt:** mọi CV là riêng tư, chỉ tải qua `GET /candidates/:id/cv` sau khi kiểm quyền và phạm vi; không còn đường công khai `/uploads`.
 - Không cho khách đọc bất kỳ dữ liệu ứng viên nào, kể cả để kiểm tra "email đã tồn tại": phản hồi phải giống nhau dù email có sẵn hay chưa.
 - Dữ liệu cá nhân: chỉ nhận đúng các trường cần, có dòng đồng ý xử lý dữ liệu trên form.
 

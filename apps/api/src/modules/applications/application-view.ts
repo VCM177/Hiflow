@@ -53,7 +53,7 @@ export interface ApplicationDetail extends ApplicationListItem {
   note: string | null;
   candidateDetail: {
     phone: string | null;
-    cvFileUrl: string | null;
+    hasCv: boolean;
   } | null;
   history: ApplicationHistoryItem[];
   interviews: ApplicationInterviewItem[];

@@ -12,7 +12,7 @@ interface Item {
 }
 interface Detail extends Item {
   note: string | null;
-  candidateDetail: { phone: string | null; cvFileUrl: string | null } | null;
+  candidateDetail: { phone: string | null; hasCv: boolean } | null;
   history: {
     fromStatus: string | null;
     toStatus: string;
@@ -520,7 +520,7 @@ describe('Applications (e2e)', () => {
 
       expect(app.candidateDetail).toEqual({
         phone: '0901234567',
-        cvFileUrl: null,
+        hasCv: false,
       });
     });
   });

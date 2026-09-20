@@ -33,7 +33,7 @@ export class Candidate {
   source!: CandidateSource;
 
   @Column({ type: 'varchar', nullable: true })
-  cvFileUrl!: string | null;
+  cvFileKey!: string | null;
 
   @Column({ type: 'text', nullable: true })
   note!: string | null;

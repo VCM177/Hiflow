@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import request from 'supertest';
 import { bearer, createE2eApp, E2eContext, loginAs } from './helpers/e2e-app';
+import { createFlow, loginAll } from './helpers/flow';
 
 interface Cand {
   id: string;
@@ -12,7 +13,7 @@ interface Cand {
   phone: string | null;
   dob: string | null;
   source: string;
-  cvFileUrl: string | null;
+  hasCv: boolean;
   note: string | null;
   applications: unknown[];
 }
@@ -35,7 +36,17 @@ describe('Candidates (e2e)', () => {
 
   const cvFiles = async () =>
     existsSync(join(uploadRoot, 'cv')) ? readdir(join(uploadRoot, 'cv')) : [];
-  const onDisk = (url: string) => join(uploadRoot, 'cv', url.split('/').pop()!);
+  // The key never appears in the API, only in the row.
+  const keyOf = async (id: string): Promise<string | null> => {
+    const rows: { cv_file_key: string | null }[] = await ctx.dataSource.query(
+      `SELECT cv_file_key FROM candidates WHERE id = $1`,
+      [id],
+    );
+    return rows[0]?.cv_file_key ?? null;
+  };
+  const onDisk = (key: string) => join(uploadRoot, 'cv', basename(key));
+  const downloadCv = (id: string, token = recruiter) =>
+    request(ctx.server).get(`/candidates/${id}/cv`).set(bearer(token));
 
   const cleanup = async () => {
     await ctx.dataSource.query(
@@ -135,7 +146,7 @@ describe('Candidates (e2e)', () => {
       const c = await make('basic');
 
       expect(c.source).toBe('OTHER');
-      expect(c.cvFileUrl).toBeNull();
+      expect(c.hasCv).toBe(false);
       expect(c.note).toBeNull();
       expect(c.applications).toEqual([]);
     });
@@ -172,7 +183,7 @@ describe('Candidates (e2e)', () => {
       ['a malformed phone', { phone: '12345' }],
       ['a letters-only phone', { phone: 'abcdefghij' }],
       ['an unknown source', { source: 'CARRIER_PIGEON' }],
-      ['an unexpected field', { cvFileUrl: '/uploads/cv/evil.pdf' }],
+      ['an unexpected field', { cvFileKey: 'cv/evil.pdf' }],
       ['a malformed date of birth', { dob: 'yesterday' }],
     ])('rejects %s', async (_label, override) => {
       await request(ctx.server)
@@ -338,7 +349,7 @@ describe('Candidates (e2e)', () => {
     it('rejects bad query values', async () => {
       for (const q of [
         'source=NOPE',
-        'sortBy=cvFileUrl',
+        'sortBy=cvFileKey',
         'createdFrom=yesterday',
         'limit=999',
       ]) {
@@ -351,31 +362,90 @@ describe('Candidates (e2e)', () => {
   });
 
   describe('CV upload', () => {
-    it('stores a valid PDF and serves it back as an attachment', async () => {
+    it('stores a valid PDF privately: the view only says there is one, the key stays in the row', async () => {
       const c = await make('cv');
       const updated = (await upload(c.id, PDF).expect(200)).body as Cand;
 
-      expect(updated.cvFileUrl).toMatch(/^\/uploads\/cv\/[0-9a-f-]{36}\.pdf$/);
-      expect(existsSync(onDisk(updated.cvFileUrl!))).toBe(true);
+      expect(updated.hasCv).toBe(true);
+      expect(JSON.stringify(updated)).not.toContain('cv/');
+      const key = await keyOf(c.id);
+      expect(key).toMatch(/^cv\/[0-9a-f-]{36}\.pdf$/);
+      expect(existsSync(onDisk(key!))).toBe(true);
+    });
 
-      const download = await request(ctx.server)
-        .get(updated.cvFileUrl!)
-        .expect(200);
-      expect(download.headers['content-disposition']).toBe('attachment');
+    it('is not served from any public path', async () => {
+      const c = await make('nopublic');
+      await upload(c.id, PDF).expect(200);
+      const key = (await keyOf(c.id))!;
+
+      await request(ctx.server).get(`/uploads/${key}`).expect(404);
+      await request(ctx.server).get(`/${key}`).expect(404);
+    });
+
+    it('downloads through the authenticated endpoint as a non-sniffable attachment', async () => {
+      const c = await make('dl');
+      await upload(c.id, PDF).expect(200);
+
+      const download = await downloadCv(c.id).expect(200);
+
+      expect(download.headers['content-type']).toContain('application/pdf');
+      expect(download.headers['content-disposition']).toBe(
+        `attachment; filename="CV-${c.id}.pdf"`,
+      );
       expect(download.headers['x-content-type-options']).toBe('nosniff');
+      expect(download.headers['cache-control']).toBe('private, no-store');
       expect(Buffer.from(download.body as Buffer).toString()).toContain(
         'fake cv body',
       );
     });
 
+    it('needs a login to download, and answers 404 when there is no CV', async () => {
+      const c = await make('dlauth');
+
+      await request(ctx.server).get(`/candidates/${c.id}/cv`).expect(401);
+      await downloadCv(c.id).expect(404);
+    });
+
+    it('lets a role with candidate access download, and refuses one without (department manager)', async () => {
+      const c = await make('dlperm');
+      await upload(c.id, PDF).expect(200);
+
+      await downloadCv(c.id, hr).expect(200);
+      await downloadCv(c.id, manager).expect(403);
+    });
+
+    it('scopes an interviewer to the candidates they interview', async () => {
+      const flow = createFlow(ctx, await loginAll(ctx), 'E2E-cvscope');
+
+      try {
+        const jobId = await flow.openJob();
+        const scheduled = await flow.candidate('scheduled');
+        const stranger = await flow.candidate('stranger');
+        await upload(scheduled.id, PDF).expect(200);
+        await upload(stranger.id, PDF).expect(200);
+
+        const appId = await flow.application(jobId, scheduled.id);
+        await flow.move(appId, 'SCREENING').expect(200);
+        await flow.move(appId, 'INTERVIEW').expect(200);
+        await flow.scheduleInterview(appId);
+
+        await downloadCv(scheduled.id, interviewer).expect(200);
+        await downloadCv(stranger.id, interviewer).expect(404);
+      } finally {
+        await flow.cleanup();
+      }
+    });
+
     it('replaces the previous CV and deletes the old file', async () => {
       const c = await make('replace');
-      const first = (await upload(c.id, PDF).expect(200)).body as Cand;
-      const second = (await upload(c.id, PDF).expect(200)).body as Cand;
+      await upload(c.id, PDF).expect(200);
+      const first = (await keyOf(c.id))!;
+      await upload(c.id, PDF).expect(200);
+      const second = (await keyOf(c.id))!;
 
-      expect(second.cvFileUrl).not.toBe(first.cvFileUrl);
-      expect(existsSync(onDisk(first.cvFileUrl!))).toBe(false);
-      expect(existsSync(onDisk(second.cvFileUrl!))).toBe(true);
+      expect(second).not.toBe(first);
+      expect(existsSync(onDisk(first))).toBe(false);
+      expect(existsSync(onDisk(second))).toBe(true);
     });
 
     it.each([
@@ -385,6 +455,22 @@ describe('Candidates (e2e)', () => {
         Buffer.from('#!/bin/sh\nrm -rf /'),
         'cv.pdf',
       ],
+      [
+        'a Windows executable renamed to .pdf',
+        Buffer.concat([Buffer.from('MZ'), Buffer.alloc(200, 0x90)]),
+        'cv.pdf',
+      ],
+      [
+        'a Windows executable renamed to .docx',
+        Buffer.concat([Buffer.from('MZ'), Buffer.alloc(200, 0x90)]),
+        'cv.docx',
+      ],
+      [
+        'a legacy .doc',
+        Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0]),
+        'cv.doc',
+      ],
+      ['a PDF renamed to .docx', PDF, 'cv.docx'],
       ['an empty file', Buffer.alloc(0), 'cv.pdf'],
     ])('rejects %s and changes nothing', async (_label, content, filename) => {
       const c = await make('badcv');
@@ -399,7 +485,7 @@ describe('Candidates (e2e)', () => {
           .set(bearer(recruiter))
           .expect(200)
       ).body as Cand;
-      expect(after.cvFileUrl).toBeNull();
+      expect(after.hasCv).toBe(false);
     });
 
     it('rejects a file over 5MB with 413', async () => {
@@ -433,7 +519,8 @@ describe('Candidates (e2e)', () => {
 
     it('removes the CV file and clears the link', async () => {
       const c = await make('rm');
-      const withCv = (await upload(c.id, PDF).expect(200)).body as Cand;
+      await upload(c.id, PDF).expect(200);
+      const key = (await keyOf(c.id))!;
 
       const cleared = (
         await request(ctx.server)
@@ -442,9 +529,9 @@ describe('Candidates (e2e)', () => {
           .expect(200)
       ).body as Cand;
 
-      expect(cleared.cvFileUrl).toBeNull();
-      expect(existsSync(onDisk(withCv.cvFileUrl!))).toBe(false);
-      await request(ctx.server).get(withCv.cvFileUrl!).expect(404);
+      expect(cleared.hasCv).toBe(false);
+      expect(existsSync(onDisk(key))).toBe(false);
+      await downloadCv(c.id).expect(404);
       await request(ctx.server)
         .delete(`/candidates/${c.id}/cv`)
         .set(bearer(recruiter))
@@ -455,7 +542,8 @@ describe('Candidates (e2e)', () => {
   describe('deleting', () => {
     it('deletes the candidate and their CV file', async () => {
       const c = await make('del');
-      const withCv = (await upload(c.id, PDF).expect(200)).body as Cand;
+      await upload(c.id, PDF).expect(200);
+      const key = (await keyOf(c.id))!;
 
       await request(ctx.server)
         .delete(`/candidates/${c.id}`)
@@ -466,7 +554,7 @@ describe('Candidates (e2e)', () => {
         .get(`/candidates/${c.id}`)
         .set(bearer(recruiter))
         .expect(404);
-      expect(existsSync(onDisk(withCv.cvFileUrl!))).toBe(false);
+      expect(existsSync(onDisk(key))).toBe(false);
     });
 
     it('404s for an unknown candidate', () => {

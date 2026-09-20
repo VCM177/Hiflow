@@ -148,7 +148,7 @@ export class ApplicationsService {
       candidateDetail: application.candidate
         ? {
             phone: application.candidate.phone,
-            cvFileUrl: application.candidate.cvFileUrl,
+            hasCv: application.candidate.cvFileKey !== null,
           }
         : null,
       history: history.map(toHistoryItem),

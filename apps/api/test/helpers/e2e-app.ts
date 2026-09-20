@@ -17,9 +17,9 @@ export interface E2eContext {
 /**
  * Boots the whole application against the configured database.
  *
- * Uses NestFactory, exactly as main.ts does, rather than Test.createTestingModule:
- * ServeStaticModule (uploaded CVs) only registers when the HTTP adapter already
- * exists, which is not the case in a testing module.
+ * Uses NestFactory, exactly as main.ts does, so the app is built the same way
+ * it runs (adapter, middleware and lifecycle hooks) rather than through the
+ * lighter Test.createTestingModule.
  */
 export async function createE2eApp(): Promise<E2eContext> {
   // Caching is off unless a test opts in: otherwise dashboard and report

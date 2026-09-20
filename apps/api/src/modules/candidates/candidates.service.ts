@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { extname } from 'node:path';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { endOfDayExclusive, startOfDay, toDateOnly } from '../../common/dates';
 import { rethrowDbError } from '../../common/errors/db-errors';
@@ -16,7 +17,11 @@ import {
 } from '../../common/pagination/paginate';
 import type { AuthUser } from '../../common/types/auth-user';
 import { Application } from '../applications/entities/application.entity';
-import { StorageService, UploadedFileData } from '../storage/storage.service';
+import {
+  FileDownload,
+  StorageService,
+  UploadedFileData,
+} from '../storage/storage.service';
 import {
   CandidateDetailView,
   CandidateView,
@@ -170,16 +175,16 @@ export class CandidatesService {
     actor: AuthUser,
   ): Promise<CandidateDetailView> {
     const candidate = await this.findScoped(id, actor);
-    const previous = candidate.cvFileUrl;
+    const previous = candidate.cvFileKey;
 
     // Validates the file and writes it; throws 400 before anything is saved.
-    const { url } = await this.storage.upload(file);
+    const { key } = await this.storage.upload(file);
 
     try {
-      await this.candidates.update(id, { cvFileUrl: url });
+      await this.candidates.update(id, { cvFileKey: key });
     } catch (error) {
       // Do not leave an orphaned file behind if the row could not be updated.
-      await this.discardFile(url);
+      await this.discardFile(key);
       throw error;
     }
 
@@ -190,13 +195,27 @@ export class CandidatesService {
   async removeCv(id: string, actor: AuthUser): Promise<CandidateDetailView> {
     const candidate = await this.findScoped(id, actor);
 
-    if (!candidate.cvFileUrl) {
+    if (!candidate.cvFileKey) {
       throw new NotFoundException('Ứng viên chưa có CV');
     }
 
-    await this.candidates.update(id, { cvFileUrl: null });
-    await this.discardFile(candidate.cvFileUrl);
+    await this.candidates.update(id, { cvFileKey: null });
+    await this.discardFile(candidate.cvFileKey);
     return this.get(id, actor);
+  }
+
+  /** The caller is authorised by the same scope rule as reading the candidate. */
+  async downloadCv(id: string, actor: AuthUser): Promise<FileDownload> {
+    const candidate = await this.findScoped(id, actor);
+
+    if (!candidate.cvFileKey) {
+      throw new NotFoundException('Ứng viên chưa có CV');
+    }
+
+    return this.storage.download(
+      candidate.cvFileKey,
+      `CV-${id}${extname(candidate.cvFileKey)}`,
+    );
   }
 
   async remove(id: string, actor: AuthUser): Promise<void> {
@@ -210,7 +229,7 @@ export class CandidatesService {
       });
     }
 
-    if (candidate.cvFileUrl) await this.discardFile(candidate.cvFileUrl);
+    if (candidate.cvFileKey) await this.discardFile(candidate.cvFileKey);
   }
 
   /** An interviewer only sees candidates they are scheduled to interview. */
@@ -258,12 +277,12 @@ export class CandidatesService {
   }
 
   /** Best effort: a leftover file is a nuisance, never a reason to fail the request. */
-  private async discardFile(url: string): Promise<void> {
+  private async discardFile(key: string): Promise<void> {
     try {
-      await this.storage.remove(url);
+      await this.storage.remove(key);
     } catch (error) {
       this.logger.warn(
-        `Could not delete ${url}: ${error instanceof Error ? error.message : String(error)}`,
+        `Could not delete ${key}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

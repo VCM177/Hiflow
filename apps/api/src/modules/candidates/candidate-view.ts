@@ -8,7 +8,8 @@ export interface CandidateView {
   phone: string | null;
   dob: string | null;
   source: CandidateSource;
-  cvFileUrl: string | null;
+  /** The file itself is only reachable through `GET /candidates/:id/cv`. */
+  hasCv: boolean;
   note: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -33,7 +34,7 @@ export const toCandidateView = (c: Candidate): CandidateView => ({
   phone: c.phone,
   dob: c.dob,
   source: c.source,
-  cvFileUrl: c.cvFileUrl,
+  hasCv: c.cvFileKey !== null,
   note: c.note,
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,

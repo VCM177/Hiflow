@@ -1,17 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { assertValidCv } from './cv-file.validator';
-import { resolveUploadRoot, UPLOAD_URL_PREFIX } from './storage.constants';
 import {
+  contentTypeOfKey,
+  CV_SUBDIR,
+  resolveUploadRoot,
+} from './storage.constants';
+import {
+  FileDownload,
   StorageService,
   StoredFile,
   UploadedFileData,
 } from './storage.service';
-
-const CV_SUBDIR = 'cv';
 
 @Injectable()
 export class LocalDiskStorage extends StorageService {
@@ -23,23 +27,51 @@ export class LocalDiskStorage extends StorageService {
   }
 
   async upload(file: UploadedFileData): Promise<StoredFile> {
-    const ext = assertValidCv(file);
+    const ext = await assertValidCv(file);
     // Server-generated name: the client's filename is never used on disk.
     const filename = `${randomUUID()}${ext}`;
 
     await mkdir(this.cvDir, { recursive: true });
     await writeFile(join(this.cvDir, filename), file.buffer);
 
-    return { url: `${UPLOAD_URL_PREFIX}/${CV_SUBDIR}/${filename}` };
+    return { key: `${CV_SUBDIR}/${filename}` };
   }
 
-  async remove(url: string): Promise<void> {
-    if (!url.startsWith(`${UPLOAD_URL_PREFIX}/${CV_SUBDIR}/`)) {
-      return;
+  async remove(key: string): Promise<void> {
+    const path = this.pathOf(key);
+    if (path) await rm(path, { force: true });
+  }
+
+  async download(key: string, filename: string): Promise<FileDownload> {
+    const path = this.pathOf(key);
+
+    if (!path || !(await this.isFile(path))) {
+      throw new NotFoundException('Không tìm thấy tệp CV');
     }
 
-    // basename() drops any `../` segments, so the target can only ever be a
-    // direct child of the CV directory.
-    await rm(join(this.cvDir, basename(url)), { force: true });
+    return {
+      kind: 'stream',
+      stream: createReadStream(path),
+      contentType: contentTypeOfKey(key),
+      filename,
+    };
+  }
+
+  /**
+   * basename() drops any `../` segments, so the target can only ever be a
+   * direct child of the CV directory; other prefixes are not ours at all.
+   */
+  private pathOf(key: string): string | null {
+    if (!key.startsWith(`${CV_SUBDIR}/`)) return null;
+
+    return join(this.cvDir, basename(key));
+  }
+
+  private async isFile(path: string): Promise<boolean> {
+    try {
+      return (await stat(path)).isFile();
+    } catch {
+      return false;
+    }
   }
 }

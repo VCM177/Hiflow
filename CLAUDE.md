@@ -27,7 +27,7 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 - `apps/api/.env` is git-ignored and holds the Neon connection string and JWT secret. **Never print, echo or paste it.** `.env.example` documents every variable.
 - The Neon project is dedicated to Hiflow and the Neon CLI is already logged in on this machine.
 - `.env` uses `sslmode=verify-full`; `psql` needs `sslmode=require` instead (libpq wants a root cert for verify-full).
-- Node 20. Pin every `@nestjs/*` package to major 11 (`swagger@^11`, `config@^4`, `serve-static@^5`...): the newest majors require Nest 12.
+- Node 20. Pin every `@nestjs/*` package to major 11 (`swagger@^11`, `config@^4`, `throttler@^6`...): the newest majors require Nest 12.
 - Production (`NODE_ENV=production`) refuses to boot without `REDIS_URL`, `TRUST_PROXY` and `PROXY_SECRET`. With `PROXY_SECRET` set, requests lacking the `x-hiflow-proxy-secret` header get a 404 (the web app's proxy adds it). `WEB_ORIGIN` is a comma-separated list of exact origins, never `*`.
 - `ConfigModule` snapshots `process.env` when `AppModule` is first imported. An e2e spec that needs its own env sets it in a helper module (`test/helpers/*-env.ts`, built on `overrideEnv`) imported before `helpers/e2e-app`.
 
@@ -92,5 +92,5 @@ The backend is complete and passed its gate: 12 modules, 71 documented routes, 1
 - Swagger documents request bodies but not responses (views are interfaces). The web app must follow the `*-view.ts` files.
 - Rate limiting covers login only so far (per IP and per account, `common/throttle`). Counters live in Redis when `REDIS_URL` is set and fall back to per-process memory if Redis is down; e2e always counts in memory (`THROTTLE_STORAGE=memory`). The public routes still need their own policies.
 - `CacheService` still uses an in-memory store (interface `CacheStore` is ready for a Redis one); only the throttler talks to Redis.
-- Uploaded CVs are served from `/uploads` without authentication (unguessable file names). Fine on localhost; needs an authenticated download before deploying.
+- CVs are private: the column holds a storage key (`cv/<uuid>.pdf`), views only expose `hasCv`, and the file is reached through `GET /candidates/:id/cv` (streamed by the local-disk driver). Only PDF and DOCX are accepted, checked by content with `file-type@16` (v17+ is ESM-only and needs Node 22). The Supabase driver (signed URL, 60 s) is not written yet.
 - No notifications (email or in-app).

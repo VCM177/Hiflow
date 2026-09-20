@@ -1,16 +1,11 @@
-import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
-import { configureApp } from './../src/app.setup';
+import { createE2eApp, E2eContext } from './helpers/e2e-app';
 
-describe('Uploaded files (e2e)', () => {
-  let app: NestExpressApplication;
-  let server: App;
+describe('Uploaded files are private (e2e)', () => {
+  let ctx: E2eContext;
   let root: string;
 
   beforeAll(async () => {
@@ -21,50 +16,27 @@ describe('Uploaded files (e2e)', () => {
 
     // ConfigService prefers process.env over the .env file.
     process.env.UPLOAD_DIR = root;
-
-    // Deliberately NestFactory (as main.ts does), not Test.createTestingModule:
-    // ServeStaticModule picks its loader while providers are built, which in a
-    // testing module happens before the HTTP adapter exists and yields a no-op
-    // loader that silently serves nothing.
-    app = await NestFactory.create<NestExpressApplication>(AppModule, {
-      logger: false,
-    });
-    configureApp(app);
-    await app.init();
-    server = app.getHttpServer();
+    ctx = await createE2eApp();
   });
 
   afterAll(async () => {
-    await app.close();
+    await ctx.app.close();
     delete process.env.UPLOAD_DIR;
     await rm(root, { recursive: true, force: true });
   });
 
-  it('serves a stored file as a non-sniffable attachment', async () => {
-    const response = await request(server)
-      .get('/uploads/cv/sample.pdf')
-      .expect(200);
+  it.each([
+    '/uploads/cv/sample.pdf',
+    '/cv/sample.pdf',
+    '/uploads/cv/',
+    '/uploads/cv/.hidden',
+    '/uploads/cv/..%2F..%2Fsample.pdf',
+  ])('does not serve the upload folder over HTTP: %s', async (path) => {
+    const response = await request(ctx.server).get(path);
 
-    expect(response.headers['content-disposition']).toBe('attachment');
-    expect(response.headers['x-content-type-options']).toBe('nosniff');
-    expect(response.body).toBeDefined();
-  });
-
-  it('answers 404 for a file that does not exist', () => {
-    return request(server).get('/uploads/cv/missing.pdf').expect(404);
-  });
-
-  it('does not list the directory', async () => {
-    const response = await request(server).get('/uploads/cv/');
-
-    expect(response.status).not.toBe(200);
-    expect(response.text).not.toContain('sample.pdf');
-  });
-
-  it('refuses dotfiles', async () => {
-    const response = await request(server).get('/uploads/cv/.hidden');
-
-    expect(response.status).not.toBe(200);
+    // 401 or 404 both mean "not served"; what matters is that no bytes leak.
+    expect([401, 404]).toContain(response.status);
+    expect(response.text).not.toContain('e2e body');
     expect(response.text).not.toContain('top-secret');
   });
 });

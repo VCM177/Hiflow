@@ -1,25 +1,27 @@
 import { BadRequestException } from '@nestjs/common';
+import { fromBuffer } from 'file-type';
 import { extname } from 'node:path';
 import { UploadedFileData } from './storage.service';
 
 export const CV_MAX_BYTES = 5 * 1024 * 1024;
 
-// The declared mimetype comes from the client and cannot be trusted, so the
-// file's leading bytes must match its extension.
-const CV_SIGNATURES: Record<string, readonly number[]> = {
-  '.pdf': [0x25, 0x50, 0x44, 0x46],
-  '.docx': [0x50, 0x4b, 0x03, 0x04],
-  '.doc': [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1],
+// The declared extension and mimetype come from the client and prove nothing.
+// The file's own bytes must say the same thing: file-type reads the leading
+// bytes (and, for Office files, the names inside the zip) and reports what the
+// file really is. Legacy `.doc` is refused outright.
+const DETECTED_TYPE_BY_EXTENSION: Readonly<Record<string, string>> = {
+  '.pdf': 'pdf',
+  '.docx': 'docx',
 };
 
 /** Returns the normalised extension when the file is an acceptable CV. */
-export function assertValidCv(file: UploadedFileData): string {
+export async function assertValidCv(file: UploadedFileData): Promise<string> {
   const ext = extname(file.originalname).toLowerCase();
-  const signature = CV_SIGNATURES[ext];
+  const expectedType = DETECTED_TYPE_BY_EXTENSION[ext];
 
-  if (!signature) {
+  if (!expectedType) {
     throw new BadRequestException(
-      'Chỉ chấp nhận tệp CV định dạng PDF, DOC hoặc DOCX',
+      'Chỉ chấp nhận tệp CV định dạng PDF hoặc DOCX',
     );
   }
 
@@ -31,11 +33,9 @@ export function assertValidCv(file: UploadedFileData): string {
     throw new BadRequestException('Tệp CV không được vượt quá 5MB');
   }
 
-  const matchesSignature = signature.every(
-    (byte, index) => file.buffer[index] === byte,
-  );
+  const detected = await fromBuffer(file.buffer);
 
-  if (!matchesSignature) {
+  if (detected?.ext !== expectedType) {
     throw new BadRequestException('Nội dung tệp không khớp với định dạng CV');
   }
 
