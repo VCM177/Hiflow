@@ -58,6 +58,18 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 - Chain the branch check into the commit command: `[ "$(git branch --show-current)" = "develop" ] && git commit ...`.
 - The repository identity is already configured locally. Do not change it or use the global one.
 
+## Working agreements
+
+Skills and hooks live in `.claude/`: `/tl-review` (plan gate before coding, PASS/BLOCK gate before a commit), `/commit-summary`, `/unit-test`, and the `admin-design-guide` skill (load it before any web screen). `.claude/hooks/guard.mjs` blocks commit trailers, `--no-verify`, bare `git stash pop`, whole-tree restores, and printing `.env` files or secrets, and asks before push, merge, rebase and hard resets.
+
+- **Ask, do not assume.** When planning a feature, ask for the response shape, the permission behavior and the expected screen before writing code. Never guess a business rule; write the assumption into `docs/business-flow.md` section 7 and get it confirmed.
+- **Verify before anything irreversible.** Before a commit, delete, overwrite, history rewrite or push, check the real state (branch, `git status`, what the target contains) instead of acting on a remembered or stated list. Docs go stale; the code and the database do not.
+- **Grep before deleting an export.** Search the whole repo, tests and other packages included, for every symbol you remove or rename.
+- **Do not split branches** just because a change touches several modules; only when one part is large or risky enough to deserve its own review.
+- **Anti-patterns to refuse:** a god component or service (over ~400 lines, several concerns); prop drilling and Context used to dodge it; many independent `useState` for one concern (use `useReducer`); a mapper that does more than map; a second badge or table style per domain; business constants hardcoded in components; state mirrored with `useEffect`; a form built before its query data is ready.
+- **Public surface first needs protections.** Anything unauthenticated ships together with rate limiting, minimal fields, identical responses for known and unknown records, and safe upload handling.
+- **Report faithfully.** State real command output and exit codes. If a check was skipped, say so.
+
 ## Isolation
 
 This project must not contain the name, domain, brand, code or data of any other project. Write things fresh rather than copying from elsewhere. The pre-commit hook runs `../tools/leak-scan.sh` (kept outside the repo); never bypass it with `--no-verify`.
