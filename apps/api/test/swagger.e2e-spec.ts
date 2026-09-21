@@ -1,5 +1,6 @@
 import { OpenAPIObject } from '@nestjs/swagger';
 import { createE2eApp, E2eContext } from './helpers/e2e-app';
+import { collectRoutes } from './helpers/routes';
 import { buildSwaggerDocument } from './../src/swagger';
 
 type Operation = {
@@ -42,6 +43,18 @@ describe('OpenAPI contract (e2e)', () => {
     ]);
     expect(servers[1].description).toContain('proxy');
     expect(servers[2].description).toBe('Production (Cloud Run)');
+  });
+
+  it('documents exactly the routes the application serves: none missing, none invented', () => {
+    // {id} in OpenAPI is :id in the router.
+    const documented = operationsOf(document)
+      .map(({ key }) => key.replace(/\{([^}]+)\}/g, ':$1'))
+      .sort();
+    const served = collectRoutes(ctx)
+      .map((route) => route.key)
+      .sort();
+
+    expect(documented).toEqual(served);
   });
 
   it('leaves the production server out when PUBLIC_API_URL is not set', () => {

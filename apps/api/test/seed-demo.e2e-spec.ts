@@ -94,7 +94,9 @@ describe('Demo seed (e2e)', () => {
             step.to_status as ApplicationStatus,
           ),
         ).toBe(true);
-        expect(step.changed_at.getTime()).toBeGreaterThanOrEqual(
+        // Strictly later: two steps at the same instant would draw a timeline
+        // whose order the reader cannot trust.
+        expect(step.changed_at.getTime()).toBeGreaterThan(
           steps[i].changed_at.getTime(),
         );
       });
@@ -102,6 +104,30 @@ describe('Demo seed (e2e)', () => {
         steps.every((s) => s.changed_at.getTime() <= Date.now() + 1000),
       ).toBe(true);
     }
+  });
+
+  it('spreads the application dates over the last 30 days, not clustered on a few days', async () => {
+    const rows = await q<{ applied_on: string; n: number }[]>(
+      `SELECT to_char(a.applied_at, 'YYYY-MM-DD') AS applied_on, COUNT(*)::int AS n
+         FROM applications a JOIN candidates c ON c.id = a.candidate_id
+        WHERE ${DEMO} GROUP BY 1 ORDER BY 1`,
+    );
+    const bounds = await q<{ first: Date; last: Date }[]>(
+      `SELECT MIN(a.applied_at) AS first, MAX(a.applied_at) AS last
+         FROM applications a JOIN candidates c ON c.id = a.candidate_id
+        WHERE ${DEMO}`,
+    );
+    const day = 24 * 3_600_000;
+    const { first, last } = bounds[0];
+
+    expect(Date.now() - first.getTime()).toBeLessThanOrEqual(30 * day);
+    expect(last.getTime()).toBeLessThanOrEqual(Date.now() + 1000);
+    // The window is really covered: the earliest is weeks old, the latest is recent.
+    expect(Date.now() - first.getTime()).toBeGreaterThanOrEqual(20 * day);
+    expect(Date.now() - last.getTime()).toBeLessThanOrEqual(2 * day);
+    // No cluster: many different days, and never more than two applications on one.
+    expect(rows.length).toBeGreaterThanOrEqual(12);
+    expect(Math.max(...rows.map((row) => row.n))).toBeLessThanOrEqual(2);
   });
 
   it('respects the workflow rules: offers need a passed interview, hires need an accepted offer', async () => {
