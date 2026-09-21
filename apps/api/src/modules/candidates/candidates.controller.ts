@@ -17,7 +17,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiFoundResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
@@ -79,6 +86,21 @@ export class CandidatesController {
   /** Redirects to a short-lived signed address, or streams the file, after the scope check. */
   @Get(':id/cv')
   @RequirePermissions(PERMISSIONS.candidate.listView)
+  @ApiOkResponse({
+    description: 'Tệp CV (khi lưu trên đĩa cục bộ)',
+    content: {
+      'application/octet-stream': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiFoundResponse({
+    description:
+      'Chuyển tới liên kết tải có chữ ký, hết hạn sau 60 giây (khi lưu trên Supabase)',
+  })
+  @ApiNotFoundResponse({
+    description: 'Ứng viên không tồn tại, ngoài phạm vi, hoặc chưa có CV',
+  })
   async downloadCv(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() actor: AuthUser,

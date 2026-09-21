@@ -1,5 +1,11 @@
 import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
-import { ApiBearerAuth, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCookieAuth,
+  ApiForbiddenResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -23,6 +29,8 @@ export class AuthController {
   @RateLimit(THROTTLE_POLICY.LOGIN_IP, THROTTLE_POLICY.LOGIN_ACCOUNT)
   @Post('login')
   @HttpCode(200)
+  @ApiUnauthorizedResponse({ description: 'Email hoặc mật khẩu không đúng' })
+  @ApiForbiddenResponse({ description: 'Tài khoản đã bị khóa' })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) response: Response,
@@ -47,7 +55,7 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @ApiCookieAuth(SESSION_COOKIE)
+  @ApiCookieAuth()
   @Get('me')
   me(@CurrentUser() user: AuthUser): AuthUser {
     return user;

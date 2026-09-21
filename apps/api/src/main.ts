@@ -1,23 +1,14 @@
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { configureApp } from './app.setup';
+import { buildSwaggerDocument } from './swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   configureApp(app);
-
-  const document = SwaggerModule.createDocument(
-    app,
-    new DocumentBuilder()
-      .setTitle('Hiflow API')
-      .setDescription('Recruitment management API')
-      .setVersion('0.1.0')
-      .addBearerAuth()
-      .build(),
-  );
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('docs', app, buildSwaggerDocument(app));
 
   await app.listen(process.env.PORT ?? 4000);
 }
