@@ -51,6 +51,7 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 - Boot the app with `createE2eApp()` (it uses `NestFactory`, exactly as `main.ts` does).
 - **A test may only touch data it created** (tag prefix `E2E-` / `e2e-`) and must clean it up. After a run the seeded departments and accounts must be unchanged.
 - Build state through the API with `createFlow` (`apps/api/test/helpers/flow.ts`); its counters are module-level so two flows never collide.
+- `test/rbac-matrix.e2e-spec.ts` reads every route's real metadata and checks each of the 5 roles: 403 exactly where its permissions fall short, never where they suffice, no 2xx from an empty write, and every non-public route declares `@RequirePermissions` (or is on the short login-only list in that file). A new route is covered automatically; a route added without a permission fails the suite.
 - Caching is off in e2e (`CACHE_TTL_SECONDS=0`); tests that need it opt in.
 - Prefer before/after deltas over absolute counts: the demo data is present.
 - When a test fails, find out why before changing anything. Do not weaken a business rule to make a test pass; fix the test's wrong assumption. Do not hide errors with `head`/`tail`/`grep`; read the tail of the log and the real exit code.
@@ -64,7 +65,7 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 
 ## Working agreements
 
-Skills and hooks live in `.claude/`: `/tl-review` (plan gate before coding, PASS/BLOCK gate before a commit), `/commit-summary`, `/unit-test`, and the `admin-design-guide` skill (load it before any web screen). `.claude/hooks/guard.mjs` blocks commit trailers, `--no-verify`, bare `git stash pop`, whole-tree restores, and printing `.env` files or secrets, and asks before merge, rebase, hard resets and any push except a plain `git push origin develop`.
+Skills and hooks live in `.claude/`: `/tl-review` (plan gate before coding, PASS/BLOCK gate before a commit), `/gate-audit` (acceptance-gate checklist against the real code, tests and database; writes `docs/gate-a-audit.md`), `/commit-summary`, `/unit-test`, and the `admin-design-guide` skill (load it before any web screen). `.claude/hooks/guard.mjs` blocks commit trailers, `--no-verify`, bare `git stash pop`, whole-tree restores, and printing `.env` files or secrets, and asks before merge, rebase, hard resets and any push except a plain `git push origin develop`.
 
 - **Ask, do not assume.** When planning a feature, ask for the response shape, the permission behavior and the expected screen before writing code. Never guess a business rule; write the assumption into `docs/business-flow.md` section 7 and get it confirmed.
 - **Verify before anything irreversible.** Before a commit, delete, overwrite, history rewrite or push, check the real state (branch, `git status`, what the target contains) instead of acting on a remembered or stated list. Docs go stale; the code and the database do not.
