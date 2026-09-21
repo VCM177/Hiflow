@@ -51,6 +51,8 @@ export interface ApplicationOfferItem {
 
 export interface ApplicationDetail extends ApplicationListItem {
   note: string | null;
+  /** This application came with its own CV: `GET /applications/:id/cv`. */
+  hasCv: boolean;
   candidateDetail: {
     phone: string | null;
     hasCv: boolean;

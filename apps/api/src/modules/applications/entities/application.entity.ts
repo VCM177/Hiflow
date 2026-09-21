@@ -54,6 +54,14 @@ export class Application {
   @Column({ type: 'text', nullable: true })
   note!: string | null;
 
+  /**
+   * The CV sent with this application (storage key, never a URL). It lives here
+   * rather than on the candidate so a later submission by someone using the same
+   * email can never replace the CV of an earlier one.
+   */
+  @Column({ type: 'varchar', nullable: true })
+  cvFileKey!: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 

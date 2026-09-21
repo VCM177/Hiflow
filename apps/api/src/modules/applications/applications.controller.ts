@@ -11,11 +11,20 @@ import {
   Post,
   Put,
   Query,
+  Res,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiFoundResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import type { AuthUser } from '../../common/types/auth-user';
+import { sendDownload } from '../storage/send-download';
 import {
   AssignApplicationDto,
   ChangeStatusDto,
@@ -44,6 +53,33 @@ export class ApplicationsController {
   @RequirePermissions(PERMISSIONS.application.listView)
   get(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: AuthUser) {
     return this.applications.get(id, actor);
+  }
+
+  /** Redirects to a short-lived signed address, or streams the file, after the scope check. */
+  @Get(':id/cv')
+  @RequirePermissions(PERMISSIONS.application.listView)
+  @ApiOkResponse({
+    description: 'Tệp CV (khi lưu trên đĩa cục bộ)',
+    content: {
+      'application/octet-stream': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiFoundResponse({
+    description:
+      'Chuyển tới liên kết tải có chữ ký, hết hạn sau 60 giây (khi lưu trên Supabase)',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'Hồ sơ không tồn tại, ngoài phạm vi, hoặc không có CV đính kèm',
+  })
+  async downloadCv(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+    @Res() response: Response,
+  ): Promise<void> {
+    sendDownload(response, await this.applications.downloadCv(id, actor));
   }
 
   @Post()

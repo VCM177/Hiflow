@@ -4,6 +4,7 @@ import { Candidate } from '../candidates/entities/candidate.entity';
 import { Interview } from '../interviews/entities/interview.entity';
 import { Job } from '../jobs/entities/job.entity';
 import { Offer } from '../offers/entities/offer.entity';
+import { StorageModule } from '../storage/storage.module';
 import { User } from '../users/entities/user.entity';
 import { ApplicationWorkflowService } from './application-workflow.service';
 import { ApplicationsController } from './applications.controller';
@@ -22,6 +23,7 @@ import { ApplicationStatusHistory } from './entities/application-status-history.
       Interview,
       Offer,
     ]),
+    StorageModule,
   ],
   controllers: [ApplicationsController],
   providers: [ApplicationsService, ApplicationWorkflowService],

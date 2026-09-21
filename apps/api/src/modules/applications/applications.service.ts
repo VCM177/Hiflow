@@ -9,9 +9,11 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { extname } from 'node:path';
 import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import { endOfDayExclusive, startOfDay } from '../../common/dates';
 import { rethrowDbError } from '../../common/errors/db-errors';
@@ -26,6 +28,7 @@ import { Candidate } from '../candidates/entities/candidate.entity';
 import { Interview } from '../interviews/entities/interview.entity';
 import { Job } from '../jobs/entities/job.entity';
 import { Offer } from '../offers/entities/offer.entity';
+import { FileDownload, StorageService } from '../storage/storage.service';
 import { User } from '../users/entities/user.entity';
 import { ApplicationWorkflowService } from './application-workflow.service';
 import {
@@ -54,6 +57,8 @@ const SORT_COLUMNS: Record<ListApplicationsQueryDto['sortBy'], string> = {
 
 @Injectable()
 export class ApplicationsService {
+  private readonly logger = new Logger(ApplicationsService.name);
+
   constructor(
     @InjectRepository(Application)
     private readonly applications: Repository<Application>,
@@ -68,6 +73,7 @@ export class ApplicationsService {
     @InjectRepository(Offer) private readonly offers: Repository<Offer>,
     private readonly workflow: ApplicationWorkflowService,
     private readonly dataSource: DataSource,
+    private readonly storage: StorageService,
   ) {}
 
   async list(
@@ -145,6 +151,7 @@ export class ApplicationsService {
     return {
       ...toListItem(application),
       note: application.note,
+      hasCv: application.cvFileKey !== null,
       candidateDetail: application.candidate
         ? {
             phone: application.candidate.phone,
@@ -211,6 +218,20 @@ export class ApplicationsService {
     }
   }
 
+  /** Authorised by the same scope rule as reading the application. */
+  async downloadCv(id: string, actor: AuthUser): Promise<FileDownload> {
+    const application = await this.findScoped(id, actor);
+
+    if (!application.cvFileKey) {
+      throw new NotFoundException('Hồ sơ này không có CV đính kèm');
+    }
+
+    return this.storage.download(
+      application.cvFileKey,
+      `CV-${id}${extname(application.cvFileKey)}`,
+    );
+  }
+
   async assign(
     id: string,
     assigneeId: string | null,
@@ -268,6 +289,17 @@ export class ApplicationsService {
       throw new ConflictException(
         'Hồ sơ vừa được xử lý bởi người khác, vui lòng tải lại',
       );
+    }
+
+    if (application.cvFileKey) {
+      // Best effort: a leftover file is a nuisance, never a reason to fail.
+      await this.storage
+        .remove(application.cvFileKey)
+        .catch((error: unknown) => {
+          this.logger.warn(
+            `Could not delete ${application.cvFileKey}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        });
     }
   }
 
