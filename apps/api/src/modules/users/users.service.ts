@@ -38,7 +38,9 @@ export class UsersService {
   async list(query: ListUsersQueryDto): Promise<Paginated<UserView>> {
     const qb = this.users
       .createQueryBuilder('account')
-      .leftJoinAndSelect('account.department', 'department');
+      .leftJoinAndSelect('account.department', 'department')
+      // The built-in system account is not a person anyone manages.
+      .where('account.isSystem = false');
 
     if (query.search) {
       qb.andWhere('(account.fullName ILIKE :q OR account.email ILIKE :q)', {
@@ -70,7 +72,7 @@ export class UsersService {
 
   async get(id: string): Promise<UserView> {
     const user = await this.users.findOne({
-      where: { id },
+      where: { id, isSystem: false },
       relations: { department: true },
     });
 
@@ -176,7 +178,7 @@ export class UsersService {
   }
 
   private async findEntity(id: string): Promise<User> {
-    const user = await this.users.findOne({ where: { id } });
+    const user = await this.users.findOne({ where: { id, isSystem: false } });
 
     if (!user) {
       throw new NotFoundException('Không tìm thấy người dùng');

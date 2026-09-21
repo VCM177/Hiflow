@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -11,6 +12,11 @@ import {
 import { Department } from '../../departments/entities/department.entity';
 
 @Entity('users')
+// At most one system account can exist.
+@Index('UQ_users_single_system', ['isSystem'], {
+  unique: true,
+  where: '"is_system"',
+})
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -39,6 +45,14 @@ export class User {
 
   @Column({ default: true })
   isActive!: boolean;
+
+  /**
+   * The one built-in account that authors changes no person made (a candidate
+   * applying through the website). It is locked, has an unknowable password and
+   * is invisible to every user-facing endpoint.
+   */
+  @Column({ default: false })
+  isSystem!: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

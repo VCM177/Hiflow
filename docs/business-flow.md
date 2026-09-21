@@ -54,7 +54,7 @@ HR không được cấp hay chạm vào tài khoản Admin; không ai tự đ�
 
 ## 5. Vết truy ngược
 
-Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi nào, ghi chú). Mọi thao tác ghi (POST, PUT, PATCH, DELETE) vào nhật ký hoạt động với mật khẩu đã được che. Timeline của yêu cầu tuyển dụng lấy từ nhật ký này.
+Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi nào, ghi chú). Hồ sơ do ứng viên tự nộp qua website không có người đăng nhập nên được ghi dưới **tài khoản hệ thống** `system@hiflow.local` (tên hiển thị "Ứng viên (Website)"): tài khoản này do migration tạo, bị khóa, mật khẩu ngẫu nhiên không ai biết, không đăng nhập được, không xuất hiện trong danh sách người dùng, không được phân công hồ sơ hay xếp lịch phỏng vấn, và mọi API quản lý người dùng đều trả 404 với nó. Mọi thao tác ghi (POST, PUT, PATCH, DELETE) vào nhật ký hoạt động với mật khẩu đã được che. Timeline của yêu cầu tuyển dụng lấy từ nhật ký này.
 
 ## 6. "Mở tuyển dụng" và cách ứng viên nộp hồ sơ
 
