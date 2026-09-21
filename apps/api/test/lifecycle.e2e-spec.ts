@@ -549,6 +549,8 @@ describe('Recruitment lifecycle (e2e)', () => {
         'get /health',
         'post /auth/login',
         'post /auth/logout',
+        'get /public/jobs',
+        'get /public/jobs/{id}',
       ]);
       const anonymous: string[] = [];
       let checked = 0;
@@ -572,9 +574,9 @@ describe('Recruitment lifecycle (e2e)', () => {
         }
       }
 
-      // The API documents 73 operations today. This only guards against a
+      // The API documents 75 operations today. This only guards against a
       // route silently dropping out of the document (and so out of this check).
-      expect(checked).toBeGreaterThanOrEqual(73);
+      expect(checked).toBeGreaterThanOrEqual(75);
       expect(anonymous).toEqual([]);
     });
 

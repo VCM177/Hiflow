@@ -60,7 +60,7 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 
 **Hiện tại** "Đăng tin" chỉ là công tắc trạng thái nội bộ: tin chuyển sang Đang tuyển và ghi thời điểm đăng. Chỉ tin Đang tuyển mới nhận được hồ sơ. Chưa có trang công khai, và ứng viên không tự nộp: nhân viên tuyển dụng nhập ứng viên rồi tạo hồ sơ thay họ.
 
-**Hướng đã chọn (chưa làm): cổng công khai cho ứng viên tự nộp.**
+**Hướng đã chọn: cổng công khai cho ứng viên tự nộp.** Đã làm: danh sách và chi tiết tin Đang tuyển (`GET /public/jobs`, `GET /public/jobs/:id`, hiện mức lương, giới hạn 60 lượt mỗi phút mỗi địa chỉ, tin nháp hoặc đã đóng trả 404 giống hệt tin không tồn tại). Chưa làm: form nộp hồ sơ.
 
 Phạm vi:
 

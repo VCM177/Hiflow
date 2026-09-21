@@ -7,6 +7,7 @@ import { createE2eApp } from './helpers/e2e-app';
 
 const LOGIN_IP_LIMIT = 10;
 const LOGIN_ACCOUNT_LIMIT = 20;
+const PUBLIC_READ_LIMIT = 60;
 
 describe('Login rate limiting (e2e)', () => {
   let app: INestApplication;
@@ -82,6 +83,25 @@ describe('Login rate limiting (e2e)', () => {
       .set('X-Forwarded-For', ip)
       .send({ email: { $ne: '' }, password: 'x' })
       .expect(429);
+  });
+
+  it('limits browsing the public job board per address, with Retry-After', async () => {
+    const ip = nextIp();
+    const browse = () =>
+      request(server).get('/public/jobs?limit=1').set('X-Forwarded-For', ip);
+
+    for (let i = 0; i < PUBLIC_READ_LIMIT; i++) {
+      await browse().expect(200);
+    }
+
+    const blocked = await browse().expect(429);
+    expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
+    // Another visitor is not affected, and login has its own separate counter.
+    await request(server)
+      .get('/public/jobs?limit=1')
+      .set('X-Forwarded-For', nextIp())
+      .expect(200);
+    await attempt('e2e-browser@hiflow.local', ip).expect(401);
   });
 
   it('never throttles the health check that the keep-alive job calls', async () => {

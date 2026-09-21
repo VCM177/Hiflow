@@ -2,6 +2,7 @@
 export const THROTTLE_POLICY = {
   LOGIN_IP: 'login-ip',
   LOGIN_ACCOUNT: 'login-account',
+  PUBLIC_READ_IP: 'public-read-ip',
 } as const;
 
 export type ThrottlePolicy =

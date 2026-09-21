@@ -92,11 +92,15 @@ describe('OpenAPI contract (e2e)', () => {
         .map(({ key }) => key)
         .sort();
 
-      expect(publicRoutes).toEqual([
-        'get /health',
-        'post /auth/login',
-        'post /auth/logout',
-      ]);
+      expect(publicRoutes).toEqual(
+        [
+          'get /health',
+          'post /auth/login',
+          'post /auth/logout',
+          'get /public/jobs',
+          'get /public/jobs/{id}',
+        ].sort(),
+      );
     });
   });
 
@@ -141,6 +145,16 @@ describe('OpenAPI contract (e2e)', () => {
 
       expect(tooMany.description).toContain('Retry-After');
       expect(Object.keys(tooMany.headers ?? {})).toEqual(['Retry-After']);
+    });
+
+    it('is documented on the public job board too', () => {
+      const all = new Map(
+        operationsOf(document).map(({ key, operation }) => [key, operation]),
+      );
+
+      for (const key of ['get /public/jobs', 'get /public/jobs/{id}']) {
+        expect(all.get(key)?.responses).toHaveProperty('429');
+      }
     });
 
     it('is not claimed on routes that have no rate limit', () => {

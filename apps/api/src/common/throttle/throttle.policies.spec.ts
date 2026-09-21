@@ -29,10 +29,23 @@ describe('accountTracker', () => {
 
 describe('buildThrottlers', () => {
   it('scales every limit', () => {
-    const limits = (scale: number) =>
-      buildThrottlers(scale).map((throttler) => throttler.limit);
+    const limits = (scale: number): Record<string, unknown> => {
+      const byName: Record<string, unknown> = {};
+      for (const throttler of buildThrottlers(scale)) {
+        byName[throttler.name ?? ''] = throttler.limit;
+      }
+      return byName;
+    };
 
-    expect(limits(1)).toEqual([10, 20]);
-    expect(limits(1000)).toEqual([10_000, 20_000]);
+    expect(limits(1)).toEqual({
+      'login-ip': 10,
+      'login-account': 20,
+      'public-read-ip': 60,
+    });
+    expect(limits(1000)).toEqual({
+      'login-ip': 10_000,
+      'login-account': 20_000,
+      'public-read-ip': 60_000,
+    });
   });
 });

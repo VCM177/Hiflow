@@ -26,6 +26,12 @@ export const buildThrottlers = (scale: number): ThrottlerOptions[] => [
     limit: 10 * scale,
   },
   {
+    // Browsing the job board: generous for a person, tight for a scraper.
+    name: THROTTLE_POLICY.PUBLIC_READ_IP,
+    ttl: seconds(60),
+    limit: 60 * scale,
+  },
+  {
     name: THROTTLE_POLICY.LOGIN_ACCOUNT,
     ttl: minutes(15),
     limit: 20 * scale,

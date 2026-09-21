@@ -16,6 +16,7 @@ import { InterviewsModule } from './modules/interviews/interviews.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { OffersModule } from './modules/offers/offers.module';
 import { PositionsModule } from './modules/positions/positions.module';
+import { PublicModule } from './modules/public/public.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { RequisitionsModule } from './modules/requisitions/requisitions.module';
 import { StorageModule } from './modules/storage/storage.module';
@@ -41,6 +42,7 @@ import { UsersModule } from './modules/users/users.module';
     OffersModule,
     DashboardModule,
     ReportsModule,
+    PublicModule,
     HealthModule,
   ],
 })
