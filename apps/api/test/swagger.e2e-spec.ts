@@ -99,6 +99,7 @@ describe('OpenAPI contract (e2e)', () => {
           'post /auth/logout',
           'get /public/jobs',
           'get /public/jobs/{id}',
+          'post /public/jobs/{id}/applications',
         ].sort(),
       );
     });

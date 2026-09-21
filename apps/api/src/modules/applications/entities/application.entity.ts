@@ -62,6 +62,14 @@ export class Application {
   @Column({ type: 'varchar', nullable: true })
   cvFileKey!: string | null;
 
+  /**
+   * When the applicant agreed to their personal data being processed for this
+   * application (the consent line on the public form). Null for applications
+   * staff entered on someone's behalf.
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  consentAt!: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 

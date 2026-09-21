@@ -41,11 +41,15 @@ describe('buildThrottlers', () => {
       'login-ip': 10,
       'login-account': 20,
       'public-read-ip': 60,
+      'public-apply-ip': 10,
+      'public-apply-email': 3,
     });
     expect(limits(1000)).toEqual({
       'login-ip': 10_000,
       'login-account': 20_000,
       'public-read-ip': 60_000,
+      'public-apply-ip': 10_000,
+      'public-apply-email': 3_000,
     });
   });
 });

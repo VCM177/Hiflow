@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from './common/cache/cache.module';
+import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
 import { ThrottleModule } from './common/throttle/throttle.module';
 import { validateEnv } from './config/env.validation';
 import { dataSourceOptions } from './database/typeorm.config';
@@ -23,6 +25,7 @@ import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
+  providers: [{ provide: APP_FILTER, useClass: MulterExceptionFilter }],
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     TypeOrmModule.forRoot(dataSourceOptions),

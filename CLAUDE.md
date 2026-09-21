@@ -28,7 +28,7 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 - The Neon project is dedicated to Hiflow and the Neon CLI is already logged in on this machine.
 - `.env` uses `sslmode=verify-full`; `psql` needs `sslmode=require` instead (libpq wants a root cert for verify-full).
 - Node 20. Pin every `@nestjs/*` package to major 11 (`swagger@^11`, `config@^4`, `throttler@^6`...): the newest majors require Nest 12.
-- Production (`NODE_ENV=production`) refuses to boot without `REDIS_URL`, `TRUST_PROXY` and `PROXY_SECRET`. With `PROXY_SECRET` set, requests lacking the `x-hiflow-proxy-secret` header get a 404 (the web app's proxy adds it). `WEB_ORIGIN` is a comma-separated list of exact origins, never `*`.
+- Production (`NODE_ENV=production`) refuses to boot without `REDIS_URL`, `TRUST_PROXY`, `PROXY_SECRET` and `TURNSTILE_SECRET`, and needs `STORAGE_DRIVER=supabase` and `MAIL_DRIVER=resend` (with their keys). With `PROXY_SECRET` set, requests lacking the `x-hiflow-proxy-secret` header get a 404 (the web app's proxy adds it). `WEB_ORIGIN` is a comma-separated list of exact origins, never `*`.
 - `ConfigModule` snapshots `process.env` when `AppModule` is first imported. An e2e spec that needs its own env sets it in a helper module (`test/helpers/*-env.ts`, built on `overrideEnv`) imported before `helpers/e2e-app`.
 
 ## Backend rules
@@ -48,7 +48,7 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 ## Testing rules
 
 - e2e runs against the real Neon database, sequentially, with a 30 s timeout (each request costs ~100 ms).
-- Boot the app with `createE2eApp()` (it uses `NestFactory`). `Test.createTestingModule` silently disables static file serving.
+- Boot the app with `createE2eApp()` (it uses `NestFactory`, exactly as `main.ts` does).
 - **A test may only touch data it created** (tag prefix `E2E-` / `e2e-`) and must clean it up. After a run the seeded departments and accounts must be unchanged.
 - Build state through the API with `createFlow` (`apps/api/test/helpers/flow.ts`); its counters are module-level so two flows never collide.
 - Caching is off in e2e (`CACHE_TTL_SECONDS=0`); tests that need it opt in.
@@ -80,19 +80,22 @@ This project must not contain the name, domain, brand, code or data of any other
 
 ## Current state
 
-The backend is complete and passed its gate: 12 modules, 71 documented routes, 111 unit tests, 421 e2e tests, migrations and seeds proven from an empty database. Business rules are written up in `docs/business-flow.md`.
+The backend passed its first gate (12 modules, 71 documented routes, 111 unit tests, 421 e2e tests, migrations and seeds proven from an empty database) and has since been hardened for the internet: rate limiting, private CV storage with signed downloads, session cookie, proxy secret and CORS whitelist, OpenAPI contract with servers and 401/403/429, and the public job board and application form (see Backend rules). Business rules are written up in `docs/business-flow.md`. Gate A is **not fully closed**: the tests that need real Supabase and Redis accounts are skipped until their keys are in `apps/api/.env` (see Known gaps).
 
 **Next, in order:**
 
-1. **Public job board and application form** (candidates apply themselves). See the design notes in `docs/business-flow.md`. This is the first public surface, so it needs rate limiting, safe handling of uploaded CVs and of personal data first.
-2. Web infrastructure: theme tokens, layout shell, auth, API client, shared components (nothing feature-specific until this is done).
-3. Web modules, one by one, in dependency order.
+1. Web infrastructure: theme tokens, layout shell, auth, API client, shared components (nothing feature-specific until this is done).
+2. Web modules, one by one, in dependency order.
 
 ## Known gaps
 
 - Swagger documents request bodies but not responses (views are interfaces). The web app must follow the `*-view.ts` files.
-- Rate limiting (`common/throttle`, opt in with `@RateLimit(policy)`): login per IP and per account, public job board reads per IP. Counters live in Redis when `REDIS_URL` is set and fall back to per-process memory if Redis is down; e2e always counts in memory (`THROTTLE_STORAGE=memory`). The public application form still needs its own policies.
-- Everything anonymous lives in `modules/public/` (`GET /public/jobs`, `GET /public/jobs/:id`): only open jobs, only the fields of `PublicJobView` (salary included), a draft or closed job answers the same 404 as an unknown id. Job descriptions are staff-written rich text: the web app must sanitise them.
+- Rate limiting (`common/throttle`, opt in with `@RateLimit(policy)`): login per IP and per account, public reads per IP, application form per IP. Values that only exist after the body is parsed (the email on the form) go through `AttemptLimiter`, which shares the same storage and raises a 429 with `Retry-After`. Counters live in Redis when `REDIS_URL` is set and fall back to per-process memory if Redis is down; e2e always counts in memory (`THROTTLE_STORAGE=memory`).
+- Everything anonymous lives in `modules/public/`: `GET /public/jobs[/:id]` (only open jobs, only the fields of `PublicJobView`, salary included, a draft or closed job answers the same 404 as an unknown id) and `POST /public/jobs/:id/applications` (multipart form). The form always answers the same 202 body whatever happened (new, repeat, email on file), never edits an existing candidate, keeps the CV on the application, credits the system user, is skipped by the audit log, and is protected by Turnstile, per-IP and per-email limits. Job descriptions are staff-written rich text: the web app must sanitise them.
+- **Mail** (`modules/mail`): `MAIL_DRIVER=outbox` (default; keeps messages in memory, tests read `app.get(MailService).sent`) or `resend` (required in production). Templates are plain text only. **Turnstile**: `TURNSTILE_SECRET` unset means not checked (dev/tests); production requires it. Cloudflare's test secrets (`1x0000000000000000000000000000000AA` always passes, `2x...AA` always fails) need no account and the captcha e2e specs call the real siteverify endpoint.
+- `MulterExceptionFilter` turns any multer error into 400 (413 for size): multer 2 rewords messages that Nest matches by text, so an unexpected file field would otherwise answer 500.
 - `CacheService` still uses an in-memory store (interface `CacheStore` is ready for a Redis one); only the throttler talks to Redis.
 - CVs are private: the column holds a storage key (`cv/<uuid>.pdf`), views only expose `hasCv`, and the file is reached through `GET /candidates/:id/cv`. `STORAGE_DRIVER=local` (default; dev and tests) streams from disk; `STORAGE_DRIVER=supabase` redirects to a 60 s signed URL of a private bucket and is required in production. The Supabase adapter is unit-tested with a fake bucket; its real-service test (`test/supabase-storage.e2e-spec.ts`) is skipped until `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set. Use `@supabase/storage-js`, not `supabase-js`: `createClient` needs a native WebSocket and throws at boot on Node 20. Only PDF and DOCX are accepted, checked by content with `file-type@16` (v17+ is ESM-only and needs Node 22). `npm audit` flags `file-type@16` (GHSA-5v7r-6r5c-r473, ASF parser loop): the validator only calls it after a `%PDF` or `PK` header, so that parser is unreachable; upgrade with Node 22.
-- No notifications (email or in-app).
+- Only the candidate confirmation email exists; no other notification (email or in-app). Resend delivers to arbitrary addresses only after a sending domain is verified.
+- Skipped until keys exist: `test/supabase-storage.e2e-spec.ts` (needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) and `test/throttle-redis.e2e-spec.ts` (needs `REDIS_URL`). Nothing has run against a real Resend account either.
+- `E2E_LOGS=1` prints the server's error log during an e2e run, for finding why a request answered 500.

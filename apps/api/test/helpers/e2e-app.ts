@@ -27,7 +27,8 @@ export async function createE2eApp(): Promise<E2eContext> {
   process.env.CACHE_TTL_SECONDS ??= '0';
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: false,
+    // E2E_LOGS=1 shows the server's own error log, for finding why a request failed.
+    logger: process.env.E2E_LOGS ? ['error', 'warn'] : false,
   });
   configureApp(app);
   await app.init();

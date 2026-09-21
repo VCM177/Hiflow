@@ -27,8 +27,61 @@ import { ApplicationStatusHistory } from './entities/application-status-history.
  * Callers pass a transaction manager: the status change, its history row and
  * the side effects below either all happen or none do.
  */
+export interface NewApplication {
+  candidateId: string;
+  jobId: string;
+  assigneeId?: string | null;
+  note?: string | null;
+  cvFileKey?: string | null;
+  consentAt?: Date | null;
+  /** Who is credited with creating it (the system user for website submissions). */
+  createdById: string;
+  historyNote: string;
+}
+
 @Injectable()
 export class ApplicationWorkflowService {
+  /**
+   * The only place an application is born: always in status NEW, together with
+   * its first history row. Returns the new id, or null when this candidate has
+   * already applied to this job (nothing is written then), so a caller can
+   * choose between a 409 and a quiet "already applied".
+   */
+  async createNew(
+    manager: EntityManager,
+    data: NewApplication,
+  ): Promise<string | null> {
+    const inserted = await manager
+      .createQueryBuilder()
+      .insert()
+      .into(Application)
+      .values({
+        candidateId: data.candidateId,
+        jobId: data.jobId,
+        assigneeId: data.assigneeId ?? null,
+        note: data.note ?? null,
+        cvFileKey: data.cvFileKey ?? null,
+        consentAt: data.consentAt ?? null,
+        status: ApplicationStatus.NEW,
+      })
+      .orIgnore()
+      .returning('id')
+      .execute();
+
+    const [row] = inserted.raw as { id: string }[];
+    if (!row) return null;
+
+    await manager.insert(ApplicationStatusHistory, {
+      applicationId: row.id,
+      fromStatus: null,
+      toStatus: ApplicationStatus.NEW,
+      note: data.historyNote,
+      changedById: data.createdById,
+    });
+
+    return row.id;
+  }
+
   async moveTo(
     manager: EntityManager,
     application: Pick<Application, 'id' | 'status'>,

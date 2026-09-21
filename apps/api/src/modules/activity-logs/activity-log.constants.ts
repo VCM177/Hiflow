@@ -7,12 +7,14 @@ export const LOGGED_METHODS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Route patterns never recorded: a login body carries a password, and logging
- * out changes no record worth showing in the activity log.
+ * Route patterns never recorded: a login body carries a password, logging out
+ * changes no record worth showing, and an application form is a stranger's
+ * personal data (its trace is the application's own history row).
  */
 export const SKIP_LOG_ROUTES: readonly string[] = [
   '/auth/login',
   '/auth/logout',
+  '/public/jobs/:id/applications',
 ];
 
 /** Maps the first URL segment to the entity name shown in the log. */

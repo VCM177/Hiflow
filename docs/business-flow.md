@@ -58,26 +58,19 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 
 ## 6. "Mở tuyển dụng" và cách ứng viên nộp hồ sơ
 
-**Hiện tại** "Đăng tin" chỉ là công tắc trạng thái nội bộ: tin chuyển sang Đang tuyển và ghi thời điểm đăng. Chỉ tin Đang tuyển mới nhận được hồ sơ. Chưa có trang công khai, và ứng viên không tự nộp: nhân viên tuyển dụng nhập ứng viên rồi tạo hồ sơ thay họ.
+"Đăng tin" chuyển tin sang Đang tuyển và ghi thời điểm đăng. Chỉ tin Đang tuyển mới nhận được hồ sơ, từ nhân viên tuyển dụng hoặc từ ứng viên tự nộp qua cổng công khai.
 
-**Hướng đã chọn: cổng công khai cho ứng viên tự nộp.** Đã làm: danh sách và chi tiết tin Đang tuyển (`GET /public/jobs`, `GET /public/jobs/:id`, hiện mức lương, giới hạn 60 lượt mỗi phút mỗi địa chỉ, tin nháp hoặc đã đóng trả 404 giống hệt tin không tồn tại). Chưa làm: form nộp hồ sơ.
+**Cổng công khai (đã cài đặt)**, không cần đăng nhập, mọi đường công khai nằm trong `modules/public`:
 
-Phạm vi:
+- `GET /public/jobs` và `GET /public/jobs/:id`: chỉ tin Đang tuyển, chỉ các trường dành cho ứng viên (tiêu đề, phòng ban, vị trí, địa điểm, mô tả, số lượng, **mức lương**, ngày đăng). Không lộ người tạo, mã yêu cầu, số hồ sơ. Tin nháp, đã đóng hoặc không có đều trả cùng một lỗi 404. Giới hạn 60 lượt mỗi phút mỗi địa chỉ.
+- `POST /public/jobs/:id/applications` (multipart): họ tên, email, số điện thoại, CV (PDF hoặc DOCX, tối đa 5MB; `.doc` cũ bị từ chối), dòng đồng ý xử lý dữ liệu (`consent=true`, thời điểm đồng ý lưu ở hồ sơ), mã Cloudflare Turnstile. Form chỉ nhận đúng các trường này; trường lạ bị từ chối.
+- Hồ sơ vào thẳng bậc Mới, nguồn ứng viên là Website, chưa có người phụ trách (hiện ở việc cần xử lý của Tổng quan), dòng lịch sử đầu tiên ghi dưới tài khoản hệ thống. CV nằm trên hồ sơ (`GET /applications/:id/cv`), không ghi đè CV của ứng viên.
+- Email đã có thì gắn hồ sơ mới vào ứng viên cũ và **không sửa gì** ở ứng viên đó (form không chứng minh được người nộp là chủ email). Ứng viên đã nộp vào tin này thì không tạo lần hai.
+- **Phản hồi luôn là một nội dung cố định (HTTP 202)**, dù là hồ sơ mới, nộp trùng hay email đã có sẵn: khách không dò được ai đã ứng tuyển tin nào. Chủ hộp thư được báo bằng email: "đã nhận hồ sơ" hoặc "bạn đã nộp tin này rồi".
+- Bảo vệ: giới hạn 10 lần nộp mỗi 15 phút mỗi địa chỉ và 3 lần mỗi giờ mỗi email; captcha kiểm tra trước mọi việc tốn công; kiểm tra CV theo nội dung thật của tệp; CV lưu riêng tư; log hoạt động không ghi lần nộp (chứa dữ liệu cá nhân); họ tên chỉ một dòng, không ký tự điều khiển hay ký tự định dạng ẩn (vì tên được nhắc lại trong email).
+- Email gửi bằng Resend (trình điều khiển `outbox` khi phát triển và kiểm thử chỉ giữ thư trong bộ nhớ). Thư là văn bản thuần, không chứa liên kết.
 
-- Trang danh sách tin Đang tuyển và trang chi tiết tin, không cần đăng nhập.
-- Form ứng tuyển: họ tên, email, số điện thoại, CV (PDF hoặc DOCX, tối đa 5MB; định dạng .doc cũ bị từ chối).
-- Hồ sơ vào thẳng bậc Mới, nguồn ứng viên ghi là Website, chưa có người phụ trách (hiện ở việc cần xử lý của Tổng quan).
-- Nếu email đã có thì gắn hồ sơ vào ứng viên cũ thay vì tạo trùng; nếu ứng viên đã nộp vào tin này thì báo rõ, không tạo lần hai.
-
-Yêu cầu bảo vệ, phải làm cùng lúc chứ không làm sau:
-
-- Giới hạn tần suất theo địa chỉ và theo email; cân nhắc captcha.
-- Chỉ công khai các trường an toàn của tin (không lộ người tạo, mã yêu cầu, số hồ sơ, ngân sách nội bộ).
-- Kiểm tra CV như hiện tại (đuôi tệp, nội dung thật của tệp phải khớp đuôi, dung lượng); CV do người lạ tải lên không được tải xuống công khai. **Đã cài đặt:** mọi CV là riêng tư, chỉ tải qua `GET /candidates/:id/cv` sau khi kiểm quyền và phạm vi; không còn đường công khai `/uploads`.
-- Không cho khách đọc bất kỳ dữ liệu ứng viên nào, kể cả để kiểm tra "email đã tồn tại": phản hồi phải giống nhau dù email có sẵn hay chưa.
-- Dữ liệu cá nhân: chỉ nhận đúng các trường cần, có dòng đồng ý xử lý dữ liệu trên form.
-
-Các điểm cần chốt trước khi làm: có captcha hay không; có hiển thị mức lương trên tin công khai không; ứng viên có nhận email xác nhận không (hiện hệ thống chưa gửi email nào).
+**Rủi ro đã chấp nhận:** email chưa được xác minh quyền sở hữu, nên ai cũng có thể khiến một hộp thư nhận thư xác nhận; giới hạn 3 thư mỗi giờ mỗi email và captcha làm giảm việc này. Thời gian phản hồi giữa nộp mới và nộp trùng được làm gần bằng nhau (cả hai đều lưu CV rồi mới quyết định) nhưng không tuyệt đối. Resend chỉ gửi được tới địa chỉ tùy ý sau khi xác minh tên miền gửi.
 
 ## 7. Những giả định cần được xác nhận
 
@@ -85,6 +78,6 @@ Các điểm cần chốt trước khi làm: có captcha hay không; có hiển 
 2. Ứng viên nộp được nhiều tin, không nộp trùng một tin; email ứng viên là duy nhất.
 3. Phễu ở Tổng quan tính cộng dồn theo lịch sử ("từng đạt bậc đó").
 4. Đủ người đã nhận việc thì yêu cầu và tin không tự đóng; HR đóng thủ công.
-5. Chưa có thông báo (email hay trong ứng dụng).
+5. Chỉ có email xác nhận cho ứng viên nộp qua website; chưa có thông báo nào khác (email hay trong ứng dụng).
 6. Giá trị chọn: tuổi tối thiểu ứng viên 16, khung phỏng vấn 60 phút, tối đa 10 vòng, khoảng báo cáo tối đa 366 ngày.
 7. Người phỏng vấn có thể là phỏng vấn viên, trưởng bộ phận hoặc HR; người phụ trách hồ sơ là Tuyển dụng, HR hoặc Admin.

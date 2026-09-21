@@ -188,27 +188,20 @@ export class ApplicationsService {
     if (assigneeId) await this.assertAssignable(assigneeId);
 
     try {
-      const id = await this.dataSource.transaction(async (manager) => {
-        const saved = await manager.save(
-          manager.create(Application, {
-            candidateId: dto.candidateId,
-            jobId: dto.jobId,
-            assigneeId: assigneeId ?? null,
-            note: dto.note ?? null,
-            status: ApplicationStatus.NEW,
-          }),
-        );
+      const id = await this.dataSource.transaction((manager) =>
+        this.workflow.createNew(manager, {
+          candidateId: dto.candidateId,
+          jobId: dto.jobId,
+          assigneeId,
+          note: dto.note,
+          createdById: actor.id,
+          historyNote: 'Tạo hồ sơ',
+        }),
+      );
 
-        await manager.insert(ApplicationStatusHistory, {
-          applicationId: saved.id,
-          fromStatus: null,
-          toStatus: ApplicationStatus.NEW,
-          note: 'Tạo hồ sơ',
-          changedById: actor.id,
-        });
-
-        return saved.id;
-      });
+      if (!id) {
+        throw new ConflictException('Ứng viên đã nộp hồ sơ vào tin này');
+      }
 
       return await this.get(id, actor);
     } catch (error) {

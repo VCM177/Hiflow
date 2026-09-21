@@ -32,6 +32,19 @@ export const buildThrottlers = (scale: number): ThrottlerOptions[] => [
     limit: 60 * scale,
   },
   {
+    // Submitting applications: a person applies to a few jobs, not dozens.
+    name: THROTTLE_POLICY.PUBLIC_APPLY_IP,
+    ttl: minutes(15),
+    limit: 10 * scale,
+  },
+  {
+    // The same mailbox cannot be made to receive more than this many messages
+    // an hour, whoever is typing its address.
+    name: THROTTLE_POLICY.PUBLIC_APPLY_EMAIL,
+    ttl: minutes(60),
+    limit: 3 * scale,
+  },
+  {
     name: THROTTLE_POLICY.LOGIN_ACCOUNT,
     ttl: minutes(15),
     limit: 20 * scale,

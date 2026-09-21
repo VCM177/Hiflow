@@ -13,16 +13,12 @@ import {
   MaxLength,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../common/pagination/pagination-query.dto';
-
-const trim = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() : value;
-
-const normaliseEmail = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim().toLowerCase() : value;
-
-// "090 123-4567" and "090.123.4567" are common ways to type the same number.
-const normalisePhone = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.replace(/[\s.\-()]/g, '') : value;
+import {
+  normaliseEmail,
+  normalisePhone,
+  trim,
+  VN_PHONE,
+} from '../../common/transforms';
 
 const SOURCE_MESSAGE = { message: 'Nguồn ứng viên không hợp lệ' };
 
@@ -58,7 +54,7 @@ export class CreateCandidateDto {
 
   @IsOptional()
   @Transform(normalisePhone)
-  @Matches(/^(?:\+84|0)\d{9,10}$/, { message: 'Số điện thoại không hợp lệ' })
+  @Matches(VN_PHONE, { message: 'Số điện thoại không hợp lệ' })
   phone?: string;
 
   @IsOptional()

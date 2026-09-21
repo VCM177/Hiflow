@@ -1,14 +1,16 @@
-import { Module } from '@nestjs/common';
+import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import {
   ThrottlerModule,
   ThrottlerStorageService,
   type ThrottlerStorage,
 } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import { Logger } from '@nestjs/common';
+import { AttemptLimiter } from './attempt-limiter';
 import { FailOpenThrottlerStorage } from './fail-open-throttler-storage';
 import { buildThrottlers } from './throttle.policies';
+import { TooManyAttemptsFilter } from './too-many-attempts.exception';
 
 const logger = new Logger('Throttle');
 
@@ -51,7 +53,13 @@ export function createThrottlerStorage(
   return storage;
 }
 
+@Global()
 @Module({
+  providers: [
+    AttemptLimiter,
+    { provide: APP_FILTER, useClass: TooManyAttemptsFilter },
+  ],
+  exports: [AttemptLimiter],
   imports: [
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
