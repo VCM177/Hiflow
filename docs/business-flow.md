@@ -81,3 +81,8 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 5. Chỉ có email xác nhận cho ứng viên nộp qua website; chưa có thông báo nào khác (email hay trong ứng dụng).
 6. Giá trị chọn: tuổi tối thiểu ứng viên 16, khung phỏng vấn 60 phút, tối đa 10 vòng, khoảng báo cáo tối đa 366 ngày.
 7. Người phỏng vấn có thể là phỏng vấn viên, trưởng bộ phận hoặc HR; người phụ trách hồ sơ là Tuyển dụng, HR hoặc Admin.
+
+**Đã xác nhận (2026-09-24, khi kiểm định Cổng A):**
+
+8. Trưởng bộ phận gọi dữ liệu của phòng ban khác nhận **404**, không phải 403, để không lộ việc bản ghi có tồn tại. Thiếu quyền thì vẫn là 403.
+9. Phỏng vấn viên **được xem** ứng viên, hồ sơ ứng tuyển, lịch phỏng vấn và tải CV, nhưng chỉ trong phạm vi các lịch được xếp cho mình (ngoài phạm vi trả 404). Thao tác ghi duy nhất của họ là nhập kết quả phỏng vấn của chính mình.
