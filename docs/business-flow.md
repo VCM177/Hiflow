@@ -90,6 +90,19 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 - D. Toàn bộ nhật ký chỉ Admin đọc; chưa có timeline theo đối tượng cho vai trò khác.
 - E. Đăng nhập sai với email không tồn tại không lưu email đã nhập.
 
+**Quyết định thiết kế UX (2026-10-02, người thực hiện tự chốt, `docs/ux/02-define.md` mục 4). Đã chốt, chưa xác nhận bởi người dùng cuối; mục nào ghi "chưa cài" thì backend hiện chưa theo:**
+
+10. Giữ quy tắc hồ sơ không nhảy bậc; không có đường tắt bỏ qua Sàng lọc.
+11. Trưởng bộ phận và HR là người phỏng vấn thì nhập được kết quả cho lịch xếp cho chính mình. **Chưa cài:** hiện thiếu `interview.result.record` (cả hai) và `interview.list.view` (Trưởng bộ phận).
+12. Chỉ có email xác nhận cho ứng viên; giảm cảm giác "im lặng" bằng nội dung trang cảm ơn và email, không thêm email theo bước.
+13. Tổng quan của Trưởng bộ phận có việc "yêu cầu bị từ chối cần sửa" và "yêu cầu nháp chưa gửi". **Chưa cài.**
+14. Mục Danh mục chỉ hiện trong menu của Admin; vai trò khác đọc dữ liệu ngầm cho ô chọn.
+15. Cổng công khai ở `/careers/<slug>-<id>`; id là phần xác định, slug chỉ để đọc.
+16. Phỏng vấn viên vào thẳng Lịch phỏng vấn sau đăng nhập, lọc sẵn "Chờ kết quả".
+17. Trưởng bộ phận thấy tên, email, điện thoại và CV của ứng viên trên chi tiết hồ sơ nhưng không vào được trang ứng viên.
+18. CV trên chi tiết hồ sơ rơi về CV của ứng viên khi hồ sơ không có CV riêng. **Chưa cài.**
+19. Tin đã đóng giữ 404 giống tin nháp và không tồn tại; giao diện hiện trang thân thiện gợi ý tin đang mở. Mã 202 của form nộp hồ sơ giữ nguyên.
+
 **Đã xác nhận (2026-09-24, khi kiểm định Cổng A):**
 
 8. Trưởng bộ phận gọi dữ liệu của phòng ban khác nhận **404**, không phải 403, để không lộ việc bản ghi có tồn tại. Thiếu quyền thì vẫn là 403.
