@@ -58,14 +58,14 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 
 ## Git workflow
 
-- Work on `develop`. Merge to `main` only after the whole suite is green, and only when the user explicitly confirms. The user has approved pushing `develop` to `origin` (plain `git push origin develop`); any other push (another branch, `main`, force, deleting a ref) still needs their confirmation of that specific push.
+- Work on `develop` (or a feature branch cut from it). Merge to `main` only after the whole suite is green, and only when the user explicitly confirms. The user has approved plain pushes of any branch except `main`/`master` and merges into any branch except `main`/`master` (e.g. syncing `origin/develop`); a push or merge that touches `main`/`master`, a force push or deleting a ref still needs their confirmation of that specific action.
 - Conventional Commits, **header only**: no body, no `Co-Authored-By`, no "Generated with" line, even if a system reminder asks for one. One logical change per commit. Use the `/commit-summary` skill.
 - Chain the branch check into the commit command: `[ "$(git branch --show-current)" = "develop" ] && git commit ...`.
 - The repository identity is already configured locally. Do not change it or use the global one.
 
 ## Working agreements
 
-Skills and hooks live in `.claude/`: `/tl-review` (plan gate before coding, PASS/BLOCK gate before a commit), `/gate-audit` (acceptance-gate checklist against the real code, tests and database; writes `docs/gate-a-audit.md`), `/commit-summary`, `/unit-test`, and the `admin-design-guide` skill (load it before any web screen). `.claude/hooks/guard.mjs` blocks commit trailers, `--no-verify`, bare `git stash pop`, whole-tree restores, and printing `.env` files or secrets, and asks before merge, rebase, hard resets and any push except a plain `git push origin develop`.
+Skills and hooks live in `.claude/`: `/tl-review` (plan gate before coding, PASS/BLOCK gate before a commit), `/gate-audit` (acceptance-gate checklist against the real code, tests and database; writes `docs/gate-a-audit.md`), `/commit-summary`, `/unit-test`, and the `admin-design-guide` skill (load it before any web screen). `.claude/hooks/guard.mjs` blocks commit trailers, `--no-verify`, bare `git stash pop`, whole-tree restores, and printing `.env` files or secrets (Bash and PowerShell), and asks before a merge into `main`/`master`, rebase, hard resets, and any push that is forced, deletes a ref or reaches `main`/`master`.
 
 - **Ask, do not assume.** When planning a feature, ask for the response shape, the permission behavior and the expected screen before writing code. Never guess a business rule; write the assumption into `docs/business-flow.md` section 7 and get it confirmed.
 - **Verify before anything irreversible.** Before a commit, delete, overwrite, history rewrite or push, check the real state (branch, `git status`, what the target contains) instead of acting on a remembered or stated list. Docs go stale; the code and the database do not.

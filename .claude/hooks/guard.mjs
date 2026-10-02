@@ -3,6 +3,8 @@
 // outward-facing or hard-to-reverse actions the user has to confirm each time.
 // Anything not matched is left alone (no output, exit 0).
 
+import { execSync } from 'node:child_process';
+
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
 
@@ -31,6 +33,52 @@ function decide(decision, reason) {
     }),
   );
   process.exit(0);
+}
+
+const PROTECTED_BRANCH = /^(main|master)$/;
+
+/** Current branch of the project checkout, or '' when unknown (detached HEAD, git error). */
+function currentBranch() {
+  try {
+    return execSync('git branch --show-current', {
+      cwd: process.env.CLAUDE_PROJECT_DIR || process.cwd(),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return '';
+  }
+}
+
+/** A push is plain when it adds commits to a branch other than main/master. */
+function isPlainPush(push) {
+  const args = push.split(/\s+/).slice(2);
+  const flags = args.filter((a) => a.startsWith('-'));
+  const positional = args.filter((a) => !a.startsWith('-'));
+  const riskyFlag = flags.some(
+    (f) =>
+      /^--(force.*|delete|mirror|all|prune|tags)$/.test(f) ||
+      /^-[a-zA-Z]*[fd]/.test(f),
+  );
+  if (riskyFlag) return false;
+
+  const refspecs = positional.slice(1);
+  if (
+    refspecs.some(
+      (r) =>
+        r.startsWith('+') ||
+        r.startsWith(':') ||
+        /(^|:|\/)(main|master)$/.test(r),
+    )
+  ) {
+    return false;
+  }
+  // No refspec or a bare HEAD pushes the current branch.
+  if (refspecs.length === 0 || refspecs.some((r) => r === 'HEAD')) {
+    const branch = currentBranch();
+    return Boolean(branch) && !PROTECTED_BRANCH.test(branch);
+  }
+  return true;
 }
 
 function checkBash(cmd) {
@@ -68,7 +116,7 @@ function checkBash(cmd) {
     );
   }
   if (
-    /(^|[\s;&|])(cat|type|less|more|head|tail|bat|Get-Content|gc)\s+[^;&|]*\.env(\.\w+)?(\s|$|[;&|])/.test(
+    /(^|[\s;&|])(cat|type|less|more|head|tail|bat|sed|awk|grep|rg|cut|sort|strings|Get-Content|gc|Select-String|sls)\s+[^;&|]*\.env(\.\w+)?(\s|$|[;&|])/.test(
       cmd,
     ) &&
     !/\.env\.example/.test(cmd)
@@ -89,21 +137,37 @@ function checkBash(cmd) {
   }
 
   // --- confirm every time ---
-  if (/\bgit\s+push\b/.test(cmd)) {
-    decide('ask', 'Pushing is outward-facing. Confirm this specific push.');
-  }
-  if (/\bgit\s+merge\b/.test(cmd)) {
+  const push = cmd.match(/\bgit\s+push\b[^;&|]*/)?.[0].trim();
+  // The owner has approved plain pushes of any branch except main/master.
+  // Force, delete, mirror, +refspec and anything reaching main/master still
+  // need a confirmation.
+  if (push && !isPlainPush(push)) {
     decide(
       'ask',
-      'Merges into main need a green suite and explicit confirmation. Check the current branch first.',
+      'Force, delete or main/master push. Confirm this specific push.',
     );
+  }
+  // Merging into a working branch (e.g. syncing origin/develop) is approved.
+  // Merging into main/master needs a green suite and explicit confirmation.
+  if (/\bgit\s+merge\b/.test(cmd) && !/\bgit\s+merge\s+--abort\b/.test(cmd)) {
+    const branch = currentBranch();
+    if (
+      /\bgit\s+(checkout|switch)\s+(-\S+\s+)*(main|master)\b/.test(cmd) ||
+      !branch ||
+      PROTECTED_BRANCH.test(branch)
+    ) {
+      decide(
+        'ask',
+        'Merges into main need a green suite and explicit confirmation.',
+      );
+    }
   }
   if (/\bgit\s+(reset\s+--hard|clean\s+-\w*f|branch\s+-D|rebase)\b/.test(cmd)) {
     decide('ask', 'Hard to reverse. Look at what will be lost, then confirm.');
   }
 }
 
-if (tool === 'Bash') {
+if (tool === 'Bash' || tool === 'PowerShell') {
   checkBash(String(input.command ?? ''));
 } else if (tool === 'Read' || tool === 'Grep') {
   if (isSecretFile(input.file_path) || isSecretFile(input.path)) {
