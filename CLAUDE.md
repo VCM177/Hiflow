@@ -77,7 +77,7 @@ Skills and hooks live in `.claude/`: `/tl-review` (plan gate before coding, PASS
 
 ## Isolation
 
-This project must not contain the name, domain, brand, code or data of any other project. Write things fresh rather than copying from elsewhere. The pre-commit hook runs `../tools/leak-scan.sh` (kept outside the repo); never bypass it with `--no-verify`.
+This project must not contain the name, domain, brand or data of any other project. The web app's generic UI layer (`components/ui`, `components/layout`, `components/shared`, `lib`, `hooks`, `providers`) may be ported from the owner's earlier admin kit, one file at a time, and only files listed in `docs/port-manifest.md`: read each file in full, strip SSO and feature imports, rename every identifier, storage key and token to `hf`, align it with the Hiflow API contract and the design guide, and record it in the manifest. Never port features, business logic, images, tests or configuration, and never name the source in the repo. The pre-commit hook runs `../tools/leak-scan.sh` (kept outside the repo); never bypass it with `--no-verify`.
 
 ## Current state
 
@@ -85,7 +85,7 @@ The backend passed its first gate (12 modules, 71 documented routes, 111 unit te
 
 **Next, in order:**
 
-1. Web infrastructure: theme tokens, layout shell, auth, API client, shared components (nothing feature-specific until this is done).
+1. Web infrastructure, ported per `docs/port-manifest.md`: theme tokens, ui primitives, API client and core libs, session and layout shell, shared components (nothing feature-specific until this is done). A dependency is added in the same commit as its first importer.
 2. Web modules, one by one, in dependency order.
 
 ## Known gaps
