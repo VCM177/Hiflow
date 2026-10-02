@@ -82,6 +82,14 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 6. Giá trị chọn: tuổi tối thiểu ứng viên 16, khung phỏng vấn 60 phút, tối đa 10 vòng, khoảng báo cáo tối đa 366 ngày.
 7. Người phỏng vấn có thể là phỏng vấn viên, trưởng bộ phận hoặc HR; người phụ trách hồ sơ là Tuyển dụng, HR hoặc Admin.
 
+**Nhật ký kiểm toán v2 (chờ xác nhận, chi tiết ở `docs/audit-trail-spec.md` mục 12):**
+
+- A. Dữ liệu cá nhân trong bảng thay đổi dòng lưu giá trị thật (không che), chỉ Admin đọc, xóa theo hạn lưu.
+- B. Lưu IP và user-agent, giữ 12 tháng.
+- C. Hồ sơ nộp qua website sinh sự kiện `APPLICATION_SUBMITTED_ONLINE` (chỉ id, người thực hiện là tài khoản hệ thống).
+- D. Toàn bộ nhật ký chỉ Admin đọc; chưa có timeline theo đối tượng cho vai trò khác.
+- E. Đăng nhập sai với email không tồn tại không lưu email đã nhập.
+
 **Đã xác nhận (2026-09-24, khi kiểm định Cổng A):**
 
 8. Trưởng bộ phận gọi dữ liệu của phòng ban khác nhận **404**, không phải 403, để không lộ việc bản ghi có tồn tại. Thiếu quyền thì vẫn là 403.
