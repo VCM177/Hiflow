@@ -59,7 +59,7 @@ Giữ nguyên, không đổi (đã đối chiếu với code): mã 202 của for
 
 Các thứ dưới đây nằm trên máy của người dùng hoặc trên claude.ai, không có trong git:
 
-- Kế hoạch giai đoạn B v2: `C:\Users\MSI\.claude\plans\l-n-k-ho-ch-chi-snug-blanket.md` (danh sách file port, mốc B0 đến B8, Definition of Done, checklist Cổng B). **Nên chép vào `docs/` để người khác đọc được.**
+- Kế hoạch giai đoạn B v2 (danh sách file port, mốc B0 đến B8, Definition of Done, checklist Cổng B): **file plan trên máy đã mất** — đường dẫn ghi trước đây không còn tồn tại (có thể do lỗi mã hóa tên file), và hai file plan còn lại trong thư mục đó thuộc dự án khác, không được chép vào đây theo quy tắc Isolation. Cần hỏi lại người dùng để lập lại kế hoạch này trước khi bắt đầu B0. Phạm vi port (ui/layout/shared, lib, hooks, providers; viết mới `features/*`) đã ghi ở `CLAUDE.md` mục "Isolation" và "Next" nên không mất hoàn toàn.
 - Prototype giao diện (bản 2, sáng và tối, 5 vai trò, 4 trạng thái bảng): https://claude.ai/artifact/G8sqf8DyGAkdWV1VQ6bk5k
 - Danh sách chức năng gốc (12 nhóm): `D:\Hiflow\docs\danh-sach-chuc-nang.txt`.
 - Công cụ quét rò rỉ: `D:\Hiflow\tools\leak-scan.sh`, chạy trong pre-commit.
