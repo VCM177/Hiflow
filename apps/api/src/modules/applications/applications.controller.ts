@@ -72,7 +72,7 @@ export class ApplicationsController {
   })
   @ApiNotFoundResponse({
     description:
-      'Hồ sơ không tồn tại, ngoài phạm vi, hoặc không có CV đính kèm',
+      'Hồ sơ không tồn tại, ngoài phạm vi, hoặc không có CV (cả CV nộp kèm lẫn CV của ứng viên)',
   })
   async downloadCv(
     @Param('id', ParseUUIDPipe) id: string,

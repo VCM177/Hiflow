@@ -9,6 +9,7 @@ import { idByCode } from './helpers/factories';
 import { createFlow, FlowTokens, loginAll } from './helpers/flow';
 
 const PDF = Buffer.from('%PDF-1.4\n% cv sent with an application\n');
+const PROFILE_PDF = Buffer.from('%PDF-1.4\n% cv on the candidate profile\n');
 
 interface Detail {
   hasCv: boolean;
@@ -41,6 +42,22 @@ describe('CV that comes with an application (e2e)', () => {
     });
     await ctx.dataSource.query(
       `UPDATE applications SET cv_file_key = $1 WHERE id = $2`,
+      [key, appId],
+    );
+    return key;
+  };
+
+  /** Same, but on the candidate profile that the application belongs to. */
+  const attachProfileCv = async (appId: string): Promise<string> => {
+    const { key } = await ctx.app.get(StorageService).upload({
+      originalname: 'profile-cv.pdf',
+      mimetype: 'application/pdf',
+      size: PROFILE_PDF.length,
+      buffer: PROFILE_PDF,
+    });
+    await ctx.dataSource.query(
+      `UPDATE candidates SET cv_file_key = $1
+       WHERE id = (SELECT candidate_id FROM applications WHERE id = $2)`,
       [key, appId],
     );
     return key;
@@ -101,6 +118,48 @@ describe('CV that comes with an application (e2e)', () => {
     await cvOf(appId, t.recruiter).expect(404);
     await request(ctx.server).get(`/applications/${appId}/cv`).expect(401);
     await cvOf('00000000-0000-4000-8000-000000000000', t.recruiter).expect(404);
+  });
+
+  describe('falling back to the candidate profile CV', () => {
+    it('serves the profile CV when the application has none, and says so', async () => {
+      const appId = await flow.application(await flow.openJob());
+      await attachProfileCv(appId);
+
+      const detail = await detailOf(appId);
+      expect(detail.hasCv).toBe(true);
+      expect(detail.candidateDetail?.hasCv).toBe(true);
+
+      const download = await cvOf(appId, t.recruiter).expect(200);
+      expect(Buffer.from(download.body as Buffer).equals(PROFILE_PDF)).toBe(
+        true,
+      );
+    });
+
+    it('prefers the CV sent with the application over the profile CV', async () => {
+      const appId = await flow.application(await flow.openJob());
+      await attachProfileCv(appId);
+      await attachCv(appId);
+
+      const download = await cvOf(appId, t.recruiter).expect(200);
+
+      expect(Buffer.from(download.body as Buffer).equals(PDF)).toBe(true);
+    });
+
+    it('lets a department manager read it for their own department only', async () => {
+      const engId = await idByCode(ctx.dataSource, 'departments', 'ENG');
+      const ownApp = await flow.application(await flow.openJob());
+      const otherApp = await flow.application(
+        await flow.openJob({
+          creator: t.admin,
+          extra: { departmentId: engId },
+        }),
+      );
+      await attachProfileCv(ownApp);
+      await attachProfileCv(otherApp);
+
+      await cvOf(ownApp, t.manager).expect(200);
+      await cvOf(otherApp, t.manager).expect(404);
+    });
   });
 
   describe('scope', () => {

@@ -51,7 +51,10 @@ export interface ApplicationOfferItem {
 
 export interface ApplicationDetail extends ApplicationListItem {
   note: string | null;
-  /** This application came with its own CV: `GET /applications/:id/cv`. */
+  /**
+   * A CV can be downloaded at `GET /applications/:id/cv`: the one sent with
+   * this application, or else the one on the candidate profile.
+   */
   hasCv: boolean;
   candidateDetail: {
     phone: string | null;

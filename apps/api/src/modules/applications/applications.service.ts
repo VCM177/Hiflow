@@ -55,6 +55,10 @@ const SORT_COLUMNS: Record<ListApplicationsQueryDto['sortBy'], string> = {
   jobTitle: 'job.title',
 };
 
+/** The CV sent with the application, else the one on the candidate profile. */
+const cvKeyOf = (application: Application): string | null =>
+  application.cvFileKey ?? application.candidate?.cvFileKey ?? null;
+
 @Injectable()
 export class ApplicationsService {
   private readonly logger = new Logger(ApplicationsService.name);
@@ -151,7 +155,7 @@ export class ApplicationsService {
     return {
       ...toListItem(application),
       note: application.note,
-      hasCv: application.cvFileKey !== null,
+      hasCv: cvKeyOf(application) !== null,
       candidateDetail: application.candidate
         ? {
             phone: application.candidate.phone,
@@ -214,15 +218,13 @@ export class ApplicationsService {
   /** Authorised by the same scope rule as reading the application. */
   async downloadCv(id: string, actor: AuthUser): Promise<FileDownload> {
     const application = await this.findScoped(id, actor);
+    const key = cvKeyOf(application);
 
-    if (!application.cvFileKey) {
+    if (!key) {
       throw new NotFoundException('Hồ sơ này không có CV đính kèm');
     }
 
-    return this.storage.download(
-      application.cvFileKey,
-      `CV-${id}${extname(application.cvFileKey)}`,
-    );
+    return this.storage.download(key, `CV-${id}${extname(key)}`);
   }
 
   async assign(
