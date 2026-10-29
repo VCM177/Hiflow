@@ -40,20 +40,30 @@ describe('Dashboard (e2e)', () => {
   const todo = (o: Overview, type: string) =>
     o.todo.find((x) => x.type === type)?.count;
 
-  /** A requisition that has been submitted but not yet decided. */
-  const pendingRequisition = async (creator: string, extra: object = {}) => {
+  /** A requisition that has only been saved, not submitted. */
+  const draftRequisition = async (
+    creator: string,
+    extra: object = {},
+  ): Promise<string> => {
     const devId = await idByCode(ctx.dataSource, 'job_positions', 'DEV');
     const created = (
       await flow
         .post(creator, '/requisitions', {
-          title: `E2E-DSH pending ${Math.random().toString(36).slice(2, 8)}`,
+          title: `E2E-DSH draft ${Math.random().toString(36).slice(2, 8)}`,
           positionId: devId,
           quantity: 1,
           ...extra,
         })
         .expect(201)
     ).body as { id: string };
-    await flow.post(creator, `/requisitions/${created.id}/submit`).expect(200);
+    return created.id;
+  };
+
+  /** A requisition that has been submitted but not yet decided. */
+  const pendingRequisition = async (creator: string, extra: object = {}) => {
+    const id = await draftRequisition(creator, extra);
+    await flow.post(creator, `/requisitions/${id}/submit`).expect(200);
+    return id;
   };
 
   beforeAll(async () => {
@@ -129,8 +139,11 @@ describe('Dashboard (e2e)', () => {
         'INTERVIEWS_TODAY',
         'OFFERS_EXPIRING',
       ]);
-      expect(await types(t.manager)).toEqual([]);
-      expect(await types(t.admin)).toHaveLength(4);
+      expect(await types(t.manager)).toEqual([
+        'REQUISITIONS_TO_REVISE',
+        'DRAFT_REQUISITIONS',
+      ]);
+      expect(await types(t.admin)).toHaveLength(6);
     });
 
     it('links each task to a screen', async () => {
@@ -154,6 +167,47 @@ describe('Dashboard (e2e)', () => {
       );
       expect(todo(after, 'REQUISITIONS_TO_APPROVE')).toBe(
         todo(before, 'REQUISITIONS_TO_APPROVE')! + 1,
+      );
+    });
+
+    it('counts drafts and rejected requisitions for the manager who must act on them', async () => {
+      const before = await overview(t.manager);
+
+      const draftId = await draftRequisition(t.manager);
+      const mid = await overview(t.manager);
+      expect(todo(mid, 'DRAFT_REQUISITIONS')).toBe(
+        todo(before, 'DRAFT_REQUISITIONS')! + 1,
+      );
+
+      await flow.post(t.manager, `/requisitions/${draftId}/submit`).expect(200);
+      await flow
+        .post(t.hr, `/requisitions/${draftId}/reject`, {
+          reason: 'Thiếu ngân sách',
+        })
+        .expect(200);
+
+      const after = await overview(t.manager);
+      expect(todo(after, 'DRAFT_REQUISITIONS')).toBe(
+        todo(before, 'DRAFT_REQUISITIONS'),
+      );
+      expect(todo(after, 'REQUISITIONS_TO_REVISE')).toBe(
+        todo(before, 'REQUISITIONS_TO_REVISE')! + 1,
+      );
+    });
+
+    it("keeps a manager's to-do counts to their own department", async () => {
+      const before = await overview(t.manager);
+      const adminBefore = await overview(t.admin);
+
+      await draftRequisition(t.admin, { departmentId: engId });
+
+      const after = await overview(t.manager);
+      const adminAfter = await overview(t.admin);
+      expect(todo(after, 'DRAFT_REQUISITIONS')).toBe(
+        todo(before, 'DRAFT_REQUISITIONS'),
+      );
+      expect(todo(adminAfter, 'DRAFT_REQUISITIONS')).toBe(
+        todo(adminBefore, 'DRAFT_REQUISITIONS')! + 1,
       );
     });
 

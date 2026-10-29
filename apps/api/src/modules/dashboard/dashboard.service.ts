@@ -91,6 +91,8 @@ export class DashboardService {
       unassigned,
       interviewsToday,
       offersExpiring,
+      rejectedRequisitions,
+      draftRequisitions,
     ] = await Promise.all([
       this.count(
         `SELECT COUNT(*)::int AS n FROM requisitions r
@@ -163,6 +165,16 @@ export class DashboardService {
            AND ($1::uuid IS NULL OR j.department_id = $1)`,
         [scope],
       ),
+      this.count(
+        `SELECT COUNT(*)::int AS n FROM requisitions r
+         WHERE r.status = 'REJECTED' AND ($1::uuid IS NULL OR r.department_id = $1)`,
+        [scope],
+      ),
+      this.count(
+        `SELECT COUNT(*)::int AS n FROM requisitions r
+         WHERE r.status = 'DRAFT' AND ($1::uuid IS NULL OR r.department_id = $1)`,
+        [scope],
+      ),
     ]);
 
     const reached = new Map(funnelRows.map((row) => [row.stage, row.n]));
@@ -191,6 +203,8 @@ export class DashboardService {
         unassigned,
         interviewsToday,
         offersExpiring,
+        rejectedRequisitions,
+        draftRequisitions,
       }),
     };
   }
@@ -203,6 +217,8 @@ export class DashboardService {
       unassigned: number;
       interviewsToday: number;
       offersExpiring: number;
+      rejectedRequisitions: number;
+      draftRequisitions: number;
     },
   ): DashboardOverview['todo'] {
     const can = (permission: Parameters<typeof hasPermission>[1]) =>
@@ -215,6 +231,22 @@ export class DashboardService {
         label: 'Yêu cầu tuyển dụng chờ duyệt',
         count: counts.pendingRequisitions,
         href: '/requisitions?status=PENDING_APPROVAL',
+      });
+    }
+    if (can(PERMISSIONS.requisition.update)) {
+      items.push({
+        type: 'REQUISITIONS_TO_REVISE',
+        label: 'Yêu cầu tuyển dụng bị từ chối cần sửa',
+        count: counts.rejectedRequisitions,
+        href: '/requisitions?status=REJECTED',
+      });
+    }
+    if (can(PERMISSIONS.requisition.submit)) {
+      items.push({
+        type: 'DRAFT_REQUISITIONS',
+        label: 'Yêu cầu tuyển dụng nháp chưa gửi duyệt',
+        count: counts.draftRequisitions,
+        href: '/requisitions?status=DRAFT',
       });
     }
     if (can(PERMISSIONS.application.assigneeUpdate)) {
