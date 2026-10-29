@@ -64,7 +64,7 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 
 - `GET /public/jobs` và `GET /public/jobs/:id`: chỉ tin Đang tuyển, chỉ các trường dành cho ứng viên (tiêu đề, phòng ban, vị trí, địa điểm, mô tả, số lượng, **mức lương**, ngày đăng). Không lộ người tạo, mã yêu cầu, số hồ sơ. Tin nháp, đã đóng hoặc không có đều trả cùng một lỗi 404. Giới hạn 60 lượt mỗi phút mỗi địa chỉ.
 - `POST /public/jobs/:id/applications` (multipart): họ tên, email, số điện thoại, CV (PDF hoặc DOCX, tối đa 5MB; `.doc` cũ bị từ chối), dòng đồng ý xử lý dữ liệu (`consent=true`, thời điểm đồng ý lưu ở hồ sơ), mã Cloudflare Turnstile. Form chỉ nhận đúng các trường này; trường lạ bị từ chối.
-- Hồ sơ vào thẳng bậc Mới, nguồn ứng viên là Website, chưa có người phụ trách (hiện ở việc cần xử lý của Tổng quan), dòng lịch sử đầu tiên ghi dưới tài khoản hệ thống. CV nằm trên hồ sơ (`GET /applications/:id/cv`), không ghi đè CV của ứng viên.
+- Hồ sơ vào thẳng bậc Mới, nguồn ứng viên là Website, chưa có người phụ trách (hiện ở việc cần xử lý của Tổng quan), dòng lịch sử đầu tiên ghi dưới tài khoản hệ thống. CV nằm trên hồ sơ (`GET /applications/:id/cv`), không ghi đè CV của ứng viên; khi hồ sơ không có CV riêng, đường này trả CV của ứng viên.
 - Email đã có thì gắn hồ sơ mới vào ứng viên cũ và **không sửa gì** ở ứng viên đó (form không chứng minh được người nộp là chủ email). Ứng viên đã nộp vào tin này thì không tạo lần hai.
 - **Phản hồi luôn là một nội dung cố định (HTTP 202)**, dù là hồ sơ mới, nộp trùng hay email đã có sẵn: khách không dò được ai đã ứng tuyển tin nào. Chủ hộp thư được báo bằng email: "đã nhận hồ sơ" hoặc "bạn đã nộp tin này rồi".
 - Bảo vệ: giới hạn 10 lần nộp mỗi 15 phút mỗi địa chỉ và 3 lần mỗi giờ mỗi email; captcha kiểm tra trước mọi việc tốn công; kiểm tra CV theo nội dung thật của tệp; CV lưu riêng tư; log hoạt động không ghi lần nộp (chứa dữ liệu cá nhân); họ tên chỉ một dòng, không ký tự điều khiển hay ký tự định dạng ẩn (vì tên được nhắc lại trong email).
@@ -95,12 +95,12 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 10. Giữ quy tắc hồ sơ không nhảy bậc; không có đường tắt bỏ qua Sàng lọc.
 11. Trưởng bộ phận và HR là người phỏng vấn thì nhập được kết quả cho lịch xếp cho chính mình. **Chưa cài:** hiện thiếu `interview.result.record` (cả hai) và `interview.list.view` (Trưởng bộ phận).
 12. Chỉ có email xác nhận cho ứng viên; giảm cảm giác "im lặng" bằng nội dung trang cảm ơn và email, không thêm email theo bước.
-13. Tổng quan của Trưởng bộ phận có việc "yêu cầu bị từ chối cần sửa" và "yêu cầu nháp chưa gửi". **Chưa cài.**
+13. Tổng quan của Trưởng bộ phận có việc "yêu cầu bị từ chối cần sửa" và "yêu cầu nháp chưa gửi" (đã cài: hai việc hiện cho vai trò có quyền sửa và gửi yêu cầu, đếm theo phòng ban của người xem).
 14. Mục Danh mục chỉ hiện trong menu của Admin; vai trò khác đọc dữ liệu ngầm cho ô chọn.
 15. Cổng công khai ở `/careers/<slug>-<id>`; id là phần xác định, slug chỉ để đọc.
 16. Phỏng vấn viên vào thẳng Lịch phỏng vấn sau đăng nhập, lọc sẵn "Chờ kết quả".
 17. Trưởng bộ phận thấy tên, email, điện thoại và CV của ứng viên trên chi tiết hồ sơ nhưng không vào được trang ứng viên.
-18. CV trên chi tiết hồ sơ rơi về CV của ứng viên khi hồ sơ không có CV riêng. **Chưa cài.**
+18. CV trên chi tiết hồ sơ rơi về CV của ứng viên khi hồ sơ không có CV riêng (đã cài: `GET /applications/:id/cv` ưu tiên CV nộp kèm, nếu không có thì dùng CV ở hồ sơ ứng viên; `hasCv` của chi tiết hồ sơ cho biết có CV tải được hay không).
 19. Tin đã đóng giữ 404 giống tin nháp và không tồn tại; giao diện hiện trang thân thiện gợi ý tin đang mở. Mã 202 của form nộp hồ sơ giữ nguyên.
 
 **Đã xác nhận (2026-09-24, khi kiểm định Cổng A):**
