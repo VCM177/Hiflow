@@ -1,6 +1,7 @@
 import { UserRole } from '@hiflow/shared-types';
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -22,6 +23,7 @@ import {
   StorageService,
   UploadedFileData,
 } from '../storage/storage.service';
+import { CandidateAnonymizerService } from './candidate-anonymizer.service';
 import {
   CandidateDetailView,
   CandidateView,
@@ -54,6 +56,7 @@ export class CandidatesService {
     @InjectRepository(Application)
     private readonly applications: Repository<Application>,
     private readonly storage: StorageService,
+    private readonly anonymizer: CandidateAnonymizerService,
   ) {}
 
   async list(
@@ -142,6 +145,7 @@ export class CandidatesService {
     actor: AuthUser,
   ): Promise<CandidateDetailView> {
     const candidate = await this.findScoped(id, actor);
+    this.assertEditable(candidate);
     this.assertDob(dto.dob);
 
     if (dto.fullName !== undefined) candidate.fullName = dto.fullName;
@@ -164,7 +168,7 @@ export class CandidatesService {
     note: string,
     actor: AuthUser,
   ): Promise<CandidateDetailView> {
-    await this.findScoped(id, actor);
+    this.assertEditable(await this.findScoped(id, actor));
     await this.candidates.update(id, { note: note === '' ? null : note });
     return this.get(id, actor);
   }
@@ -175,6 +179,7 @@ export class CandidatesService {
     actor: AuthUser,
   ): Promise<CandidateDetailView> {
     const candidate = await this.findScoped(id, actor);
+    this.assertEditable(candidate);
     const previous = candidate.cvFileKey;
 
     // Validates the file and writes it; throws 400 before anything is saved.
@@ -216,6 +221,13 @@ export class CandidatesService {
       candidate.cvFileKey,
       `CV-${id}${extname(candidate.cvFileKey)}`,
     );
+  }
+
+  /** Erases the personal data on request; the caller must hold the permission. */
+  async anonymize(id: string, actor: AuthUser): Promise<CandidateDetailView> {
+    await this.findScoped(id, actor);
+    await this.anonymizer.anonymize(id);
+    return this.get(id, actor);
   }
 
   async remove(id: string, actor: AuthUser): Promise<void> {
@@ -260,6 +272,14 @@ export class CandidatesService {
     }
 
     return candidate;
+  }
+
+  private assertEditable(candidate: Candidate): void {
+    if (candidate.anonymizedAt) {
+      throw new ConflictException(
+        'Ứng viên đã được ẩn danh nên không thể chỉnh sửa',
+      );
+    }
   }
 
   private assertDob(dob: string | undefined): void {

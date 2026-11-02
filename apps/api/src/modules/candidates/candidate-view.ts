@@ -11,6 +11,8 @@ export interface CandidateView {
   /** The file itself is only reachable through `GET /candidates/:id/cv`. */
   hasCv: boolean;
   note: string | null;
+  /** Set once the personal data was erased (see `POST /candidates/:id/anonymize`). */
+  anonymizedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +38,7 @@ export const toCandidateView = (c: Candidate): CandidateView => ({
   source: c.source,
   hasCv: c.cvFileKey !== null,
   note: c.note,
+  anonymizedAt: c.anonymizedAt,
   createdAt: c.createdAt,
   updatedAt: c.updatedAt,
 });

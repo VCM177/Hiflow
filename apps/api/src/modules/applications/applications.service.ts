@@ -172,8 +172,14 @@ export class ApplicationsService {
     dto: CreateApplicationDto,
     actor: AuthUser,
   ): Promise<ApplicationDetail> {
-    if (!(await this.candidates.existsBy({ id: dto.candidateId }))) {
+    const candidate = await this.candidates.findOneBy({ id: dto.candidateId });
+    if (!candidate) {
       throw new BadRequestException('Ứng viên không tồn tại');
+    }
+    if (candidate.anonymizedAt) {
+      throw new ConflictException(
+        'Ứng viên đã được ẩn danh nên không thể tạo hồ sơ mới',
+      );
     }
 
     const job = await this.jobs.findOneBy({ id: dto.jobId });

@@ -47,6 +47,7 @@ export const PERMISSIONS = {
     update: 'candidate.item.update',
     delete: 'candidate.item.delete',
     cvManage: 'candidate.cv.manage',
+    anonymize: 'candidate.item.anonymize',
     noteCreate: 'candidate.note.create',
   },
   application: {
@@ -114,6 +115,7 @@ export const ROLE_PERMISSIONS: Readonly<
     P.requisition.close,
     P.job.listView,
     P.candidate.listView,
+    P.candidate.anonymize,
     P.application.listView,
     P.interview.listView,
     P.interview.resultRecord,

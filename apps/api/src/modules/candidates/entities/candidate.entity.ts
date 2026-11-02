@@ -38,6 +38,10 @@ export class Candidate {
   @Column({ type: 'text', nullable: true })
   note!: string | null;
 
+  /** Set once the personal data was erased; the row stays for the statistics. */
+  @Column({ type: 'timestamptz', nullable: true })
+  anonymizedAt!: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 

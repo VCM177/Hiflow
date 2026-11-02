@@ -19,6 +19,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiConsumes,
   ApiFoundResponse,
   ApiNotFoundResponse,
@@ -135,6 +136,21 @@ export class CandidatesController {
     @CurrentUser() actor: AuthUser,
   ) {
     return this.candidates.removeCv(id, actor);
+  }
+
+  /** Erases the personal data and the CVs but keeps the row, so the reports stay correct. */
+  @Post(':id/anonymize')
+  @HttpCode(200)
+  @RequirePermissions(PERMISSIONS.candidate.anonymize)
+  @ApiConflictResponse({
+    description:
+      'Ứng viên đã được ẩn danh, hoặc còn hồ sơ đang xử lý hay đã nhận việc',
+  })
+  anonymize(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.candidates.anonymize(id, actor);
   }
 
   @Delete(':id')
