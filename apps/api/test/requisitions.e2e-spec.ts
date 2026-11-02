@@ -42,17 +42,13 @@ describe('Requisitions (e2e)', () => {
   let qaId: string;
 
   const cleanup = async () => {
-    await ctx.dataSource.query(
-      `DELETE FROM activity_logs WHERE entity_type = 'Requisition'
-         AND entity_id IN (SELECT id::text FROM requisitions WHERE title LIKE '${TITLE}%')`,
-    );
-    await ctx.dataSource.query(
+    await ctx.maintenance.query(
       `DELETE FROM requisitions WHERE title LIKE '${TITLE}%'`,
     );
   };
 
   const idOf = async (table: string, code: string) => {
-    const rows: { id: string }[] = await ctx.dataSource.query(
+    const rows: { id: string }[] = await ctx.maintenance.query(
       `SELECT id FROM ${table} WHERE code = $1`,
       [code],
     );

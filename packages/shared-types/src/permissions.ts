@@ -82,10 +82,6 @@ export const PERMISSIONS = {
     eventView: 'audit.event.view',
     eventExport: 'audit.event.export',
   },
-  activityLog: {
-    listView: 'activity_log.list.view',
-    listExport: 'activity_log.list.export',
-  },
 } as const;
 
 type ValueOf<T> = T[keyof T];

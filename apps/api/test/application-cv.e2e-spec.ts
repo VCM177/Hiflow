@@ -40,7 +40,7 @@ describe('CV that comes with an application (e2e)', () => {
       size: PDF.length,
       buffer: PDF,
     });
-    await ctx.dataSource.query(
+    await ctx.maintenance.query(
       `UPDATE applications SET cv_file_key = $1 WHERE id = $2`,
       [key, appId],
     );
@@ -55,7 +55,7 @@ describe('CV that comes with an application (e2e)', () => {
       size: PROFILE_PDF.length,
       buffer: PROFILE_PDF,
     });
-    await ctx.dataSource.query(
+    await ctx.maintenance.query(
       `UPDATE candidates SET cv_file_key = $1
        WHERE id = (SELECT candidate_id FROM applications WHERE id = $2)`,
       [key, appId],

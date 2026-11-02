@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { EntityManager } from 'typeorm';
+import { DataSource } from 'typeorm';
+import { ownerDataSourceOptions } from './../src/database/typeorm.config';
 import { createE2eApp, E2eContext } from './helpers/e2e-app';
 
 const PREFIX = 'E2E-AUD';
@@ -198,6 +200,76 @@ describe('Audit database layer (e2e)', () => {
       expect(loud).toEqual([]);
       expect(ownerTx).toBeDefined();
       expect((await changesOf(appTx)).map((r) => r.op)).toEqual(['I']);
+    });
+  });
+
+  describe('refusing writes that skip the runner', () => {
+    it('stops the API role from writing a business table outside a TxRunner transaction', async () => {
+      const code = `${PREFIX}-HF001-${randomUUID().slice(0, 6)}`;
+
+      await expect(
+        ctx.dataSource.query(
+          `INSERT INTO departments (name, code) VALUES ($1, $1)`,
+          [code],
+        ),
+      ).rejects.toMatchObject({
+        code: 'HF001',
+        message: expect.stringContaining('outside a TxRunner') as unknown,
+      });
+
+      const left = await ctx.maintenance.query<unknown[]>(
+        `SELECT 1 FROM departments WHERE code = $1`,
+        [code],
+      );
+      expect(left).toEqual([]);
+    });
+
+    it('lets the owner write by hand, and records it as maintenance rather than as nobody', async () => {
+      const owner = new DataSource(ownerDataSourceOptions);
+      await owner.initialize();
+      const code = `${PREFIX}-HAND-${randomUUID().slice(0, 6)}`;
+
+      try {
+        await owner.query(
+          `INSERT INTO departments (name, code) VALUES ($1, $1)`,
+          [code],
+        );
+        const rows = await ctx.maintenance.query<
+          { origin: string; actor_id: string | null; op: string }[]
+        >(
+          `SELECT c.origin, c.actor_id, c.op FROM audit_row_changes c
+           JOIN departments d ON d.id = c.row_id WHERE d.code = $1`,
+          [code],
+        );
+
+        expect(rows).toEqual([
+          { origin: 'maintenance', actor_id: null, op: 'I' },
+        ]);
+      } finally {
+        await ctx.maintenance.transaction(async (manager) => {
+          await manager.query(`SELECT set_config('hiflow.purge', 'on', true)`);
+          await manager.query(
+            `DELETE FROM audit_row_changes WHERE origin = 'maintenance'
+               AND row_id IN (SELECT id FROM departments WHERE code = $1)`,
+            [code],
+          );
+        });
+        await owner.destroy();
+      }
+    });
+
+    it('also stops a session that claims it is only tagging itself', async () => {
+      // The tag decides the origin label, never whether the write is allowed.
+      await expect(
+        ctx.dataSource.transaction(async (manager) => {
+          await manager.query(
+            `SELECT set_config('hiflow.origin', 'app', true)`,
+          );
+          await manager.query(
+            `INSERT INTO departments (name, code) VALUES ('${PREFIX}-TAG', '${PREFIX}-TAG')`,
+          );
+        }),
+      ).rejects.toMatchObject({ code: 'HF001' });
     });
   });
 

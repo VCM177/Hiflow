@@ -12,7 +12,7 @@ describe('Built-in system user (e2e)', () => {
   beforeAll(async () => {
     ctx = await createE2eApp();
     t = await loginAll(ctx);
-    const rows: { id: string }[] = await ctx.dataSource.query(
+    const rows: { id: string }[] = await ctx.maintenance.query(
       `SELECT id FROM users WHERE is_system`,
     );
     systemId = rows[0].id;
@@ -28,7 +28,7 @@ describe('Built-in system user (e2e)', () => {
       role: string;
       is_active: boolean;
       password_hash: string;
-    }[] = await ctx.dataSource.query(
+    }[] = await ctx.maintenance.query(
       `SELECT email, role, is_active, password_hash FROM users WHERE is_system`,
     );
 
@@ -43,7 +43,7 @@ describe('Built-in system user (e2e)', () => {
 
   it('cannot be duplicated: the database allows one system account only', async () => {
     await expect(
-      ctx.dataSource.query(
+      ctx.maintenance.query(
         `INSERT INTO users (email, password_hash, full_name, role, is_active, is_system)
          VALUES ('e2e-second-system@hiflow.local', 'x', 'E2E second', 'INTERVIEWER', false, true)`,
       ),
@@ -97,7 +97,7 @@ describe('Built-in system user (e2e)', () => {
       .expect(404);
 
     const rows: { full_name: string; is_active: boolean; role: string }[] =
-      await ctx.dataSource.query(
+      await ctx.maintenance.query(
         `SELECT full_name, is_active, role FROM users WHERE id = $1`,
         [systemId],
       );

@@ -221,7 +221,7 @@ describe('Dashboard (e2e)', () => {
       const managerId = await userIdByEmail(ctx, 'manager@hiflow.local');
       const jobId = await flow.openJob();
       const todayAt = async (interviewId: string): Promise<void> => {
-        await ctx.dataSource.query(
+        await ctx.maintenance.query(
           `UPDATE interviews
            SET scheduled_at = date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' + interval '1 second'
            WHERE id = $1`,

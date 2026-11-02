@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { ENTITY_TYPE_BY_RESOURCE } from '../activity-logs/activity-log.constants';
 import type { AuditActor } from '../audit/audit.types';
 import { TxRunner } from '../audit/tx-runner.service';
 import { StorageService } from '../storage/storage.service';
@@ -97,21 +96,6 @@ export class CandidateAnonymizerService {
          WHERE id = $1`,
         [id, ANONYMIZED_NAME],
       );
-      // The activity log keeps request bodies, which carry the same data.
-      await manager.query(
-        `UPDATE activity_logs
-         SET payload = jsonb_build_object('route', payload->'route', 'redacted', true)
-         WHERE payload IS NOT NULL
-           AND ((entity_type = $2 AND entity_id = $1)
-             OR (entity_type = $3 AND entity_id = ANY($4)))`,
-        [
-          id,
-          ENTITY_TYPE_BY_RESOURCE.candidates,
-          ENTITY_TYPE_BY_RESOURCE.applications,
-          applications.map((application) => application.id),
-        ],
-      );
-
       await audit.record('CANDIDATE_ANONYMIZED', id, { trigger });
 
       return [candidate, ...applications]

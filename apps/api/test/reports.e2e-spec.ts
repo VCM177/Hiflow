@@ -86,12 +86,7 @@ describe('Reports (e2e)', () => {
   };
 
   const cleanupFormula = async () => {
-    await ctx.dataSource.query(
-      `DELETE FROM activity_logs WHERE entity_type = 'Requisition'
-         AND entity_id IN (SELECT id::text FROM requisitions WHERE title = $1)`,
-      [FORMULA_TITLE],
-    );
-    await ctx.dataSource.query(`DELETE FROM requisitions WHERE title = $1`, [
+    await ctx.maintenance.query(`DELETE FROM requisitions WHERE title = $1`, [
       FORMULA_TITLE,
     ]);
   };

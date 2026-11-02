@@ -81,6 +81,31 @@ describe('Permission matrix, every route by every role (e2e)', () => {
     expect(undeclared).toEqual([]);
   });
 
+  it('makes every route that writes declare its audit event, or say why it has none', () => {
+    const writes = collectRoutes(ctx).filter((r) => r.method !== 'get');
+    const undeclared = writes.filter((r) => r.audit === undefined);
+
+    expect(writes.length).toBeGreaterThan(30);
+    expect(undeclared.map((r) => r.key)).toEqual([]);
+  });
+
+  it('declares the events of reads that expose personal data too', () => {
+    const declared = new Map(collectRoutes(ctx).map((r) => [r.key, r.audit]));
+
+    expect(declared.get('get /candidates/:id/cv')).toEqual({
+      event: 'CANDIDATE_CV_DOWNLOADED',
+    });
+    expect(declared.get('get /applications/:id/cv')).toEqual({
+      event: 'APPLICATION_CV_DOWNLOADED',
+    });
+    expect(declared.get('get /audit-events/export')).toEqual({
+      event: 'AUDIT_LOG_EXPORTED',
+    });
+    expect(declared.get('get /reports/:type/export')).toEqual({
+      event: 'REPORT_EXPORTED',
+    });
+  });
+
   describe.each(ROLES)('%s', (who, role) => {
     const held = permissionsForRole(role);
     const guarded = () =>

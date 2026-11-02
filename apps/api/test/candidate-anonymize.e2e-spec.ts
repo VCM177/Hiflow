@@ -7,6 +7,7 @@ import {
   ANONYMIZED_NAME,
   CandidateAnonymizerService,
 } from './../src/modules/candidates/candidate-anonymizer.service';
+import { purgeAuditCopies } from './../src/database/audit-purge';
 import { StorageService } from './../src/modules/storage/storage.service';
 import { bearer, createE2eApp, E2eContext } from './helpers/e2e-app';
 import { createFlow, FlowTokens, loginAll } from './helpers/flow';
@@ -45,7 +46,7 @@ describe('Anonymising a candidate (e2e)', () => {
         .expect(200)
     ).body as Detail;
   const sql = <T>(text: string, params: unknown[] = []): Promise<T> =>
-    ctx.dataSource.query<T>(text, params);
+    ctx.maintenance.query<T>(text, params);
 
   /** A candidate with every kind of personal data, rejected everywhere. */
   const richCandidate = async (): Promise<{
@@ -100,11 +101,6 @@ describe('Anonymising a candidate (e2e)', () => {
       ).map((row) => row.candidate_id),
     ];
 
-    await sql(
-      `DELETE FROM activity_logs WHERE entity_id = ANY($1)
-         OR entity_id IN (SELECT id::text FROM applications WHERE ${mine})`,
-      [ids],
-    );
     await sql(`DELETE FROM applications WHERE ${mine}`);
     await sql(`DELETE FROM candidates WHERE id = ANY($1)`, [ids]);
     await flow.cleanup();
@@ -132,13 +128,6 @@ describe('Anonymising a candidate (e2e)', () => {
     const { id, email, appId, appCvKey } = await richCandidate();
     const before = await detailOf(id);
     expect(before.hasCv).toBe(true);
-    const copies = () =>
-      sql<{ n: number }[]>(
-        `SELECT COUNT(*)::int AS n FROM activity_logs WHERE payload::text LIKE $1`,
-        [`%${email}%`],
-      );
-    // The audit log keeps request bodies, so the email was copied there.
-    expect((await copies())[0].n).toBeGreaterThan(0);
     const total = async () =>
       (
         await sql<{ n: number }[]>(`SELECT COUNT(*)::int AS n FROM candidates`)
@@ -168,7 +157,6 @@ describe('Anonymising a candidate (e2e)', () => {
     ).body as object;
     expect(JSON.stringify(app)).not.toContain(email);
     expect(JSON.stringify(app)).not.toContain('Nguyễn Văn Riêng Tư');
-    expect((await copies())[0].n).toBe(0);
     const note = await sql<{ note: string | null; cv: string | null }[]>(
       `SELECT note, cv_file_key AS cv FROM applications WHERE id = $1`,
       [appId],
@@ -316,6 +304,72 @@ describe('Anonymising a candidate (e2e)', () => {
       expect(expired).not.toContain(recent.id);
       // The period is measured from the last activity, so 3 years is not reached.
       expect(await anonymizer.findExpired(36, 100_000)).not.toContain(idle.id);
+    });
+  });
+
+  describe('what the audit trail keeps of an erased candidate', () => {
+    const copiesOf = async (id: string): Promise<number> =>
+      (
+        await sql<{ n: number }[]>(
+          `SELECT COUNT(*)::int AS n FROM audit_row_changes
+           WHERE table_name = 'candidates' AND row_id = $1`,
+          [id],
+        )
+      )[0].n;
+
+    it('removes the copies of what was erased, keeps the event that says so, and leaves everyone else', async () => {
+      const erased = await richCandidate();
+      const kept = await richCandidate();
+      await anonymize(t.hr, erased.id).expect(200);
+      expect(await copiesOf(erased.id)).toBeGreaterThan(0);
+
+      // Counting first changes nothing.
+      const dry = await purgeAuditCopies(ctx.maintenance, 12, true, {
+        candidateIds: [erased.id, kept.id],
+      });
+      expect(dry.candidateCopies).toBeGreaterThan(0);
+      expect(await copiesOf(erased.id)).toBeGreaterThan(0);
+
+      const done = await purgeAuditCopies(ctx.maintenance, 12, false, {
+        candidateIds: [erased.id, kept.id],
+      });
+
+      expect(done.candidateCopies).toBe(dry.candidateCopies);
+      expect(await copiesOf(erased.id)).toBe(0);
+      expect(await copiesOf(kept.id)).toBeGreaterThan(0);
+      const events = await sql<{ event: string }[]>(
+        `SELECT event FROM audit_events WHERE entity_id = $1`,
+        [erased.id],
+      );
+      expect(events.map((e) => e.event)).toContain('CANDIDATE_ANONYMIZED');
+    });
+
+    it('blanks an address only once it is older than the period, and keeps the rest of the event', async () => {
+      const txId = '00000000-0000-4000-8000-0000000000aa';
+      await ctx.maintenance.query(
+        `INSERT INTO audit_events (occurred_at, event, entity_type, tx_id, origin, ip, user_agent)
+         VALUES (now() - interval '13 months', 'E2E_OLD', 'User', $1, 'e2e', '203.0.113.9', 'old-agent'),
+                (now() - interval '1 month', 'E2E_NEW', 'User', $1, 'e2e', '203.0.113.9', 'new-agent')`,
+        [txId],
+      );
+
+      const result = await purgeAuditCopies(ctx.maintenance, 12, false, {
+        candidateIds: [],
+        origin: 'e2e',
+      });
+
+      expect(result.expiredAddresses).toBeGreaterThanOrEqual(1);
+      const rows = await sql<
+        { event: string; ip: string | null; user_agent: string | null }[]
+      >(
+        `SELECT event, host(ip) AS ip, user_agent FROM audit_events
+         WHERE tx_id = $1 ORDER BY event`,
+        [txId],
+      );
+      expect(rows).toEqual([
+        { event: 'E2E_NEW', ip: '203.0.113.9', user_agent: 'new-agent' },
+        { event: 'E2E_OLD', ip: null, user_agent: null },
+      ]);
     });
   });
 });

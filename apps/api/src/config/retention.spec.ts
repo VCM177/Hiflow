@@ -1,4 +1,8 @@
-import { DEFAULT_RETENTION_MONTHS, retentionMonths } from './retention';
+import {
+  auditIpRetentionMonths,
+  DEFAULT_RETENTION_MONTHS,
+  retentionMonths,
+} from './retention';
 
 describe('retentionMonths', () => {
   it('defaults to 12 months when unset or empty', () => {
@@ -21,4 +25,17 @@ describe('retentionMonths', () => {
       );
     },
   );
+});
+
+describe('auditIpRetentionMonths', () => {
+  it('defaults to 12 months, accepts a whole number, and names itself when it refuses', () => {
+    expect(auditIpRetentionMonths(undefined)).toBe(12);
+    expect(auditIpRetentionMonths('6')).toBe(6);
+    expect(() => auditIpRetentionMonths('0')).toThrow(
+      /AUDIT_IP_RETENTION_MONTHS/,
+    );
+    expect(() => auditIpRetentionMonths('x')).toThrow(
+      /AUDIT_IP_RETENTION_MONTHS/,
+    );
+  });
 });

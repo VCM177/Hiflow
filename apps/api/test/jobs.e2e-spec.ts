@@ -38,13 +38,8 @@ describe('Jobs (e2e)', () => {
   let devId: string;
 
   const cleanup = async () => {
-    await ctx.dataSource.query(
-      `DELETE FROM activity_logs WHERE
-         (entity_type = 'Job' AND entity_id IN (SELECT id::text FROM jobs WHERE title LIKE '${TAG}%'))
-      OR (entity_type = 'Requisition' AND entity_id IN (SELECT id::text FROM requisitions WHERE title LIKE '${TAG}%'))`,
-    );
-    await ctx.dataSource.query(`DELETE FROM jobs WHERE title LIKE '${TAG}%'`);
-    await ctx.dataSource.query(
+    await ctx.maintenance.query(`DELETE FROM jobs WHERE title LIKE '${TAG}%'`);
+    await ctx.maintenance.query(
       `DELETE FROM requisitions WHERE title LIKE '${TAG}%'`,
     );
   };

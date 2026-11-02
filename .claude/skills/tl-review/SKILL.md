@@ -47,18 +47,18 @@ Run `git diff` and `git status`, read every changed file, then check each standa
 
 ### API (BLOCK)
 
-| #    | Standard                                                                                                                                                                                            |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A-01 | Every route is behind the global guard; `@Public()` only when deliberate and justified. Restricted routes use `@RequirePermissions(PERMISSIONS.x.y)`.                                               |
-| A-02 | Scope is enforced in the query, not after: out-of-scope rows answer 404. Interviewer and department-manager paths are checked.                                                                      |
-| A-03 | Status changes are conditional updates (`WHERE id AND status = <read>`); zero rows means 409. Application status changes only through `ApplicationWorkflowService.moveTo`.                          |
-| A-04 | Multi-row writes that must succeed together run in one transaction.                                                                                                                                 |
-| A-05 | Database constraint errors go through `rethrowDbError` (23505, 23503, 23001 become 409); no raw 500 from a predictable conflict.                                                                    |
-| A-06 | Every input is a validated DTO (whitelisted, no `any`). List endpoints extend `PaginationQueryDto`, whitelist `sortBy`, escape user text with `containsPattern`.                                    |
-| A-07 | Writes are audited; any new secret-like field is added to redaction; the path parameter is named `:id`.                                                                                             |
-| A-08 | Migrations are generated and then read by hand (duplicate `CREATE TYPE` for shared enums); both `up` and `down` proven.                                                                             |
-| A-09 | Public endpoints: rate limited, minimal response fields, identical answer whether or not a record exists, uploads validated by extension, magic bytes and size, and never downloadable anonymously. |
-| A-10 | e2e tests touch only data they created (tag `E2E-`/`e2e-`), clean it up, and leave seeded data intact.                                                                                              |
+| #    | Standard                                                                                                                                                                                                          |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A-01 | Every route is behind the global guard; `@Public()` only when deliberate and justified. Restricted routes use `@RequirePermissions(PERMISSIONS.x.y)`.                                                             |
+| A-02 | Scope is enforced in the query, not after: out-of-scope rows answer 404. Interviewer and department-manager paths are checked.                                                                                    |
+| A-03 | Status changes are conditional updates (`WHERE id AND status = <read>`); zero rows means 409. Application status changes only through `ApplicationWorkflowService.moveTo`.                                        |
+| A-04 | Multi-row writes that must succeed together run in one transaction.                                                                                                                                               |
+| A-05 | Database constraint errors go through `rethrowDbError` (23505, 23503, 23001 become 409); no raw 500 from a predictable conflict.                                                                                  |
+| A-06 | Every input is a validated DTO (whitelisted, no `any`). List endpoints extend `PaginationQueryDto`, whitelist `sortBy`, escape user text with `containsPattern`.                                                  |
+| A-07 | Every write goes through `TxRunner` and records its event; the route declares `@AuditEvent` or `@NoAudit('reason')`; a new secret-like column is redacted in the trigger; reads of personal data record an event. |
+| A-08 | Migrations are generated and then read by hand (duplicate `CREATE TYPE` for shared enums); both `up` and `down` proven.                                                                                           |
+| A-09 | Public endpoints: rate limited, minimal response fields, identical answer whether or not a record exists, uploads validated by extension, magic bytes and size, and never downloadable anonymously.               |
+| A-10 | e2e tests touch only data they created (tag `E2E-`/`e2e-`), clean it up, and leave seeded data intact.                                                                                                            |
 
 ### Web (BLOCK, once `apps/web` has features)
 

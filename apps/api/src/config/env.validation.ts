@@ -1,4 +1,4 @@
-import { retentionMonths } from './retention';
+import { auditIpRetentionMonths, retentionMonths } from './retention';
 
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'] as const;
 
@@ -60,6 +60,7 @@ export function validateEnv(
   const auditOrigin = choiceOf(config.AUDIT_ORIGIN);
   assertOneOf('AUDIT_ORIGIN', auditOrigin, ['app', 'e2e']);
   retentionMonths(choiceOf(config.CANDIDATE_RETENTION_MONTHS));
+  auditIpRetentionMonths(choiceOf(config.AUDIT_IP_RETENTION_MONTHS));
 
   // A container's disk does not survive a restart, so CVs kept on it would vanish.
   if (isProduction && storage !== 'supabase') {

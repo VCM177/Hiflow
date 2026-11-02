@@ -38,7 +38,7 @@ describe('Candidates (e2e)', () => {
     existsSync(join(uploadRoot, 'cv')) ? readdir(join(uploadRoot, 'cv')) : [];
   // The key never appears in the API, only in the row.
   const keyOf = async (id: string): Promise<string | null> => {
-    const rows: { cv_file_key: string | null }[] = await ctx.dataSource.query(
+    const rows: { cv_file_key: string | null }[] = await ctx.maintenance.query(
       `SELECT cv_file_key FROM candidates WHERE id = $1`,
       [id],
     );
@@ -49,11 +49,7 @@ describe('Candidates (e2e)', () => {
     request(ctx.server).get(`/candidates/${id}/cv`).set(bearer(token));
 
   const cleanup = async () => {
-    await ctx.dataSource.query(
-      `DELETE FROM activity_logs WHERE entity_type = 'Candidate'
-         AND entity_id IN (SELECT id::text FROM candidates WHERE email LIKE '${PREFIX}%')`,
-    );
-    await ctx.dataSource.query(
+    await ctx.maintenance.query(
       `DELETE FROM candidates WHERE email LIKE '${PREFIX}%'`,
     );
   };

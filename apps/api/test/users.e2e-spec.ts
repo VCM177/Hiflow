@@ -28,7 +28,7 @@ describe('Users and profile (e2e)', () => {
   let manager: string;
 
   const cleanup = () =>
-    ctx.dataSource.query(`DELETE FROM users WHERE email LIKE '${PREFIX}%'`);
+    ctx.maintenance.query(`DELETE FROM users WHERE email LIKE '${PREFIX}%'`);
 
   const createUser = (body: object, token = hr) =>
     request(ctx.server).post('/users').set(bearer(token)).send(body);
@@ -552,7 +552,7 @@ describe('Users and profile (e2e)', () => {
     });
   });
 
-  it('never stores a password in the activity log', async () => {
+  it('never stores a password in the audit trail, only that it changed', async () => {
     const user = await newUser('logcheck');
     await request(ctx.server)
       .post(`/users/${user.id}/reset-password`)
@@ -560,14 +560,21 @@ describe('Users and profile (e2e)', () => {
       .send({ newPassword: 'Secret-For-Log-5' })
       .expect(204);
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const rows: { payload: unknown }[] = await ctx.dataSource.query(
-      `SELECT payload FROM activity_logs WHERE entity_type = 'User' AND entity_id = $1`,
+    const events = await ctx.maintenance.query<unknown[]>(
+      `SELECT * FROM audit_events WHERE entity_id = $1`,
+      [user.id],
+    );
+    const changes = await ctx.maintenance.query<unknown[]>(
+      `SELECT * FROM audit_row_changes WHERE row_id = $1`,
       [user.id],
     );
 
-    expect(rows.length).toBeGreaterThan(0);
-    expect(JSON.stringify(rows)).not.toContain('Secret-For-Log-5');
-    expect(JSON.stringify(rows)).not.toContain(seedPassword());
+    expect(events.length).toBeGreaterThan(0);
+    expect(changes.length).toBeGreaterThan(0);
+    for (const rows of [events, changes]) {
+      expect(JSON.stringify(rows)).not.toContain('Secret-For-Log-5');
+      expect(JSON.stringify(rows)).not.toContain(seedPassword());
+      expect(JSON.stringify(rows)).not.toContain('$2');
+    }
   });
 });

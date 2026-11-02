@@ -449,79 +449,57 @@ describe('Recruitment lifecycle (e2e)', () => {
     });
 
     it('12. the admin can audit every step, and no password was ever written down', async () => {
-      const untilLogged = async (query: string, atLeast: number) => {
-        type Entry = {
-          actor: { name: string } | null;
-          route: string | null;
-          entityType: string;
-        };
-        let items: Entry[] = [];
-        for (let i = 0; i < 60 && items.length < atLeast; i++) {
-          items = (
-            (
-              await call(
-                'get',
-                t.admin,
-                `/activity-logs?${query}&limit=100`,
-              ).expect(200)
-            ).body as { items: Entry[] }
-          ).items;
-          if (items.length < atLeast)
-            await new Promise((r) => setTimeout(r, 50));
-        }
-        return items;
-      };
+      const eventsOf = async (entityId: string): Promise<string[]> =>
+        (
+          (
+            await call(
+              'get',
+              t.admin,
+              `/audit-events?entityId=${entityId}&sortDir=asc&limit=100`,
+            ).expect(200)
+          ).body as { items: { event: string }[] }
+        ).items.map((e) => e.event);
 
-      const requisition = await untilLogged(
-        `entityType=Requisition&entityId=${s.requisitionId}`,
-        7,
-      );
-      expect(requisition.map((e) => e.route)).toContain(
-        '/requisitions/:id/approve',
-      );
-      expect(requisition.map((e) => e.route)).toContain(
-        '/requisitions/:id/close',
-      );
-
-      const app = await untilLogged(
-        `entityType=Application&entityId=${s.applicationId}`,
-        5,
-      );
-      const routes = app.map((e) => e.route);
-      expect(routes).toEqual(
+      const requisition = await eventsOf(s.requisitionId);
+      expect(requisition).toEqual(
         expect.arrayContaining([
-          '/applications',
-          '/applications/:id/status',
-          '/applications/:id/offer',
-          '/applications/:id/offer/response',
+          'REQUISITION_CREATED',
+          'REQUISITION_SUBMITTED',
+          'REQUISITION_APPROVED',
+          'REQUISITION_CLOSED',
         ]),
       );
+      expect(await eventsOf(s.applicationId)).toEqual(
+        expect.arrayContaining([
+          'APPLICATION_CREATED',
+          'APPLICATION_STATUS_CHANGED',
+        ]),
+      );
+      expect(await eventsOf(s.jobId)).toContain('JOB_PUBLISHED');
+      expect(await eventsOf(s.interviewId)).toContain(
+        'INTERVIEW_RESULT_RECORDED',
+      );
+      expect(await eventsOf(s.candidateId)).toContain('CANDIDATE_CV_UPLOADED');
 
-      expect(
-        (await untilLogged(`entityType=Job&entityId=${s.jobId}`, 2)).map(
-          (e) => e.route,
-        ),
-      ).toContain('/jobs/:id/publish');
-      expect(
-        (
-          await untilLogged(`entityType=Interview&entityId=${s.interviewId}`, 1)
-        ).map((e) => e.route),
-      ).toContain('/interviews/:id/result');
-      expect(
-        (
-          await untilLogged(`entityType=Candidate&entityId=${s.candidateId}`, 2)
-        ).map((e) => e.route),
-      ).toContain('/candidates/:id/cv');
-
-      const everything = JSON.stringify(
-        (await call('get', t.admin, '/activity-logs?limit=100').expect(200))
+      // Neither what the API shows nor what the database holds has a password in it.
+      const shown = JSON.stringify(
+        (await call('get', t.admin, '/audit-events?limit=100').expect(200))
           .body,
       );
-      expect(everything).not.toMatch(/Sturdy|Hiflow@2026|"password":"[^[]/);
+      const stored = JSON.stringify(
+        await ctx.maintenance.query(
+          `SELECT changes FROM audit_row_changes WHERE table_name = 'users'`,
+        ),
+      );
+      for (const text of [shown, stored]) {
+        expect(text).not.toMatch(/Sturdy|Hiflow@2026|"password":"[^[]/);
+        expect(text).not.toContain('$2a$');
+        expect(text).not.toContain('$2b$');
+      }
     });
 
     it('13. the data ends up consistent in the database', async () => {
-      const rows: { n: string }[] = await ctx.dataSource.query(
+      const rows: { n: string }[] = await ctx.maintenance.query(
         `SELECT
            (SELECT COUNT(*) FROM application_status_histories WHERE application_id = $1 AND to_status = 'HIRED') AS hired_rows,
            (SELECT COUNT(*) FROM offers WHERE application_id = $1 AND status = 'ACCEPTED') AS accepted_offers,
@@ -600,7 +578,7 @@ describe('Recruitment lifecycle (e2e)', () => {
       ['interviewer', 'get', '/users'],
       ['interviewer', 'get', '/dashboard/overview'],
       ['interviewer', 'get', '/reports/job-results'],
-      ['interviewer', 'get', '/activity-logs'],
+      ['interviewer', 'get', '/audit-events'],
       ['interviewer', 'post', '/candidates'],
       ['interviewer', 'post', '/applications'],
       ['interviewer', 'post', `/applications/${NIL}/status`],
@@ -613,7 +591,7 @@ describe('Recruitment lifecycle (e2e)', () => {
       ['manager', 'post', '/interviews'],
       ['manager', 'get', '/users'],
       ['manager', 'get', '/reports/job-results'],
-      ['manager', 'get', '/activity-logs'],
+      ['manager', 'get', '/audit-events'],
       ['manager', 'post', `/requisitions/${NIL}/approve`],
       ['manager', 'get', `/applications/${NIL}/offer`],
       ['recruiter', 'post', '/requisitions'],
@@ -623,7 +601,7 @@ describe('Recruitment lifecycle (e2e)', () => {
       ['recruiter', 'post', '/users'],
       ['recruiter', 'post', '/departments'],
       ['recruiter', 'get', '/reports/job-results'],
-      ['recruiter', 'get', '/activity-logs'],
+      ['recruiter', 'get', '/audit-events'],
       ['recruiter', 'post', `/interviews/${NIL}/result`],
       ['hr', 'post', '/jobs'],
       ['hr', 'post', '/candidates'],
@@ -632,7 +610,7 @@ describe('Recruitment lifecycle (e2e)', () => {
       ['hr', 'post', `/applications/${NIL}/offer`],
       ['hr', 'get', `/applications/${NIL}/offer`],
       ['hr', 'post', '/departments'],
-      ['hr', 'get', '/activity-logs'],
+      ['hr', 'get', '/audit-events'],
     ];
 
     it.each(forbidden)('%s may not %s %s', async (role, method, path) => {
@@ -655,7 +633,7 @@ describe('Recruitment lifecycle (e2e)', () => {
         '/interviews',
         '/dashboard/overview',
         '/reports/job-results',
-        '/activity-logs',
+        '/audit-events',
         '/profile',
       ]) {
         await call('get', t.admin, path).expect(200);

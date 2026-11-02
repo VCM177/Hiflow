@@ -9,7 +9,6 @@ import { validateEnv } from './config/env.validation';
 import { dataSourceOptions } from './database/typeorm.config';
 import { HealthModule } from './health/health.module';
 import { AuditModule } from './modules/audit/audit.module';
-import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { ApplicationsModule } from './modules/applications/applications.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CandidatesModule } from './modules/candidates/candidates.module';
@@ -33,7 +32,6 @@ import { UsersModule } from './modules/users/users.module';
     CacheModule,
     ThrottleModule,
     AuthModule,
-    ActivityLogsModule,
     AuditModule,
     StorageModule,
     DepartmentsModule,

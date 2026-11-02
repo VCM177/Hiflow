@@ -1,7 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { DataSource } from 'typeorm';
 import { seedPassword } from './../src/database/seeds/base.seeder';
 import { createE2eApp } from './helpers/e2e-app';
 
@@ -15,7 +14,6 @@ interface LoginBody {
 describe('Session cookie (e2e, seeded accounts)', () => {
   let app: INestApplication;
   let server: App;
-  let dataSource: DataSource;
 
   const login = (email: string) =>
     request(server)
@@ -27,19 +25,10 @@ describe('Session cookie (e2e, seeded accounts)', () => {
     return header.find((line) => line.startsWith(`${COOKIE}=`)) ?? '';
   };
 
-  const logRowsFor = async (route: string): Promise<number> => {
-    const rows: { count: string }[] = await dataSource.query(
-      `SELECT COUNT(*) AS count FROM activity_logs WHERE payload->>'route' = $1`,
-      [route],
-    );
-    return Number(rows[0].count);
-  };
-
   beforeAll(async () => {
     const ctx = await createE2eApp();
     app = ctx.app;
     server = ctx.server;
-    dataSource = ctx.dataSource;
   });
 
   afterAll(async () => {
@@ -149,18 +138,6 @@ describe('Session cookie (e2e, seeded accounts)', () => {
       expect(cookie).toContain('HttpOnly');
       expect(cookie).toContain('Secure');
       expect(cookie).toContain('SameSite=Strict');
-    });
-
-    it('is not written to the activity log, like login', async () => {
-      const before = await logRowsFor('/auth/logout');
-
-      await request(server).post('/auth/logout').expect(204);
-      await login('hr@hiflow.local').expect(200);
-
-      // Give the fire-and-forget audit write time to land, then compare.
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      expect(await logRowsFor('/auth/logout')).toBe(before);
-      expect(await logRowsFor('/auth/login')).toBe(0);
     });
   });
 });

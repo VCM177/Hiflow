@@ -262,7 +262,7 @@ describe('Offers (e2e)', () => {
       const expired = await withOffer();
       const declined = await withOffer();
       for (const { offer } of [expired, declined]) {
-        await ctx.dataSource.query(
+        await ctx.maintenance.query(
           `UPDATE offers SET expires_at = current_date - 1 WHERE id = $1`,
           [offer.id],
         );
@@ -323,33 +323,6 @@ describe('Offers (e2e)', () => {
       expect(app.status).toBe(expected);
       expect(app.history.filter((h) => h.toStatus === expected)).toHaveLength(
         1,
-      );
-    });
-  });
-
-  describe('audit trail', () => {
-    it('records offer writes against the application they belong to', async () => {
-      const { appId } = await withOffer();
-      await respond(appId, { accepted: true }).expect(200);
-
-      let routes: string[] = [];
-      for (let i = 0; i < 40 && routes.length < 3; i++) {
-        const rows: { payload: { route: string } }[] =
-          await ctx.dataSource.query(
-            `SELECT payload FROM activity_logs WHERE entity_type = 'Application' AND entity_id = $1`,
-            [appId],
-          );
-        routes = rows
-          .map((r) => r.payload.route)
-          .filter((r) => r.includes('/offer'));
-        if (routes.length < 2) await new Promise((r) => setTimeout(r, 50));
-      }
-
-      expect(routes).toEqual(
-        expect.arrayContaining([
-          '/applications/:id/offer',
-          '/applications/:id/offer/response',
-        ]),
       );
     });
   });

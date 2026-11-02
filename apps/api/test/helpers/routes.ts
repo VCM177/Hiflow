@@ -4,6 +4,10 @@ import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { ModulesContainer } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './../../src/common/decorators/public.decorator';
 import { REQUIRED_PERMISSIONS_KEY } from './../../src/common/decorators/require-permissions.decorator';
+import {
+  AUDIT_EVENT_KEY,
+  NO_AUDIT_KEY,
+} from './../../src/modules/audit/audit.decorators';
 import type { E2eContext } from './e2e-app';
 
 export interface Route {
@@ -12,10 +16,19 @@ export interface Route {
   path: string;
   required: Permission[] | undefined;
   isPublic: boolean;
+  /** The audit event the route declares, or why it declares none. */
+  audit: { event: string } | { noAudit: string } | undefined;
 }
 
 const asList = (value: unknown): string[] =>
   Array.isArray(value) ? (value as string[]) : [value as string];
+
+const auditOf = (event: unknown, noAudit: unknown): Route['audit'] =>
+  event
+    ? { event: (event as { event: string }).event }
+    : typeof noAudit === 'string'
+      ? { noAudit }
+      : undefined;
 
 /**
  * Every route the running application really serves, read from the same
@@ -55,6 +68,7 @@ export function collectRoutes(ctx: E2eContext): Route[] {
           required: metaOf(REQUIRED_PERMISSIONS_KEY) as
             Permission[] | undefined,
           isPublic: metaOf(IS_PUBLIC_KEY) === true,
+          audit: auditOf(metaOf(AUDIT_EVENT_KEY), metaOf(NO_AUDIT_KEY)),
         });
       }
     }

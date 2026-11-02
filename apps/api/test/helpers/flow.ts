@@ -185,12 +185,6 @@ export function createFlow(ctx: E2eContext, t: FlowTokens, tag: string) {
       const q = (sql: string) => ctx.maintenance.query(sql);
       const mine = `candidate_id IN (SELECT id FROM candidates WHERE email LIKE '${mailPrefix}%')`;
 
-      await q(`DELETE FROM activity_logs WHERE
-        (entity_type = 'Application' AND entity_id IN (SELECT id::text FROM applications WHERE ${mine}))
-        OR (entity_type = 'Interview' AND entity_id IN (SELECT i.id::text FROM interviews i JOIN applications a ON a.id = i.application_id WHERE a.${mine}))
-        OR (entity_type = 'Candidate' AND entity_id IN (SELECT id::text FROM candidates WHERE email LIKE '${mailPrefix}%'))
-        OR (entity_type = 'Job' AND entity_id IN (SELECT id::text FROM jobs WHERE title LIKE '${tag}%'))
-        OR (entity_type = 'Requisition' AND entity_id IN (SELECT id::text FROM requisitions WHERE title LIKE '${tag}%'))`);
       // Deleting applications cascades to their history, interviews and offers.
       await q(`DELETE FROM applications WHERE ${mine}`);
       await q(`DELETE FROM candidates WHERE email LIKE '${mailPrefix}%'`);

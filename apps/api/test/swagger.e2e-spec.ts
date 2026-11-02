@@ -132,7 +132,7 @@ describe('OpenAPI contract (e2e)', () => {
         'post /requisitions',
         'get /candidates',
         'get /candidates/{id}/cv',
-        'get /activity-logs',
+        'get /audit-events',
       ]) {
         expect(all.get(key)?.responses).toHaveProperty('403');
       }

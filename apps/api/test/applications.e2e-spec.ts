@@ -46,12 +46,7 @@ describe('Applications (e2e)', () => {
   let seq = 0;
 
   const cleanup = async () => {
-    const q = (sql: string) => ctx.dataSource.query(sql);
-    await q(`DELETE FROM activity_logs WHERE
-      (entity_type = 'Application' AND entity_id IN (SELECT a.id::text FROM applications a JOIN candidates c ON c.id = a.candidate_id WHERE c.email LIKE '${MAIL}%'))
-      OR (entity_type = 'Candidate' AND entity_id IN (SELECT id::text FROM candidates WHERE email LIKE '${MAIL}%'))
-      OR (entity_type = 'Job' AND entity_id IN (SELECT id::text FROM jobs WHERE title LIKE '${TAG}%'))
-      OR (entity_type = 'Requisition' AND entity_id IN (SELECT id::text FROM requisitions WHERE title LIKE '${TAG}%'))`);
+    const q = (sql: string) => ctx.maintenance.query(sql);
     await q(
       `DELETE FROM applications WHERE candidate_id IN (SELECT id FROM candidates WHERE email LIKE '${MAIL}%')`,
     );
@@ -115,13 +110,13 @@ describe('Applications (e2e)', () => {
     );
 
   const addInterview = (appId: string, result: string, round = 1) =>
-    ctx.dataSource.query(
+    ctx.maintenance.query(
       `INSERT INTO interviews (application_id, round, scheduled_at, interviewer_id, result)
        VALUES ($1, $2, now() + interval '1 day', $3, $4)`,
       [appId, round, interviewerId, result],
     );
   const addOffer = (appId: string, status: string) =>
-    ctx.dataSource.query(
+    ctx.maintenance.query(
       `INSERT INTO offers (application_id, salary, start_date, status, created_by_id)
        VALUES ($1, 20000000, current_date + 30, $2, $3)`,
       [appId, status, recruiterId],
@@ -139,7 +134,7 @@ describe('Applications (e2e)', () => {
     interviewer = await loginAs(ctx.server, 'interviewer@hiflow.local');
     engId = await idByCode(ctx.dataSource, 'departments', 'ENG');
     devId = await idByCode(ctx.dataSource, 'job_positions', 'DEV');
-    const ids: { email: string; id: string }[] = await ctx.dataSource.query(
+    const ids: { email: string; id: string }[] = await ctx.maintenance.query(
       `SELECT email, id FROM users WHERE email IN ('interviewer@hiflow.local','recruiter@hiflow.local')`,
     );
     interviewerId = ids.find((u) => u.email.startsWith('interviewer'))!.id;
@@ -588,7 +583,7 @@ describe('Applications (e2e)', () => {
         .body as Detail;
       expect(cleared.assignee).toBeNull();
 
-      const hrRows: { id: string }[] = await ctx.dataSource.query(
+      const hrRows: { id: string }[] = await ctx.maintenance.query(
         `SELECT id FROM users WHERE email = 'hr@hiflow.local'`,
       );
       const hrId = hrRows[0].id;

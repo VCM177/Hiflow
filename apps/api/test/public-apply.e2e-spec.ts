@@ -44,7 +44,7 @@ describe('Public application form (e2e)', () => {
   ) => submitForm(ctx.server, jobId, form(address, extra));
 
   const applicationsOf = (address: string): Promise<ApplicationRow[]> =>
-    ctx.dataSource.query(
+    ctx.maintenance.query(
       `SELECT a.id, a.status, a.assignee_id, a.cv_file_key, a.consent_at
          FROM applications a JOIN candidates c ON c.id = a.candidate_id
         WHERE c.email = $1`,
@@ -61,7 +61,7 @@ describe('Public application form (e2e)', () => {
       cv_file_key: string | null;
     }[]
   > =>
-    ctx.dataSource.query(
+    ctx.maintenance.query(
       `SELECT id, full_name, phone, source, cv_file_key FROM candidates WHERE email = $1`,
       [address.toLowerCase()],
     );
@@ -152,7 +152,7 @@ describe('Public application form (e2e)', () => {
         to_status: string;
         note: string;
         is_system: boolean;
-      }[] = await ctx.dataSource.query(
+      }[] = await ctx.maintenance.query(
         `SELECT h.from_status, h.to_status, h.note, u.is_system
              FROM application_status_histories h JOIN users u ON u.id = h.changed_by_id
             WHERE h.application_id = $1`,
@@ -506,24 +506,26 @@ describe('Public application form (e2e)', () => {
     });
   });
 
-  describe('personal data stays out of the activity log', () => {
-    it('writes no activity row for a submission', async () => {
+  describe('personal data stays out of the audit events', () => {
+    it('records the job a visitor applied to but never who they are', async () => {
       const jobId = await flow.openJob();
       const address = email('nolog');
-      const count = async (): Promise<number> => {
-        const rows: { n: string }[] = await ctx.dataSource.query(
-          `SELECT COUNT(*) AS n FROM activity_logs
-            WHERE payload::text LIKE '%' || $1 || '%'
-               OR payload->>'route' = '/public/jobs/:id/applications'`,
-          [address],
-        );
-        return Number(rows[0].n);
-      };
 
       await apply(jobId, address).expect(202);
-      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      expect(await count()).toBe(0);
+      const rows: { n: string }[] = await ctx.maintenance.query(
+        `SELECT COUNT(*) AS n FROM audit_events WHERE data::text LIKE '%' || $1 || '%'`,
+        [address],
+      );
+      expect(Number(rows[0].n)).toBe(0);
+      const events: { data: { jobId?: string } }[] =
+        await ctx.maintenance.query(
+          `SELECT data FROM audit_events
+          WHERE event = 'APPLICATION_SUBMITTED_ONLINE' AND data->>'jobId' = $1`,
+          [jobId],
+        );
+      expect(events).toHaveLength(1);
+      expect(Object.keys(events[0].data)).toEqual(['jobId']);
     });
   });
 });

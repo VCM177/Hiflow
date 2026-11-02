@@ -26,10 +26,10 @@ describe.each([
   // Only rows this suite created are ever touched; seeded data is off limits.
   // Members go first because users reference departments.
   const cleanup = async () => {
-    await ctx.dataSource.query(
+    await ctx.maintenance.query(
       `DELETE FROM users WHERE email LIKE 'e2e-member-%'`,
     );
-    await ctx.dataSource.query(
+    await ctx.maintenance.query(
       `DELETE FROM ${table} WHERE code LIKE '${prefix}%'`,
     );
   };
@@ -211,7 +211,7 @@ describe.each([
       ).body as Item;
       const email = `e2e-member-${prefix.toLowerCase()}@hiflow.local`;
 
-      await ctx.dataSource.query(
+      await ctx.maintenance.query(
         `INSERT INTO users (email, password_hash, full_name, role, department_id)
          VALUES ($1, 'not-a-real-hash', 'E2E Member', 'INTERVIEWER', $2)`,
         [email, department.id],
@@ -231,7 +231,7 @@ describe.each([
         .get(`/departments/${department.id}`)
         .set(bearer(admin))
         .expect(200);
-      const rows: { department_id: string }[] = await ctx.dataSource.query(
+      const rows: { department_id: string }[] = await ctx.maintenance.query(
         `SELECT department_id FROM users WHERE email = $1`,
         [email],
       );
