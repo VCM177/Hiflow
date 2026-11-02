@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { ENTITY_TYPE_BY_RESOURCE } from '../activity-logs/activity-log.constants';
+import type { AuditActor } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import { StorageService } from '../storage/storage.service';
 
 export const ANONYMIZED_NAME = 'Ứng viên đã ẩn danh';
@@ -38,14 +40,19 @@ export class CandidateAnonymizerService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly storage: StorageService,
+    private readonly tx: TxRunner,
   ) {}
 
   /**
    * One transaction holds the candidate's row, so an application created at the
    * same moment waits for it instead of slipping in after the check.
    */
-  async anonymize(id: string): Promise<void> {
-    const keys = await this.dataSource.transaction(async (manager) => {
+  async anonymize(
+    id: string,
+    actor: AuditActor | null,
+    trigger: 'REQUEST' | 'RETENTION',
+  ): Promise<void> {
+    const keys = await this.tx.run(actor, async (manager, audit) => {
       const rows = await manager.query<
         (CvRow & { anonymized_at: Date | null })[]
       >(
@@ -105,6 +112,8 @@ export class CandidateAnonymizerService {
         ],
       );
 
+      await audit.record('CANDIDATE_ANONYMIZED', id, { trigger });
+
       return [candidate, ...applications]
         .map((row) => row.cv_file_key)
         .filter((key): key is string => key !== null);
@@ -152,7 +161,7 @@ export class CandidateAnonymizerService {
 
     for (const id of ids) {
       try {
-        await this.anonymize(id);
+        await this.anonymize(id, null, 'RETENTION');
         result.anonymized += 1;
       } catch (error) {
         if (error instanceof ConflictException) {

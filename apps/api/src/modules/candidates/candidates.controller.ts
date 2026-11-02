@@ -30,6 +30,7 @@ import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import type { AuthUser } from '../../common/types/auth-user';
+import { AuditEvent } from '../audit/audit.decorators';
 import { CV_MAX_BYTES } from '../storage/cv-file.validator';
 import { sendDownload } from '../storage/send-download';
 import {
@@ -59,12 +60,14 @@ export class CandidatesController {
   }
 
   @Post()
+  @AuditEvent('CANDIDATE_CREATED')
   @RequirePermissions(PERMISSIONS.candidate.create)
   create(@Body() dto: CreateCandidateDto, @CurrentUser() actor: AuthUser) {
     return this.candidates.create(dto, actor);
   }
 
   @Patch(':id')
+  @AuditEvent('CANDIDATE_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.candidate.update)
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -75,6 +78,7 @@ export class CandidatesController {
   }
 
   @Put(':id/note')
+  @AuditEvent('CANDIDATE_NOTE_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.candidate.noteCreate)
   setNote(
     @Param('id', ParseUUIDPipe) id: string,
@@ -86,6 +90,7 @@ export class CandidatesController {
 
   /** Redirects to a short-lived signed address, or streams the file, after the scope check. */
   @Get(':id/cv')
+  @AuditEvent('CANDIDATE_CV_DOWNLOADED')
   @RequirePermissions(PERMISSIONS.candidate.listView)
   @ApiOkResponse({
     description: 'Tệp CV (khi lưu trên đĩa cục bộ)',
@@ -111,6 +116,7 @@ export class CandidatesController {
   }
 
   @Post(':id/cv')
+  @AuditEvent('CANDIDATE_CV_UPLOADED')
   @HttpCode(200)
   @ApiConsumes('multipart/form-data')
   @RequirePermissions(PERMISSIONS.candidate.cvManage)
@@ -130,6 +136,7 @@ export class CandidatesController {
   }
 
   @Delete(':id/cv')
+  @AuditEvent('CANDIDATE_CV_REMOVED')
   @RequirePermissions(PERMISSIONS.candidate.cvManage)
   removeCv(
     @Param('id', ParseUUIDPipe) id: string,
@@ -140,6 +147,7 @@ export class CandidatesController {
 
   /** Erases the personal data and the CVs but keeps the row, so the reports stay correct. */
   @Post(':id/anonymize')
+  @AuditEvent('CANDIDATE_ANONYMIZED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.candidate.anonymize)
   @ApiConflictResponse({
@@ -154,6 +162,7 @@ export class CandidatesController {
   }
 
   @Delete(':id')
+  @AuditEvent('CANDIDATE_DELETED')
   @HttpCode(204)
   @RequirePermissions(PERMISSIONS.candidate.delete)
   remove(

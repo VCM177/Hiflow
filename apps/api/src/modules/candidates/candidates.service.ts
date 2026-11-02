@@ -18,6 +18,9 @@ import {
 } from '../../common/pagination/paginate';
 import type { AuthUser } from '../../common/types/auth-user';
 import { Application } from '../applications/entities/application.entity';
+import { AuditService } from '../audit/audit.service';
+import { actorOf } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import {
   FileDownload,
   StorageService,
@@ -57,6 +60,8 @@ export class CandidatesService {
     private readonly applications: Repository<Application>,
     private readonly storage: StorageService,
     private readonly anonymizer: CandidateAnonymizerService,
+    private readonly tx: TxRunner,
+    private readonly audit: AuditService,
   ) {}
 
   async list(
@@ -122,15 +127,23 @@ export class CandidatesService {
     this.assertDob(dto.dob);
 
     try {
-      const saved = await this.candidates.save(
-        this.candidates.create({
-          fullName: dto.fullName,
-          email: dto.email,
-          phone: dto.phone ?? null,
-          dob: dto.dob ? toDateOnly(dto.dob) : null,
-          source: dto.source,
-          note: dto.note ?? null,
-        }),
+      const saved = await this.tx.run(
+        actorOf(actor),
+        async (manager, audit) => {
+          const repo = manager.getRepository(Candidate);
+          const created = await repo.save(
+            repo.create({
+              fullName: dto.fullName,
+              email: dto.email,
+              phone: dto.phone ?? null,
+              dob: dto.dob ? toDateOnly(dto.dob) : null,
+              source: dto.source,
+              note: dto.note ?? null,
+            }),
+          );
+          await audit.record('CANDIDATE_CREATED', created.id);
+          return created;
+        },
       );
 
       return await this.get(saved.id, actor);
@@ -148,16 +161,36 @@ export class CandidatesService {
     this.assertEditable(candidate);
     this.assertDob(dto.dob);
 
-    if (dto.fullName !== undefined) candidate.fullName = dto.fullName;
-    if (dto.email !== undefined) candidate.email = dto.email;
-    if (dto.phone !== undefined) candidate.phone = dto.phone;
-    if (dto.source !== undefined) candidate.source = dto.source;
-    if (dto.dob !== undefined) candidate.dob = toDateOnly(dto.dob);
+    const changedFields: string[] = [];
+    const apply = <K extends keyof Candidate>(
+      field: K,
+      value: Candidate[K] | undefined,
+    ): void => {
+      if (
+        value === undefined ||
+        (candidate[field] ?? null) === (value ?? null)
+      ) {
+        return;
+      }
+      candidate[field] = value;
+      changedFields.push(field);
+    };
 
-    try {
-      await this.candidates.save(candidate);
-    } catch (error) {
-      return rethrowDbError(error, { unique: DUPLICATE_MESSAGE });
+    apply('fullName', dto.fullName);
+    apply('email', dto.email);
+    apply('phone', dto.phone);
+    apply('source', dto.source);
+    apply('dob', dto.dob === undefined ? undefined : toDateOnly(dto.dob));
+
+    if (changedFields.length > 0) {
+      try {
+        await this.tx.run(actorOf(actor), async (manager, audit) => {
+          await manager.getRepository(Candidate).save(candidate);
+          await audit.record('CANDIDATE_UPDATED', id, { changedFields });
+        });
+      } catch (error) {
+        return rethrowDbError(error, { unique: DUPLICATE_MESSAGE });
+      }
     }
 
     return this.get(id, actor);
@@ -168,8 +201,16 @@ export class CandidatesService {
     note: string,
     actor: AuthUser,
   ): Promise<CandidateDetailView> {
-    this.assertEditable(await this.findScoped(id, actor));
-    await this.candidates.update(id, { note: note === '' ? null : note });
+    const candidate = await this.findScoped(id, actor);
+    this.assertEditable(candidate);
+    const next = note === '' ? null : note;
+
+    if (candidate.note !== next) {
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Candidate).update(id, { note: next });
+        await audit.record('CANDIDATE_NOTE_UPDATED', id);
+      });
+    }
     return this.get(id, actor);
   }
 
@@ -186,7 +227,10 @@ export class CandidatesService {
     const { key } = await this.storage.upload(file);
 
     try {
-      await this.candidates.update(id, { cvFileKey: key });
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Candidate).update(id, { cvFileKey: key });
+        await audit.record('CANDIDATE_CV_UPLOADED', id);
+      });
     } catch (error) {
       // Do not leave an orphaned file behind if the row could not be updated.
       await this.discardFile(key);
@@ -204,7 +248,10 @@ export class CandidatesService {
       throw new NotFoundException('Ứng viên chưa có CV');
     }
 
-    await this.candidates.update(id, { cvFileKey: null });
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      await manager.getRepository(Candidate).update(id, { cvFileKey: null });
+      await audit.record('CANDIDATE_CV_REMOVED', id);
+    });
     await this.discardFile(candidate.cvFileKey);
     return this.get(id, actor);
   }
@@ -217,6 +264,12 @@ export class CandidatesService {
       throw new NotFoundException('Ứng viên chưa có CV');
     }
 
+    // Reading a CV is reading personal data, so the trail says who did.
+    await this.audit.recordStandalone(
+      actorOf(actor),
+      'CANDIDATE_CV_DOWNLOADED',
+      id,
+    );
     return this.storage.download(
       candidate.cvFileKey,
       `CV-${id}${extname(candidate.cvFileKey)}`,
@@ -226,7 +279,7 @@ export class CandidatesService {
   /** Erases the personal data on request; the caller must hold the permission. */
   async anonymize(id: string, actor: AuthUser): Promise<CandidateDetailView> {
     await this.findScoped(id, actor);
-    await this.anonymizer.anonymize(id);
+    await this.anonymizer.anonymize(id, actorOf(actor), 'REQUEST');
     return this.get(id, actor);
   }
 
@@ -234,7 +287,10 @@ export class CandidatesService {
     const candidate = await this.findScoped(id, actor);
 
     try {
-      await this.candidates.delete(id);
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Candidate).delete(id);
+        await audit.record('CANDIDATE_DELETED', id);
+      });
     } catch (error) {
       return rethrowDbError(error, {
         foreignKey: 'Ứng viên đã có hồ sơ ứng tuyển nên không thể xóa',

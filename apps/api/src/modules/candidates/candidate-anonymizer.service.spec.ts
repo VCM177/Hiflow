@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import type { DataSource } from 'typeorm';
+import type { TxRunner } from '../audit/tx-runner.service';
 import type { StorageService } from '../storage/storage.service';
 import { CandidateAnonymizerService } from './candidate-anonymizer.service';
 
@@ -8,6 +9,7 @@ describe('CandidateAnonymizerService.sweep', () => {
     const service = new CandidateAnonymizerService(
       {} as DataSource,
       {} as StorageService,
+      {} as TxRunner,
     );
     const anonymize = jest.spyOn(service, 'anonymize');
     jest.spyOn(service, 'findExpired').mockResolvedValue(['a', 'b', 'c', 'd']);
@@ -47,5 +49,11 @@ describe('CandidateAnonymizerService.sweep', () => {
       'c',
       'd',
     ]);
+    // A retention run has no person behind it, and says so.
+    expect(
+      anonymize.mock.calls.every(
+        ([, who, why]) => who === null && why === 'RETENTION',
+      ),
+    ).toBe(true);
   });
 });
