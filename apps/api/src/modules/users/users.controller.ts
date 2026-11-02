@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import type { AuthUser } from '../../common/types/auth-user';
+import { AuditEvent } from '../audit/audit.decorators';
 import {
   AssignRoleDto,
   CreateUserDto,
@@ -51,12 +52,14 @@ export class UsersController {
   }
 
   @Post()
+  @AuditEvent('USER_CREATED')
   @RequirePermissions(PERMISSIONS.user.create)
   create(@Body() dto: CreateUserDto, @CurrentUser() actor: AuthUser) {
     return this.users.create(dto, actor);
   }
 
   @Patch(':id')
+  @AuditEvent('USER_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.user.update)
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -67,6 +70,7 @@ export class UsersController {
   }
 
   @Patch(':id/role')
+  @AuditEvent('USER_ROLE_CHANGED', { conditional: true })
   @RequirePermissions(PERMISSIONS.user.roleAssign)
   assignRole(
     @Param('id', ParseUUIDPipe) id: string,
@@ -77,6 +81,7 @@ export class UsersController {
   }
 
   @Patch(':id/status')
+  @AuditEvent('USER_STATUS_CHANGED', { conditional: true })
   @RequirePermissions(PERMISSIONS.user.statusUpdate)
   setStatus(
     @Param('id', ParseUUIDPipe) id: string,
@@ -87,6 +92,7 @@ export class UsersController {
   }
 
   @Post(':id/reset-password')
+  @AuditEvent('USER_PASSWORD_RESET')
   @HttpCode(204)
   @RequirePermissions(PERMISSIONS.user.passwordReset)
   resetPassword(

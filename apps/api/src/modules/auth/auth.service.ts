@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { AuthUser, JwtPayload } from '../../common/types/auth-user';
+import { AuditService } from '../audit/audit.service';
 import { User } from '../users/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 
@@ -26,6 +27,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly jwt: JwtService,
+    private readonly audit: AuditService,
   ) {}
 
   async login(dto: LoginDto): Promise<LoginResult> {
@@ -40,13 +42,24 @@ export class AuthService {
       user?.passwordHash ?? DUMMY_HASH,
     );
 
+    // Both failures write one event, so they still cost the same. The email
+    // that was typed is never stored: it may belong to a stranger.
     if (!user || !passwordMatches) {
+      await this.audit.recordStandalone(
+        null,
+        'AUTH_LOGIN_FAILED',
+        user?.id ?? null,
+        { reason: 'INVALID_CREDENTIALS' },
+      );
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
     // Only reveal the lock after the password is proven, so the message does
     // not confirm to a stranger that an email is registered.
     if (!user.isActive) {
+      await this.audit.recordStandalone(null, 'AUTH_LOGIN_FAILED', user.id, {
+        reason: 'ACCOUNT_LOCKED',
+      });
       throw new ForbiddenException('Tài khoản đã bị khóa');
     }
 
@@ -57,6 +70,12 @@ export class AuthService {
       role: user.role,
       permissions,
     };
+
+    await this.audit.recordStandalone(
+      { id: user.id, name: user.fullName, role: user.role },
+      'AUTH_LOGIN_SUCCEEDED',
+      user.id,
+    );
 
     return {
       accessToken: await this.jwt.signAsync(payload),
@@ -69,6 +88,31 @@ export class AuthService {
         permissions,
       },
     };
+  }
+
+  /**
+   * Logging out is public so it works with an expired token, which means the
+   * caller is only known when the token still verifies; otherwise nothing is
+   * recorded rather than guessing who it was.
+   */
+  async logout(token: string | null): Promise<void> {
+    if (!token) return;
+
+    let userId: string;
+    try {
+      userId = (await this.jwt.verifyAsync<JwtPayload>(token)).sub;
+    } catch {
+      return;
+    }
+
+    const user = await this.users.findOneBy({ id: userId });
+    if (!user) return;
+
+    await this.audit.recordStandalone(
+      { id: user.id, name: user.fullName, role: user.role },
+      'AUTH_LOGGED_OUT',
+      user.id,
+    );
   }
 
   /** How long the session cookie should live: as long as the token it carries. */

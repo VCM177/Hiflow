@@ -6,6 +6,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { hashPassword, verifyPassword } from '../../common/security/password';
+import type { AuthUser } from '../../common/types/auth-user';
+import { actorOf } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import { User } from './entities/user.entity';
 import { toUserView, UserView } from './user-view';
 import { ChangePasswordDto } from './users.dto';
@@ -15,6 +18,7 @@ import { ChangePasswordDto } from './users.dto';
 export class ProfileService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly tx: TxRunner,
   ) {}
 
   async get(userId: string): Promise<UserView> {
@@ -30,12 +34,20 @@ export class ProfileService {
     return toUserView(user);
   }
 
-  async updateName(userId: string, fullName: string): Promise<UserView> {
-    await this.users.update(userId, { fullName });
-    return this.get(userId);
+  async updateName(actor: AuthUser, fullName: string): Promise<UserView> {
+    if (actor.fullName !== fullName) {
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(User).update(actor.id, { fullName });
+        await audit.record('PROFILE_UPDATED', actor.id, {
+          changedFields: ['fullName'],
+        });
+      });
+    }
+    return this.get(actor.id);
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+  async changePassword(actor: AuthUser, dto: ChangePasswordDto): Promise<void> {
+    const userId = actor.id;
     const user = await this.users
       .createQueryBuilder('account')
       .addSelect('account.passwordHash')
@@ -54,8 +66,10 @@ export class ProfileService {
       throw new BadRequestException('Mật khẩu mới phải khác mật khẩu hiện tại');
     }
 
-    await this.users.update(userId, {
-      passwordHash: await hashPassword(dto.newPassword),
+    const passwordHash = await hashPassword(dto.newPassword);
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      await manager.getRepository(User).update(userId, { passwordHash });
+      await audit.record('PASSWORD_CHANGED', userId);
     });
   }
 }

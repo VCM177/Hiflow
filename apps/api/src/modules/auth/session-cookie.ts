@@ -22,3 +22,11 @@ export const tokenFromCookie = (request: Request): string | null => {
 
   return typeof value === 'string' && value !== '' ? value : null;
 };
+
+/** The token a request carries, read as the guard reads it: Bearer header first, then the cookie. */
+export const tokenFromRequest = (request: Request): string | null => {
+  const header = request.headers.authorization;
+  const bearer = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
+
+  return bearer !== '' ? bearer : tokenFromCookie(request);
+};

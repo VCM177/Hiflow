@@ -1,4 +1,12 @@
-import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCookieAuth,
@@ -6,15 +14,20 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RateLimit } from '../../common/throttle/rate-limit.decorator';
 import { THROTTLE_POLICY } from '../../common/throttle/throttle.constants';
 import type { AuthUser } from '../../common/types/auth-user';
+import { AuditEvent } from '../audit/audit.decorators';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { SESSION_COOKIE, sessionCookieOptions } from './session-cookie';
+import {
+  SESSION_COOKIE,
+  sessionCookieOptions,
+  tokenFromRequest,
+} from './session-cookie';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -27,6 +40,7 @@ export class AuthController {
    */
   @Public()
   @RateLimit(THROTTLE_POLICY.LOGIN_IP, THROTTLE_POLICY.LOGIN_ACCOUNT)
+  @AuditEvent('AUTH_LOGIN_SUCCEEDED')
   @Post('login')
   @HttpCode(200)
   @ApiUnauthorizedResponse({ description: 'Email hoặc mật khẩu không đúng' })
@@ -48,9 +62,14 @@ export class AuthController {
 
   /** Public on purpose: clearing the cookie must work even after the token expired. */
   @Public()
+  @AuditEvent('AUTH_LOGGED_OUT', { conditional: true })
   @Post('logout')
   @HttpCode(204)
-  logout(@Res({ passthrough: true }) response: Response): void {
+  async logout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    await this.auth.logout(tokenFromRequest(request));
     response.clearCookie(SESSION_COOKIE, sessionCookieOptions());
   }
 

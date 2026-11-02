@@ -1,11 +1,16 @@
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
+import { AuditService } from '../audit/audit.service';
 import { User } from '../users/entities/user.entity';
 import { AuthService } from './auth.service';
 
 describe('AuthService.sessionMaxAgeMs', () => {
   const jwt = new JwtService({ secret: 'test-secret' });
-  const service = new AuthService({} as Repository<User>, jwt);
+  const service = new AuthService(
+    {} as Repository<User>,
+    jwt,
+    {} as AuditService,
+  );
 
   it('lasts as long as the token has left', () => {
     const token = jwt.sign({ sub: 'u1' }, { expiresIn: '1h' });

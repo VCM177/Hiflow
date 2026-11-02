@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
+import { AuditService } from '../audit/audit.service';
 import { User } from '../users/entities/user.entity';
 import { AuthService } from './auth.service';
 
@@ -12,6 +13,9 @@ describe('AuthService.login', () => {
   let service: AuthService;
   let getOne: jest.Mock;
   const signAsync = jest.fn();
+  const verifyAsync = jest.fn();
+  const recordStandalone = jest.fn();
+  const findOneBy = jest.fn();
 
   const buildUser = (overrides: Partial<User> = {}): User =>
     ({
@@ -27,6 +31,9 @@ describe('AuthService.login', () => {
   beforeEach(async () => {
     getOne = jest.fn();
     signAsync.mockReset().mockResolvedValue('signed.jwt.token');
+    verifyAsync.mockReset();
+    recordStandalone.mockReset().mockResolvedValue(undefined);
+    findOneBy.mockReset();
 
     const queryBuilder = {
       addSelect: jest.fn().mockReturnThis(),
@@ -39,9 +46,10 @@ describe('AuthService.login', () => {
         AuthService,
         {
           provide: getRepositoryToken(User),
-          useValue: { createQueryBuilder: () => queryBuilder },
+          useValue: { createQueryBuilder: () => queryBuilder, findOneBy },
         },
-        { provide: JwtService, useValue: { signAsync } },
+        { provide: JwtService, useValue: { signAsync, verifyAsync } },
+        { provide: AuditService, useValue: { recordStandalone } },
       ],
     }).compile();
 
@@ -125,5 +133,112 @@ describe('AuthService.login', () => {
         password: 'not-the-password',
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  describe('audit trail', () => {
+    it('records a successful login for the person who logged in', async () => {
+      getOne.mockResolvedValue(buildUser());
+
+      await service.login({
+        email: 'recruiter@hiflow.local',
+        password: PASSWORD,
+      });
+
+      expect(recordStandalone).toHaveBeenCalledWith(
+        { id: 'user-1', name: 'Recruiter One', role: UserRole.RECRUITER },
+        'AUTH_LOGIN_SUCCEEDED',
+        'user-1',
+      );
+    });
+
+    it('records a wrong password against the account, without an actor', async () => {
+      getOne.mockResolvedValue(buildUser());
+
+      await expect(
+        service.login({ email: 'recruiter@hiflow.local', password: 'nope' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(recordStandalone).toHaveBeenCalledWith(
+        null,
+        'AUTH_LOGIN_FAILED',
+        'user-1',
+        { reason: 'INVALID_CREDENTIALS' },
+      );
+    });
+
+    it('records an unknown email too, but never keeps what was typed', async () => {
+      getOne.mockResolvedValue(null);
+
+      await expect(
+        service.login({ email: 'stranger@example.com', password: PASSWORD }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(recordStandalone).toHaveBeenCalledTimes(1);
+      expect(recordStandalone).toHaveBeenCalledWith(
+        null,
+        'AUTH_LOGIN_FAILED',
+        null,
+        { reason: 'INVALID_CREDENTIALS' },
+      );
+      expect(JSON.stringify(recordStandalone.mock.calls)).not.toContain(
+        'stranger@example.com',
+      );
+    });
+
+    it('records a locked account only once the password was right', async () => {
+      getOne.mockResolvedValue(buildUser({ isActive: false }));
+
+      await expect(
+        service.login({
+          email: 'recruiter@hiflow.local',
+          password: PASSWORD,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(recordStandalone).toHaveBeenCalledWith(
+        null,
+        'AUTH_LOGIN_FAILED',
+        'user-1',
+        { reason: 'ACCOUNT_LOCKED' },
+      );
+    });
+  });
+
+  describe('logout', () => {
+    it('records who logged out when the token still verifies', async () => {
+      verifyAsync.mockResolvedValue({ sub: 'user-1' });
+      findOneBy.mockResolvedValue(buildUser());
+
+      await service.logout('good.token');
+
+      expect(recordStandalone).toHaveBeenCalledWith(
+        { id: 'user-1', name: 'Recruiter One', role: UserRole.RECRUITER },
+        'AUTH_LOGGED_OUT',
+        'user-1',
+      );
+    });
+
+    it.each([
+      ['no token', null, undefined],
+      ['an expired or forged token', 'bad.token', new Error('expired')],
+    ])(
+      'records nothing for %s, and does not fail',
+      async (_label, token, err) => {
+        if (err) verifyAsync.mockRejectedValue(err);
+
+        await expect(service.logout(token)).resolves.toBeUndefined();
+
+        expect(recordStandalone).not.toHaveBeenCalled();
+      },
+    );
+
+    it('records nothing when the account no longer exists', async () => {
+      verifyAsync.mockResolvedValue({ sub: 'gone' });
+      findOneBy.mockResolvedValue(null);
+
+      await service.logout('good.token');
+
+      expect(recordStandalone).not.toHaveBeenCalled();
+    });
   });
 });

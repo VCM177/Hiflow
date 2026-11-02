@@ -16,6 +16,8 @@ import {
 import { hashPassword } from '../../common/security/password';
 import type { AuthUser } from '../../common/types/auth-user';
 import { ASSIGNABLE_ROLES } from '../applications/applications.constants';
+import { actorOf } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import { Department } from '../departments/entities/department.entity';
 import { INTERVIEWER_ROLES } from '../interviews/interviews.constants';
 import { User } from './entities/user.entity';
@@ -40,6 +42,7 @@ export class UsersService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Department)
     private readonly departments: Repository<Department>,
+    private readonly tx: TxRunner,
   ) {}
 
   async list(query: ListUsersQueryDto): Promise<Paginated<UserView>> {
@@ -126,20 +129,26 @@ export class UsersService {
   async create(dto: CreateUserDto, actor: AuthUser): Promise<UserView> {
     this.assertCanGrantRole(actor, dto.role);
     await this.assertDepartmentExists(dto.departmentId);
+    const passwordHash = await hashPassword(dto.password);
 
     try {
-      const saved = await this.users.save(
-        this.users.create({
-          email: dto.email,
-          fullName: dto.fullName,
-          role: dto.role,
-          departmentId: dto.departmentId ?? null,
-          passwordHash: await hashPassword(dto.password),
-          isActive: true,
-        }),
-      );
+      const id = await this.tx.run(actorOf(actor), async (manager, audit) => {
+        const accounts = manager.getRepository(User);
+        const saved = await accounts.save(
+          accounts.create({
+            email: dto.email,
+            fullName: dto.fullName,
+            role: dto.role,
+            departmentId: dto.departmentId ?? null,
+            passwordHash,
+            isActive: true,
+          }),
+        );
+        await audit.record('USER_CREATED', saved.id);
+        return saved.id;
+      });
 
-      return await this.get(saved.id);
+      return await this.get(id);
     } catch (error) {
       return rethrowDbError(error, { unique: 'Email đã được sử dụng' });
     }
@@ -152,16 +161,26 @@ export class UsersService {
   ): Promise<UserView> {
     const user = await this.findEntity(id);
     this.assertCanManage(actor, user);
+    const changedFields: string[] = [];
 
     if (dto.departmentId !== undefined) {
       await this.assertDepartmentExists(dto.departmentId);
-      user.departmentId = dto.departmentId;
+      if (user.departmentId !== dto.departmentId) {
+        user.departmentId = dto.departmentId;
+        changedFields.push('departmentId');
+      }
     }
-    if (dto.fullName !== undefined) {
+    if (dto.fullName !== undefined && user.fullName !== dto.fullName) {
       user.fullName = dto.fullName;
+      changedFields.push('fullName');
     }
 
-    await this.users.save(user);
+    if (changedFields.length > 0) {
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(User).save(user);
+        await audit.record('USER_UPDATED', id, { changedFields });
+      });
+    }
     return this.get(id);
   }
 
@@ -180,8 +199,14 @@ export class UsersService {
     this.assertCanManage(actor, user);
     this.assertCanGrantRole(actor, role);
 
-    user.role = role;
-    await this.users.save(user);
+    if (user.role !== role) {
+      const from = user.role;
+      user.role = role;
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(User).save(user);
+        await audit.record('USER_ROLE_CHANGED', id, { from, to: role });
+      });
+    }
     return this.get(id);
   }
 
@@ -199,8 +224,14 @@ export class UsersService {
     const user = await this.findEntity(id);
     this.assertCanManage(actor, user);
 
-    user.isActive = isActive;
-    await this.users.save(user);
+    if (user.isActive !== isActive) {
+      const from = user.isActive;
+      user.isActive = isActive;
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(User).save(user);
+        await audit.record('USER_STATUS_CHANGED', id, { from, to: isActive });
+      });
+    }
     return this.get(id);
   }
 
@@ -211,9 +242,11 @@ export class UsersService {
   ): Promise<void> {
     const user = await this.findEntity(id);
     this.assertCanManage(actor, user);
+    const passwordHash = await hashPassword(newPassword);
 
-    await this.users.update(id, {
-      passwordHash: await hashPassword(newPassword),
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      await manager.getRepository(User).update(id, { passwordHash });
+      await audit.record('USER_PASSWORD_RESET', id);
     });
   }
 
