@@ -22,7 +22,7 @@ import {
 } from '../../common/pagination/paginate';
 import { departmentScope } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
-import { ActivityLog } from '../activity-logs/entities/activity-log.entity';
+import { AuditEvent } from '../audit/entities/audit-event.entity';
 import { actorOf } from '../audit/audit.types';
 import { TxRunner } from '../audit/tx-runner.service';
 import { Department } from '../departments/entities/department.entity';
@@ -31,7 +31,6 @@ import { JobPosition } from '../positions/entities/job-position.entity';
 import { Requisition } from './entities/requisition.entity';
 import {
   REQUISITION_CODE_SEQUENCE,
-  REQUISITION_EVENTS,
   REQUISITION_STATUS_LABEL,
 } from './requisitions.constants';
 import {
@@ -62,8 +61,8 @@ export class RequisitionsService {
     private readonly departments: Repository<Department>,
     @InjectRepository(JobPosition)
     private readonly positions: Repository<JobPosition>,
-    @InjectRepository(ActivityLog)
-    private readonly logs: Repository<ActivityLog>,
+    @InjectRepository(AuditEvent)
+    private readonly auditEvents: Repository<AuditEvent>,
     private readonly dataSource: DataSource,
     private readonly tx: TxRunner,
   ) {}
@@ -114,27 +113,24 @@ export class RequisitionsService {
   async history(id: string, actor: AuthUser): Promise<RequisitionEvent[]> {
     await this.findScoped(id, actor);
 
-    const rows = await this.logs.find({
+    const rows = await this.auditEvents.find({
       where: { entityType: 'Requisition', entityId: id },
-      relations: { actor: true },
-      order: { createdAt: 'ASC' },
+      order: { occurredAt: 'ASC', id: 'ASC' },
     });
 
-    return rows.map((row) => {
-      const route = (row.payload as { route?: string } | null)?.route ?? '';
-      const body = (row.payload as { body?: { reason?: string } } | null)?.body;
-      const event = REQUISITION_EVENTS[`${row.action} ${route}`] ?? 'UPDATED';
-
-      return {
-        id: row.id,
-        event,
-        actor: row.actor
-          ? { id: row.actor.id, name: row.actor.fullName }
+    return rows.map((row) => ({
+      id: row.id,
+      // REQUISITION_REJECTED -> REJECTED: the screen speaks in these short codes.
+      event: row.event.replace(/^REQUISITION_/, ''),
+      actor: row.actorId
+        ? { id: row.actorId, name: row.actorName ?? '' }
+        : null,
+      note:
+        row.event === 'REQUISITION_REJECTED'
+          ? ((row.data as { reason?: string }).reason ?? null)
           : null,
-        note: event === 'REJECTED' ? (body?.reason ?? null) : null,
-        at: row.createdAt,
-      };
-    });
+      at: row.occurredAt,
+    }));
   }
 
   async create(

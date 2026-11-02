@@ -62,10 +62,11 @@ export class ReportsService {
   async exportCsv(
     type: ReportType,
     query: ReportQueryDto,
-  ): Promise<{ filename: string; content: string }> {
+  ): Promise<{ filename: string; content: string; rows: number }> {
     const report = await this.build(type, query);
 
     return {
+      rows: report.rows.length,
       filename: `${type}_${report.period.from}_${report.period.to}.csv`,
       content: toCsv(
         report.columns as CsvColumn<Record<string, string | number>>[],

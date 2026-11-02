@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ActivityLog } from '../activity-logs/entities/activity-log.entity';
+import { AuditEvent } from '../audit/entities/audit-event.entity';
 import { Department } from '../departments/entities/department.entity';
 import { JobPosition } from '../positions/entities/job-position.entity';
 import { Requisition } from './entities/requisition.entity';
@@ -13,7 +13,7 @@ import { RequisitionsService } from './requisitions.service';
       Requisition,
       Department,
       JobPosition,
-      ActivityLog,
+      AuditEvent,
     ]),
   ],
   controllers: [RequisitionsController],

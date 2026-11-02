@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuditEventsController } from './audit-events.controller';
+import { AuditEventsService } from './audit-events.service';
 import { AuditGuardCheck } from './audit-guard-check';
 import { AuditVerifierInterceptor } from './audit-verifier.interceptor';
 import { AuditService } from './audit.service';
@@ -10,11 +12,13 @@ import { TxRunner } from './tx-runner.service';
 
 @Global()
 @Module({
+  controllers: [AuditEventsController],
   imports: [TypeOrmModule.forFeature([AuditEvent, AuditRowChange])],
   providers: [
     AuditGuardCheck,
     TxRunner,
     AuditService,
+    AuditEventsService,
     { provide: APP_INTERCEPTOR, useClass: AuditVerifierInterceptor },
   ],
   exports: [TxRunner, AuditService],
