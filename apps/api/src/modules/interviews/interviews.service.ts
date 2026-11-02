@@ -6,6 +6,7 @@ import {
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -24,6 +25,7 @@ import { Interview } from './entities/interview.entity';
 import {
   INTERVIEW_SLOT_MINUTES,
   INTERVIEWER_ROLES,
+  OWN_INTERVIEWS_ONLY,
   RACE_MESSAGE,
 } from './interviews.constants';
 import {
@@ -200,6 +202,14 @@ export class InterviewsService {
     actor: AuthUser,
   ): Promise<InterviewView> {
     const interview = await this.findScoped(id, actor);
+
+    // An HR manager sees every interview but, like anyone else on a panel,
+    // only decides their own. An admin may decide on anyone's behalf.
+    if (actor.role !== UserRole.ADMIN && interview.interviewerId !== actor.id) {
+      throw new ForbiddenException(
+        'Chỉ người được xếp phỏng vấn mới nhập được kết quả',
+      );
+    }
     this.assertPending(interview);
 
     if (dto.result === InterviewResult.FAILED && !dto.feedback) {
@@ -233,7 +243,7 @@ export class InterviewsService {
     }
   }
 
-  /** An interviewer only sees the interviews assigned to them. */
+  /** An interviewer or department manager only sees the interviews assigned to them. */
   private scopedQuery(actor: AuthUser): SelectQueryBuilder<Interview> {
     const qb = this.interviews
       .createQueryBuilder('interview')
@@ -242,7 +252,7 @@ export class InterviewsService {
       .leftJoinAndSelect('application.job', 'job')
       .leftJoinAndSelect('interview.interviewer', 'interviewer');
 
-    if (actor.role === UserRole.INTERVIEWER) {
+    if (OWN_INTERVIEWS_ONLY.includes(actor.role)) {
       qb.andWhere('interview.interviewerId = :me', { me: actor.id });
     }
 

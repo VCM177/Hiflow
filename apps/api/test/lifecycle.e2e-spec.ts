@@ -610,7 +610,6 @@ describe('Recruitment lifecycle (e2e)', () => {
       ['manager', 'post', '/candidates'],
       ['manager', 'post', '/jobs'],
       ['manager', 'post', '/applications'],
-      ['manager', 'get', '/interviews'],
       ['manager', 'post', '/interviews'],
       ['manager', 'get', '/users'],
       ['manager', 'get', '/reports/job-results'],

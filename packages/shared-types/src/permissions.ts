@@ -115,6 +115,7 @@ export const ROLE_PERMISSIONS: Readonly<
     P.candidate.listView,
     P.application.listView,
     P.interview.listView,
+    P.interview.resultRecord,
     P.dashboard.overviewView,
     P.report.overviewView,
     P.report.overviewExport,
@@ -129,6 +130,8 @@ export const ROLE_PERMISSIONS: Readonly<
     P.requisition.submit,
     P.job.listView,
     P.application.listView,
+    P.interview.listView,
+    P.interview.resultRecord,
     P.dashboard.overviewView,
   ],
   [UserRole.RECRUITER]: [

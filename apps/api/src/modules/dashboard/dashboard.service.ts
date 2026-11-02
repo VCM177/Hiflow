@@ -10,6 +10,7 @@ import { Period, resolvePeriod } from '../../common/period';
 import { departmentScope } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
 import { APPLICATION_STATUS_LABEL } from '../applications/applications.constants';
+import { OWN_INTERVIEWS_ONLY } from '../interviews/interviews.constants';
 import { DashboardQueryDto } from './dashboard.dto';
 
 const FUNNEL_STAGES: readonly ApplicationStatus[] = [
@@ -52,10 +53,17 @@ export class DashboardService {
     const period = resolvePeriod(query.from, query.to);
     const scope = this.scopeFor(actor, query.departmentId);
 
-    // The to-do list depends on the caller's permissions, i.e. on their role.
-    const key = `dashboard:${actor.role}:${scope ?? 'all'}:${period.fromDay}:${period.toDay}`;
+    // The to-do list depends on the caller's permissions, i.e. on their role,
+    // and "interviews today" on who they are when they only see their own.
+    const own = this.ownInterviewsOf(actor);
+    const key = `dashboard:${actor.role}:${own ?? 'all'}:${scope ?? 'all'}:${period.fromDay}:${period.toDay}`;
 
     return this.cache.wrap(key, () => this.compute(period, scope, actor));
+  }
+
+  /** Who an actor's own interviews belong to, or null when they see every interview. */
+  private ownInterviewsOf(actor: AuthUser): string | null {
+    return OWN_INTERVIEWS_ONLY.includes(actor.role) ? actor.id : null;
   }
 
   /** A department manager is confined to their own department. */
@@ -154,8 +162,9 @@ export class DashboardService {
         `SELECT COUNT(*)::int AS n FROM interviews i
          JOIN applications a ON a.id = i.application_id JOIN jobs j ON j.id = a.job_id
          WHERE i.result = 'PENDING' AND i.scheduled_at >= $2 AND i.scheduled_at < $3
-           AND ($1::uuid IS NULL OR j.department_id = $1)`,
-        [scope, dayStart, dayEnd],
+           AND ($1::uuid IS NULL OR j.department_id = $1)
+           AND ($4::uuid IS NULL OR i.interviewer_id = $4)`,
+        [scope, dayStart, dayEnd, this.ownInterviewsOf(actor)],
       ),
       this.count(
         `SELECT COUNT(*)::int AS n FROM offers o

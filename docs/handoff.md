@@ -47,7 +47,7 @@ Quyết định thứ tự giữa 1 và 3: người dùng muốn xong backend tr
 
 Chưa làm. Mỗi việc một commit, chạy `rbac-matrix` và e2e liên quan.
 
-1. Trưởng bộ phận được `interview.list.view`; Trưởng bộ phận và HR được `interview.result.record`, nhưng chỉ cho lịch xếp cho chính mình. Hiện `INTERVIEWER_ROLES` gồm Phỏng vấn viên, Trưởng bộ phận và HR, mà chỉ Phỏng vấn viên và Admin nhập được kết quả. HR đang xem mọi lịch: xác nhận phạm vi trước khi sửa `scopedQuery` và `findScoped` trong `interviews.service.ts`.
+1. ~~Quyền phỏng vấn của Trưởng bộ phận và HR~~ **Xong** (2026-11-02, người dùng chọn: HR xem mọi lịch, chỉ ghi lịch của mình).
 2. ~~`DashboardService.todoFor` cho Trưởng bộ phận~~ **Xong** (hai việc `REQUISITIONS_TO_REVISE` và `DRAFT_REQUISITIONS`, `dashboard.e2e-spec.ts`).
 3. ~~Chi tiết hồ sơ rơi về CV của ứng viên~~ **Xong** (`applications.service.ts`, `application-cv.e2e-spec.ts`).
 4. Mốc B6: RECRUITER được `user.listView` để chọn người phỏng vấn và người phụ trách.

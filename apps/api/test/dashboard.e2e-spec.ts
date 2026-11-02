@@ -1,7 +1,12 @@
 import request from 'supertest';
 import { bearer, createE2eApp, E2eContext, loginAs } from './helpers/e2e-app';
 import { idByCode } from './helpers/factories';
-import { createFlow, FlowTokens, loginAll } from './helpers/flow';
+import {
+  createFlow,
+  FlowTokens,
+  loginAll,
+  userIdByEmail,
+} from './helpers/flow';
 
 interface Overview {
   period: { from: string; to: string };
@@ -142,6 +147,7 @@ describe('Dashboard (e2e)', () => {
       expect(await types(t.manager)).toEqual([
         'REQUISITIONS_TO_REVISE',
         'DRAFT_REQUISITIONS',
+        'INTERVIEWS_TODAY',
       ]);
       expect(await types(t.admin)).toHaveLength(6);
     });
@@ -208,6 +214,46 @@ describe('Dashboard (e2e)', () => {
       );
       expect(todo(adminAfter, 'DRAFT_REQUISITIONS')).toBe(
         todo(adminBefore, 'DRAFT_REQUISITIONS')! + 1,
+      );
+    });
+
+    it("counts only a department manager's own interviews as today's task", async () => {
+      const managerId = await userIdByEmail(ctx, 'manager@hiflow.local');
+      const jobId = await flow.openJob();
+      const todayAt = async (interviewId: string): Promise<void> => {
+        await ctx.dataSource.query(
+          `UPDATE interviews
+           SET scheduled_at = date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' + interval '1 second'
+           WHERE id = $1`,
+          [interviewId],
+        );
+      };
+      const managerBefore = await overview(t.manager);
+      const hrBefore = await overview(t.hr);
+
+      const theirs = await flow.scheduleInterview(
+        await flow.toInterviewStage(jobId),
+      );
+      await todayAt(theirs.id);
+
+      const hrMid = await overview(t.hr);
+      const managerMid = await overview(t.manager);
+      expect(todo(hrMid, 'INTERVIEWS_TODAY')).toBe(
+        todo(hrBefore, 'INTERVIEWS_TODAY')! + 1,
+      );
+      expect(todo(managerMid, 'INTERVIEWS_TODAY')).toBe(
+        todo(managerBefore, 'INTERVIEWS_TODAY'),
+      );
+
+      const mine = await flow.scheduleInterview(
+        await flow.toInterviewStage(jobId),
+        { interviewerId: managerId },
+      );
+      await todayAt(mine.id);
+
+      const managerAfter = await overview(t.manager);
+      expect(todo(managerAfter, 'INTERVIEWS_TODAY')).toBe(
+        todo(managerBefore, 'INTERVIEWS_TODAY')! + 1,
       );
     });
 

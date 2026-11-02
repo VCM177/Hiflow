@@ -15,6 +15,12 @@ export const INTERVIEWER_ROLES: readonly UserRole[] = [
   UserRole.HR_MANAGER,
 ];
 
+/** Roles that only see, and record results for, the interviews assigned to them. */
+export const OWN_INTERVIEWS_ONLY: readonly UserRole[] = [
+  UserRole.INTERVIEWER,
+  UserRole.DEPT_MANAGER,
+];
+
 /** An interview blocks its interviewer for this long. */
 export const INTERVIEW_SLOT_MINUTES = 60;
 

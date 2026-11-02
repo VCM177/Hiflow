@@ -35,6 +35,7 @@ describe('Interviews (e2e)', () => {
   let flow: ReturnType<typeof createFlow>;
   let interviewerId: string;
   let hrId: string;
+  let managerId: string;
   let jobId: string;
 
   const get = (token: string, path: string) =>
@@ -55,6 +56,7 @@ describe('Interviews (e2e)', () => {
     flow = createFlow(ctx, t, 'E2E-IVW');
     interviewerId = await userIdByEmail(ctx, 'interviewer@hiflow.local');
     hrId = await userIdByEmail(ctx, 'hr@hiflow.local');
+    managerId = await userIdByEmail(ctx, 'manager@hiflow.local');
     await flow.cleanup();
     jobId = await flow.openJob();
   });
@@ -68,8 +70,23 @@ describe('Interviews (e2e)', () => {
     it('requires authentication', () =>
       request(ctx.server).get('/interviews').expect(401));
 
-    it('forbids a role without interview permissions (department manager)', () =>
-      get(t.manager, '/interviews').expect(403));
+    it('shows a department manager only the interviews assigned to them', async () => {
+      const mineApp = await flow.toInterviewStage(jobId);
+      const otherApp = await flow.toInterviewStage(jobId);
+      const mine = await flow.scheduleInterview(mineApp, {
+        interviewerId: managerId,
+      });
+      const theirs = await flow.scheduleInterview(otherApp);
+
+      const listed = (await get(t.manager, '/interviews?limit=100').expect(200))
+        .body as Page;
+      const ids = listed.items.map((i) => i.id);
+
+      expect(ids).toContain(mine.id);
+      expect(ids).not.toContain(theirs.id);
+      await get(t.manager, `/interviews/${mine.id}`).expect(200);
+      await get(t.manager, `/interviews/${theirs.id}`).expect(404);
+    });
 
     it('lets HR read the schedule but not create', async () => {
       await get(t.hr, '/interviews').expect(200);
@@ -401,13 +418,42 @@ describe('Interviews (e2e)', () => {
       await result(t.interviewer, theirs.id, { result: 'PASSED' }).expect(404);
     });
 
-    it('forbids roles without result permission, but lets an admin record for anyone', async () => {
+    it('forbids a recruiter, and an HR manager on someone else’s interview, but lets an admin record for anyone', async () => {
       const appId = await flow.toInterviewStage(jobId);
       const ivw = await flow.scheduleInterview(appId);
 
       await result(t.recruiter, ivw.id, { result: 'PASSED' }).expect(403);
       await result(t.hr, ivw.id, { result: 'PASSED' }).expect(403);
       await result(t.admin, ivw.id, { result: 'PASSED' }).expect(200);
+    });
+
+    it('lets an HR manager record the result of their own interview only', async () => {
+      const ownApp = await flow.toInterviewStage(jobId);
+      const otherApp = await flow.toInterviewStage(jobId);
+      const own = await flow.scheduleInterview(ownApp, {
+        interviewerId: hrId,
+      });
+      const other = await flow.scheduleInterview(otherApp);
+
+      await result(t.hr, other.id, { result: 'PASSED' }).expect(403);
+      await result(t.hr, own.id, { result: 'PASSED' }).expect(200);
+      await get(t.hr, `/interviews/${other.id}`).expect(200);
+    });
+
+    it('lets a department manager record their own interview and no one else’s', async () => {
+      const ownApp = await flow.toInterviewStage(jobId);
+      const otherApp = await flow.toInterviewStage(jobId);
+      const own = await flow.scheduleInterview(ownApp, {
+        interviewerId: managerId,
+      });
+      const other = await flow.scheduleInterview(otherApp);
+
+      // Out of their scope looks exactly like "does not exist".
+      await result(t.manager, other.id, { result: 'PASSED' }).expect(404);
+      await result(t.manager, own.id, {
+        result: 'FAILED',
+        feedback: 'Chưa phù hợp',
+      }).expect(200);
     });
 
     it('lets only one of two simultaneous results win', async () => {

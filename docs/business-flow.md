@@ -42,13 +42,13 @@ Admin làm được mọi việc và là người duy nhất xem nhật ký ho�
 
 ## 4. Vai trò và phạm vi dữ liệu
 
-| Vai trò        | Làm được                                                              | Phạm vi                                                             |
-| -------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Trưởng bộ phận | Tạo, sửa, gửi yêu cầu; xem tổng quan                                  | Chỉ phòng ban của mình (ngoài phạm vi trả 404)                      |
-| HR             | Duyệt, từ chối, đóng yêu cầu; quản lý người dùng; báo cáo và xuất CSV | Toàn công ty; không xem được offer, không tạo được tin hay ứng viên |
-| Tuyển dụng     | Tin, ứng viên, hồ sơ, lịch phỏng vấn, offer                           | Toàn công ty                                                        |
-| Phỏng vấn viên | Xem và ghi kết quả phỏng vấn của mình                                 | Chỉ hồ sơ và ứng viên mình được xếp lịch                            |
-| Admin          | Tất cả, kể cả nhật ký hoạt động                                       | Toàn bộ                                                             |
+| Vai trò        | Làm được                                                                                                            | Phạm vi                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Trưởng bộ phận | Tạo, sửa, gửi yêu cầu; xem tổng quan; xem và ghi kết quả phỏng vấn của chính mình                                   | Chỉ phòng ban của mình; lịch phỏng vấn chỉ của mình (ngoài phạm vi trả 404)                                                 |
+| HR             | Duyệt, từ chối, đóng yêu cầu; quản lý người dùng; báo cáo và xuất CSV; ghi kết quả phỏng vấn do chính mình đảm nhận | Toàn công ty (xem mọi lịch phỏng vấn, chỉ ghi kết quả lịch của mình); không xem được offer, không tạo được tin hay ứng viên |
+| Tuyển dụng     | Tin, ứng viên, hồ sơ, lịch phỏng vấn, offer                                                                         | Toàn công ty                                                                                                                |
+| Phỏng vấn viên | Xem và ghi kết quả phỏng vấn của mình                                                                               | Chỉ hồ sơ và ứng viên mình được xếp lịch                                                                                    |
+| Admin          | Tất cả, kể cả nhật ký hoạt động                                                                                     | Toàn bộ                                                                                                                     |
 
 HR không được cấp hay chạm vào tài khoản Admin; không ai tự đổi vai trò hay tự khóa chính mình. Khóa tài khoản hoặc đổi vai trò có hiệu lực ngay ở request kế tiếp.
 
@@ -93,7 +93,7 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 **Quyết định thiết kế UX (2026-10-02, người thực hiện tự chốt, `docs/ux/02-define.md` mục 4). Đã chốt, chưa xác nhận bởi người dùng cuối; mục nào ghi "chưa cài" thì backend hiện chưa theo:**
 
 10. Giữ quy tắc hồ sơ không nhảy bậc; không có đường tắt bỏ qua Sàng lọc.
-11. Trưởng bộ phận và HR là người phỏng vấn thì nhập được kết quả cho lịch xếp cho chính mình. **Chưa cài:** hiện thiếu `interview.result.record` (cả hai) và `interview.list.view` (Trưởng bộ phận).
+11. Trưởng bộ phận và HR là người phỏng vấn thì nhập được kết quả cho lịch xếp cho chính mình. **Đã cài và đã được người dùng xác nhận (2026-11-02):** HR vẫn xem mọi lịch nhưng chỉ ghi kết quả lịch của mình (lịch của người khác trả 403); Trưởng bộ phận chỉ thấy và ghi lịch của mình (lịch khác trả 404); Admin ghi thay mọi người. Việc "Phỏng vấn hôm nay" trên Tổng quan của Trưởng bộ phận đếm lịch của chính họ.
 12. Chỉ có email xác nhận cho ứng viên; giảm cảm giác "im lặng" bằng nội dung trang cảm ơn và email, không thêm email theo bước.
 13. Tổng quan của Trưởng bộ phận có việc "yêu cầu bị từ chối cần sửa" và "yêu cầu nháp chưa gửi" (đã cài: hai việc hiện cho vai trò có quyền sửa và gửi yêu cầu, đếm theo phòng ban của người xem).
 14. Mục Danh mục chỉ hiện trong menu của Admin; vai trò khác đọc dữ liệu ngầm cho ô chọn.
