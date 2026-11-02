@@ -55,6 +55,8 @@ Chưa làm. Mỗi việc một commit, chạy `rbac-matrix` và e2e liên quan.
 
 Giữ nguyên, không đổi (đã đối chiếu với code): mã 202 của form công khai (CV được kiểm tra và lưu trước khi trả lời) và 404 cho tin đã đóng.
 
+**Cập nhật 2026-11-02:** việc nợ 1 đến 4 đã xong; thêm chính sách lưu và xóa dữ liệu ứng viên (`business-flow.md` mục 6b, lệnh `retention:run`). Còn lại: nhật ký kiểm toán v2 (A đến E đã được xác nhận theo mặc định), việc 5 ngoài repo, và web giai đoạn B.
+
 ## 5. Tài liệu và tài nguyên nằm ngoài repo
 
 Các thứ dưới đây nằm trên máy của người dùng hoặc trên claude.ai, không có trong git:

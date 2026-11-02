@@ -72,6 +72,17 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 
 **Rủi ro đã chấp nhận:** email chưa được xác minh quyền sở hữu, nên ai cũng có thể khiến một hộp thư nhận thư xác nhận; giới hạn 3 thư mỗi giờ mỗi email và captcha làm giảm việc này. Thời gian phản hồi giữa nộp mới và nộp trùng được làm gần bằng nhau (cả hai đều lưu CV rồi mới quyết định) nhưng không tuyệt đối. Resend chỉ gửi được tới địa chỉ tùy ý sau khi xác minh tên miền gửi.
 
+## 6b. Lưu và xóa dữ liệu ứng viên
+
+Căn cứ: Luật Bảo vệ dữ liệu cá nhân 2025 (hiệu lực 01/01/2026) cho cá nhân quyền yêu cầu xóa và yêu cầu xóa khi hết mục đích xử lý. Các con số dưới đây là **chính sách của dự án**, chưa đối chiếu với nguyên văn Nghị định hướng dẫn.
+
+- **Ẩn danh, không xóa dòng.** Ứng viên được ẩn danh để phễu và báo cáo vẫn đếm đủ: họ tên thành "Ứng viên đã ẩn danh", email thành `anonymized-<id>@anonymized.invalid`, xóa điện thoại, ngày sinh, ghi chú và CV (cả CV ở hồ sơ ứng viên lẫn CV nộp kèm từng hồ sơ), xóa ghi chú của các hồ sơ của họ, và che nội dung request đã lưu trong nhật ký hoạt động của ứng viên và các hồ sơ đó. Cột `anonymized_at` đánh dấu việc đã làm.
+- **Theo yêu cầu:** `POST /candidates/:id/anonymize`, chỉ HR và Admin (`candidate.item.anonymize`), có ghi nhật ký. Làm ngay, không chờ hết hạn lưu.
+- **Điều kiện:** ứng viên chỉ được ẩn danh khi mọi hồ sơ của họ đã **Từ chối** hoặc **Ứng viên rút** (hoặc chưa có hồ sơ nào). Còn hồ sơ đang xử lý (Mới, Sàng lọc, Phỏng vấn, Đề nghị) hoặc đã **Nhận việc** thì trả 409: người đã nhận việc thuộc dữ liệu nhân sự, nằm ngoài phạm vi Hiflow. Việc kiểm tra và xóa nằm trong một giao dịch có khóa dòng ứng viên, nên một hồ sơ tạo cùng lúc không lọt qua.
+- **Sau khi ẩn danh:** không sửa, không thêm ghi chú hay CV, không tạo hồ sơ mới cho ứng viên đó (409). Hồ sơ cũ vẫn xem được, đã mất mọi thông tin nhận dạng.
+- **Hết hạn lưu:** ứng viên không còn hồ sơ đang xử lý và không có hoạt động nào trong `CANDIDATE_RETENTION_MONTHS` tháng (mặc định 12, số nguyên 1 đến 120, tính từ lần cập nhật, nộp hồ sơ hay đổi trạng thái muộn nhất) sẽ bị ẩn danh bởi `npm run retention:run -w @hiflow/api`. Thêm `-- --dry-run` để chỉ đếm. Lệnh phải được **một bộ lập lịch bên ngoài gọi định kỳ**; mã nguồn không tự chạy nó. Mỗi lần xử lý tối đa 500 ứng viên; lỗi của một ứng viên không dừng cả lần chạy.
+- **Chưa được ẩn danh (giới hạn đã biết):** nội dung ghi chú trong lịch sử đổi trạng thái, nhận xét phỏng vấn, ghi chú offer, và nhật ký hoạt động của đối tượng khác (phỏng vấn, offer). Đây là văn bản do nhân viên viết và có thể nhắc tên người; xử lý cùng lúc với nhật ký kiểm toán v2.
+
 ## 7. Những giả định cần được xác nhận
 
 1. Chỉ một cấp duyệt; Trưởng bộ phận không tự tạo tin.
@@ -106,6 +117,8 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 **Đã xác nhận (2026-11-02):**
 
 20. Nhân viên tuyển dụng chọn người phụ trách hồ sơ và người phỏng vấn qua `GET /users/options` (quyền `user.options.view`), chỉ trả `id`, họ tên và vai trò của người đang hoạt động; không có email, phòng ban hay tài khoản hệ thống. Họ không đọc được danh sách người dùng đầy đủ. Tham số `purpose` (`ASSIGNEE` hoặc `INTERVIEWER`) thu hẹp theo vai trò hợp lệ. HR đã có `user.list.view` nên không cần quyền này. Đã cài.
+
+21. Chính sách lưu và xóa dữ liệu ứng viên ở mục 6b: giữ 12 tháng (cấu hình được), hết hạn thì ẩn danh chứ không xóa, Admin hoặc HR xử lý yêu cầu của ứng viên, người đã nhận việc nằm ngoài phạm vi. Đã cài.
 
 **Đã xác nhận (2026-09-24, khi kiểm định Cổng A):**
 
