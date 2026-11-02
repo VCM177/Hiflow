@@ -17,7 +17,10 @@ import {
   CatalogListQueryDto,
   UpdateCatalogDto,
 } from '../../common/catalog/catalog.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import type { AuthUser } from '../../common/types/auth-user';
+import { AuditEvent } from '../audit/audit.decorators';
 import { PositionsService } from './positions.service';
 
 @ApiTags('positions')
@@ -39,24 +42,31 @@ export class PositionsController {
   }
 
   @Post()
+  @AuditEvent('POSITION_CREATED')
   @RequirePermissions(PERMISSIONS.position.create)
-  create(@Body() dto: CatalogInputDto) {
-    return this.positions.create(dto);
+  create(@Body() dto: CatalogInputDto, @CurrentUser() actor: AuthUser) {
+    return this.positions.create(dto, actor);
   }
 
   @Patch(':id')
+  @AuditEvent('POSITION_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.position.update)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCatalogDto,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.positions.update(id, dto);
+    return this.positions.update(id, dto, actor);
   }
 
   @Delete(':id')
+  @AuditEvent('POSITION_DELETED')
   @HttpCode(204)
   @RequirePermissions(PERMISSIONS.position.delete)
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.positions.remove(id);
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.positions.remove(id, actor);
   }
 }
