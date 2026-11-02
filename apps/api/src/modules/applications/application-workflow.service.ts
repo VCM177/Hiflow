@@ -11,6 +11,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
+import type { AuditRecorder } from '../audit/audit.types';
 import { Interview } from '../interviews/entities/interview.entity';
 import { Offer } from '../offers/entities/offer.entity';
 import {
@@ -88,6 +89,7 @@ export class ApplicationWorkflowService {
     to: ApplicationStatus,
     actorId: string,
     note: string | null,
+    audit: AuditRecorder,
   ): Promise<void> {
     const from = application.status;
 
@@ -119,6 +121,14 @@ export class ApplicationWorkflowService {
       toStatus: to,
       note,
       changedById: actorId,
+    });
+
+    // Recorded here, not by the callers, so every path that moves an
+    // application (the status endpoint, the offer flow) leaves the same event.
+    await audit.record('APPLICATION_STATUS_CHANGED', application.id, {
+      from,
+      to,
+      note,
     });
 
     if (

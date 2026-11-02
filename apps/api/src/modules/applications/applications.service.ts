@@ -24,6 +24,9 @@ import {
 } from '../../common/pagination/paginate';
 import { departmentScope } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
+import { AuditService } from '../audit/audit.service';
+import { actorOf } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { Interview } from '../interviews/entities/interview.entity';
 import { Job } from '../jobs/entities/job.entity';
@@ -78,6 +81,8 @@ export class ApplicationsService {
     private readonly workflow: ApplicationWorkflowService,
     private readonly dataSource: DataSource,
     private readonly storage: StorageService,
+    private readonly tx: TxRunner,
+    private readonly audit: AuditService,
   ) {}
 
   async list(
@@ -198,16 +203,18 @@ export class ApplicationsService {
     if (assigneeId) await this.assertAssignable(assigneeId);
 
     try {
-      const id = await this.dataSource.transaction((manager) =>
-        this.workflow.createNew(manager, {
+      const id = await this.tx.run(actorOf(actor), async (manager, audit) => {
+        const created = await this.workflow.createNew(manager, {
           candidateId: dto.candidateId,
           jobId: dto.jobId,
           assigneeId,
           note: dto.note,
           createdById: actor.id,
           historyNote: 'Tạo hồ sơ',
-        }),
-      );
+        });
+        if (created) await audit.record('APPLICATION_CREATED', created);
+        return created;
+      });
 
       if (!id) {
         throw new ConflictException('Ứng viên đã nộp hồ sơ vào tin này');
@@ -230,6 +237,12 @@ export class ApplicationsService {
       throw new NotFoundException('Hồ sơ này không có CV đính kèm');
     }
 
+    // Reading a CV is reading personal data, so the trail says who did.
+    await this.audit.recordStandalone(
+      actorOf(actor),
+      'APPLICATION_CV_DOWNLOADED',
+      id,
+    );
     return this.storage.download(key, `CV-${id}${extname(key)}`);
   }
 
@@ -238,10 +251,19 @@ export class ApplicationsService {
     assigneeId: string | null,
     actor: AuthUser,
   ): Promise<ApplicationDetail> {
-    await this.findScoped(id, actor);
+    const application = await this.findScoped(id, actor);
     if (assigneeId) await this.assertAssignable(assigneeId);
 
-    await this.applications.update(id, { assigneeId });
+    if (application.assigneeId !== assigneeId) {
+      const from = application.assigneeId;
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Application).update(id, { assigneeId });
+        await audit.record('APPLICATION_ASSIGNEE_CHANGED', id, {
+          from,
+          to: assigneeId,
+        });
+      });
+    }
     return this.get(id, actor);
   }
 
@@ -252,13 +274,14 @@ export class ApplicationsService {
   ): Promise<ApplicationDetail> {
     const application = await this.findScoped(id, actor);
 
-    await this.dataSource.transaction((manager) =>
+    await this.tx.run(actorOf(actor), (manager, audit) =>
       this.workflow.moveTo(
         manager,
         application,
         dto.toStatus,
         actor.id,
         dto.note ?? null,
+        audit,
       ),
     );
 
@@ -270,8 +293,15 @@ export class ApplicationsService {
     note: string,
     actor: AuthUser,
   ): Promise<ApplicationDetail> {
-    await this.findScoped(id, actor);
-    await this.applications.update(id, { note: note === '' ? null : note });
+    const application = await this.findScoped(id, actor);
+    const next = note === '' ? null : note;
+
+    if (application.note !== next) {
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Application).update(id, { note: next });
+        await audit.record('APPLICATION_NOTE_UPDATED', id);
+      });
+    }
     return this.get(id, actor);
   }
 
@@ -282,15 +312,18 @@ export class ApplicationsService {
       throw new ConflictException('Chỉ xóa được hồ sơ ở trạng thái Mới');
     }
 
-    const result = await this.applications.delete({
-      id,
-      status: ApplicationStatus.NEW,
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const result = await manager.getRepository(Application).delete({
+        id,
+        status: ApplicationStatus.NEW,
+      });
+      if (!result.affected) {
+        throw new ConflictException(
+          'Hồ sơ vừa được xử lý bởi người khác, vui lòng tải lại',
+        );
+      }
+      await audit.record('APPLICATION_DELETED', id);
     });
-    if (!result.affected) {
-      throw new ConflictException(
-        'Hồ sơ vừa được xử lý bởi người khác, vui lòng tải lại',
-      );
-    }
 
     if (application.cvFileKey) {
       // Best effort: a leftover file is a nuisance, never a reason to fail.

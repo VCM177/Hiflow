@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { AuditEvent } from '../audit/audit.decorators';
 import type { AuthUser } from '../../common/types/auth-user';
 import { CreateOfferDto, RespondOfferDto, UpdateOfferDto } from './offers.dto';
 import { OffersService } from './offers.service';
@@ -31,6 +32,7 @@ export class OffersController {
   }
 
   @Post()
+  @AuditEvent('OFFER_CREATED')
   @RequirePermissions(PERMISSIONS.offer.create)
   create(
     @Param('id', ParseUUIDPipe) applicationId: string,
@@ -41,15 +43,18 @@ export class OffersController {
   }
 
   @Patch()
+  @AuditEvent('OFFER_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.offer.update)
   update(
     @Param('id', ParseUUIDPipe) applicationId: string,
     @Body() dto: UpdateOfferDto,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.offers.update(applicationId, dto);
+    return this.offers.update(applicationId, dto, actor);
   }
 
   @Post('response')
+  @AuditEvent('OFFER_RESPONSE_RECORDED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.offer.responseRecord)
   respond(

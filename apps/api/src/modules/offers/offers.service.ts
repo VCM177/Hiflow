@@ -12,6 +12,8 @@ import { rethrowDbError } from '../../common/errors/db-errors';
 import type { AuthUser } from '../../common/types/auth-user';
 import { ApplicationWorkflowService } from '../applications/application-workflow.service';
 import { Application } from '../applications/entities/application.entity';
+import { actorOf } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import { Offer } from './entities/offer.entity';
 import { OfferView, toOfferView } from './offer-view';
 import { CreateOfferDto, RespondOfferDto, UpdateOfferDto } from './offers.dto';
@@ -26,6 +28,7 @@ export class OffersService {
     private readonly applications: Repository<Application>,
     private readonly workflow: ApplicationWorkflowService,
     private readonly dataSource: DataSource,
+    private readonly tx: TxRunner,
   ) {}
 
   async get(applicationId: string): Promise<OfferView> {
@@ -54,17 +57,21 @@ export class OffersService {
     this.assertDates(startDate, expiresAt);
 
     try {
-      await this.offers.save(
-        this.offers.create({
-          applicationId,
-          salary: dto.salary,
-          startDate,
-          expiresAt,
-          note: dto.note ?? null,
-          status: OfferStatus.PENDING,
-          createdById: actor.id,
-        }),
-      );
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        const repo = manager.getRepository(Offer);
+        const saved = await repo.save(
+          repo.create({
+            applicationId,
+            salary: dto.salary,
+            startDate,
+            expiresAt,
+            note: dto.note ?? null,
+            status: OfferStatus.PENDING,
+            createdById: actor.id,
+          }),
+        );
+        await audit.record('OFFER_CREATED', saved.id);
+      });
     } catch (error) {
       return rethrowDbError(error, {
         unique: 'Hồ sơ này đã có đề nghị tuyển dụng',
@@ -74,7 +81,11 @@ export class OffersService {
     return this.get(applicationId);
   }
 
-  async update(applicationId: string, dto: UpdateOfferDto): Promise<OfferView> {
+  async update(
+    applicationId: string,
+    dto: UpdateOfferDto,
+    actor: AuthUser,
+  ): Promise<OfferView> {
     const offer = await this.findOffer(applicationId);
     this.assertPending(offer);
 
@@ -84,14 +95,31 @@ export class OffersService {
       dto.expiresAt !== undefined ? toDateOnly(dto.expiresAt) : offer.expiresAt;
     this.assertDates(startDate, expiresAt);
 
-    if (dto.salary !== undefined) offer.salary = dto.salary;
-    if (dto.note !== undefined) offer.note = dto.note;
-    offer.startDate = startDate;
-    offer.expiresAt = expiresAt;
+    const changedFields: string[] = [];
+    const apply = <K extends 'salary' | 'note' | 'startDate' | 'expiresAt'>(
+      field: K,
+      value: Offer[K] | undefined,
+    ): void => {
+      if (value === undefined || (offer[field] ?? null) === (value ?? null)) {
+        return;
+      }
+      offer[field] = value;
+      changedFields.push(field);
+    };
 
-    // The creator relation is loaded for the view; do not write it back.
-    offer.createdBy = undefined;
-    await this.offers.save(offer);
+    apply('salary', dto.salary);
+    apply('note', dto.note);
+    apply('startDate', startDate);
+    apply('expiresAt', expiresAt);
+
+    if (changedFields.length > 0) {
+      // The creator relation is loaded for the view; do not write it back.
+      offer.createdBy = undefined;
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Offer).save(offer);
+        await audit.record('OFFER_UPDATED', offer.id, { changedFields });
+      });
+    }
     return this.get(applicationId);
   }
 
@@ -111,15 +139,19 @@ export class OffersService {
       throw new ConflictException('Đề nghị đã hết hạn, không thể chấp nhận');
     }
 
-    await this.dataSource.transaction(async (manager) => {
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const response = dto.accepted
+        ? OfferStatus.ACCEPTED
+        : OfferStatus.DECLINED;
       const outcome = await manager.update(
         Offer,
         { id: offer.id, status: OfferStatus.PENDING },
-        { status: dto.accepted ? OfferStatus.ACCEPTED : OfferStatus.DECLINED },
+        { status: response },
       );
       if (!outcome.affected) {
         throw new ConflictException('Đề nghị vừa được phản hồi bởi người khác');
       }
+      await audit.record('OFFER_RESPONSE_RECORDED', offer.id, { response });
 
       const application = await manager.findOneByOrFail(Application, {
         id: applicationId,
@@ -134,6 +166,7 @@ export class OffersService {
           (dto.accepted
             ? 'Ứng viên chấp nhận đề nghị'
             : 'Ứng viên từ chối đề nghị'),
+        audit,
       );
     });
 

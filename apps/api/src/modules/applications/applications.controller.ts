@@ -24,6 +24,7 @@ import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import type { AuthUser } from '../../common/types/auth-user';
+import { AuditEvent } from '../audit/audit.decorators';
 import { sendDownload } from '../storage/send-download';
 import {
   AssignApplicationDto,
@@ -57,6 +58,7 @@ export class ApplicationsController {
 
   /** Redirects to a short-lived signed address, or streams the file, after the scope check. */
   @Get(':id/cv')
+  @AuditEvent('APPLICATION_CV_DOWNLOADED')
   @RequirePermissions(PERMISSIONS.application.listView)
   @ApiOkResponse({
     description: 'Tệp CV (khi lưu trên đĩa cục bộ)',
@@ -83,12 +85,14 @@ export class ApplicationsController {
   }
 
   @Post()
+  @AuditEvent('APPLICATION_CREATED')
   @RequirePermissions(PERMISSIONS.application.create)
   create(@Body() dto: CreateApplicationDto, @CurrentUser() actor: AuthUser) {
     return this.applications.create(dto, actor);
   }
 
   @Patch(':id/assignee')
+  @AuditEvent('APPLICATION_ASSIGNEE_CHANGED', { conditional: true })
   @RequirePermissions(PERMISSIONS.application.assigneeUpdate)
   assign(
     @Param('id', ParseUUIDPipe) id: string,
@@ -99,6 +103,7 @@ export class ApplicationsController {
   }
 
   @Post(':id/status')
+  @AuditEvent('APPLICATION_STATUS_CHANGED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.application.statusUpdate)
   changeStatus(
@@ -110,6 +115,7 @@ export class ApplicationsController {
   }
 
   @Put(':id/note')
+  @AuditEvent('APPLICATION_NOTE_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.application.noteCreate)
   setNote(
     @Param('id', ParseUUIDPipe) id: string,
@@ -120,6 +126,7 @@ export class ApplicationsController {
   }
 
   @Delete(':id')
+  @AuditEvent('APPLICATION_DELETED')
   @HttpCode(204)
   @RequirePermissions(PERMISSIONS.application.delete)
   remove(
