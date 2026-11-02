@@ -15,6 +15,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import type { AuthUser } from '../../common/types/auth-user';
+import { AuditEvent } from '../audit/audit.decorators';
 import {
   CreateRequisitionDto,
   ListRequisitionsQueryDto,
@@ -54,12 +55,14 @@ export class RequisitionsController {
   }
 
   @Post()
+  @AuditEvent('REQUISITION_CREATED')
   @RequirePermissions(PERMISSIONS.requisition.create)
   create(@Body() dto: CreateRequisitionDto, @CurrentUser() actor: AuthUser) {
     return this.requisitions.create(dto, actor);
   }
 
   @Patch(':id')
+  @AuditEvent('REQUISITION_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.requisition.update)
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -70,6 +73,7 @@ export class RequisitionsController {
   }
 
   @Delete(':id')
+  @AuditEvent('REQUISITION_DELETED')
   @HttpCode(204)
   @RequirePermissions(PERMISSIONS.requisition.delete)
   remove(
@@ -80,6 +84,7 @@ export class RequisitionsController {
   }
 
   @Post(':id/submit')
+  @AuditEvent('REQUISITION_SUBMITTED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.requisition.submit)
   submit(
@@ -90,6 +95,7 @@ export class RequisitionsController {
   }
 
   @Post(':id/approve')
+  @AuditEvent('REQUISITION_APPROVED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.requisition.approve)
   approve(
@@ -100,6 +106,7 @@ export class RequisitionsController {
   }
 
   @Post(':id/reject')
+  @AuditEvent('REQUISITION_REJECTED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.requisition.reject)
   reject(
@@ -111,6 +118,7 @@ export class RequisitionsController {
   }
 
   @Post(':id/close')
+  @AuditEvent('REQUISITION_CLOSED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.requisition.close)
   close(

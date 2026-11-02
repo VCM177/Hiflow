@@ -23,6 +23,8 @@ import {
 import { departmentScope } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
 import { ActivityLog } from '../activity-logs/entities/activity-log.entity';
+import { actorOf } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import { Department } from '../departments/entities/department.entity';
 import { Job } from '../jobs/entities/job.entity';
 import { JobPosition } from '../positions/entities/job-position.entity';
@@ -63,6 +65,7 @@ export class RequisitionsService {
     @InjectRepository(ActivityLog)
     private readonly logs: Repository<ActivityLog>,
     private readonly dataSource: DataSource,
+    private readonly tx: TxRunner,
   ) {}
 
   async list(
@@ -142,23 +145,29 @@ export class RequisitionsService {
     this.assertBudget(dto.budgetMin, dto.budgetMax);
     await this.assertReferencesExist(departmentId, dto.positionId);
 
-    const saved = await this.requisitions.save(
-      this.requisitions.create({
-        code: await this.nextCode(),
-        title: dto.title,
-        departmentId,
-        positionId: dto.positionId,
-        quantity: dto.quantity,
-        reason: dto.reason ?? null,
-        expectedStartDate: dto.expectedStartDate
-          ? toDateOnly(dto.expectedStartDate)
-          : null,
-        budgetMin: dto.budgetMin ?? null,
-        budgetMax: dto.budgetMax ?? null,
-        status: RequisitionStatus.DRAFT,
-        createdById: actor.id,
-      }),
-    );
+    const code = await this.nextCode();
+    const saved = await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const repo = manager.getRepository(Requisition);
+      const created = await repo.save(
+        repo.create({
+          code,
+          title: dto.title,
+          departmentId,
+          positionId: dto.positionId,
+          quantity: dto.quantity,
+          reason: dto.reason ?? null,
+          expectedStartDate: dto.expectedStartDate
+            ? toDateOnly(dto.expectedStartDate)
+            : null,
+          budgetMin: dto.budgetMin ?? null,
+          budgetMax: dto.budgetMax ?? null,
+          status: RequisitionStatus.DRAFT,
+          createdById: actor.id,
+        }),
+      );
+      await audit.record('REQUISITION_CREATED', created.id, { code });
+      return created;
+    });
 
     return this.get(saved.id, actor);
   }
@@ -190,19 +199,41 @@ export class RequisitionsService {
       );
     }
 
-    if (dto.title !== undefined) requisition.title = dto.title;
-    if (dto.positionId !== undefined) requisition.positionId = dto.positionId;
-    if (dto.quantity !== undefined) requisition.quantity = dto.quantity;
-    if (dto.reason !== undefined) requisition.reason = dto.reason;
-    if (dto.budgetMin !== undefined) requisition.budgetMin = dto.budgetMin;
-    if (dto.budgetMax !== undefined) requisition.budgetMax = dto.budgetMax;
-    if (dto.expectedStartDate !== undefined) {
-      requisition.expectedStartDate = toDateOnly(dto.expectedStartDate);
-    }
+    const changedFields: string[] = [];
+    const apply = <K extends keyof Requisition>(
+      field: K,
+      value: Requisition[K] | undefined,
+    ): void => {
+      if (value === undefined) return;
+      if ((requisition[field] ?? null) === (value ?? null)) return;
+      requisition[field] = value;
+      changedFields.push(field);
+    };
 
-    // `position` is loaded by the scoped query; clear it so the new positionId wins.
-    requisition.position = undefined;
-    await this.requisitions.save(requisition);
+    apply('title', dto.title);
+    apply('positionId', dto.positionId);
+    apply('quantity', dto.quantity);
+    apply('reason', dto.reason);
+    apply('budgetMin', dto.budgetMin);
+    apply('budgetMax', dto.budgetMax);
+    apply(
+      'expectedStartDate',
+      dto.expectedStartDate === undefined
+        ? undefined
+        : toDateOnly(dto.expectedStartDate),
+    );
+
+    if (changedFields.length > 0) {
+      // `position` is loaded by the scoped query; clear it so the new positionId wins.
+      requisition.position = undefined;
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Requisition).save(requisition);
+        await audit.record('REQUISITION_UPDATED', id, {
+          code: requisition.code,
+          changedFields,
+        });
+      });
+    }
     return this.get(id, actor);
   }
 
@@ -213,15 +244,20 @@ export class RequisitionsService {
       throw new ConflictException('Chỉ xóa được yêu cầu ở trạng thái Nháp');
     }
 
-    const result = await this.requisitions.delete({
-      id,
-      status: RequisitionStatus.DRAFT,
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const result = await manager.getRepository(Requisition).delete({
+        id,
+        status: RequisitionStatus.DRAFT,
+      });
+      if (!result.affected) {
+        throw new ConflictException(
+          'Yêu cầu vừa được xử lý bởi người khác, vui lòng tải lại',
+        );
+      }
+      await audit.record('REQUISITION_DELETED', id, {
+        code: requisition.code,
+      });
     });
-    if (!result.affected) {
-      throw new ConflictException(
-        'Yêu cầu vừa được xử lý bởi người khác, vui lòng tải lại',
-      );
-    }
   }
 
   submit(id: string, actor: AuthUser): Promise<RequisitionView> {
@@ -255,7 +291,7 @@ export class RequisitionsService {
     this.assertCanTransition(requisition.status, RequisitionStatus.CLOSED);
 
     // Closing the requisition also stops any job that was opened from it.
-    await this.dataSource.transaction(async (manager) => {
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
       const result = await manager.update(
         Requisition,
         { id, status: requisition.status },
@@ -275,6 +311,9 @@ export class RequisitionsService {
         },
         { status: JobStatus.CLOSED },
       );
+      await audit.record('REQUISITION_CLOSED', id, {
+        code: requisition.code,
+      });
     });
 
     return this.get(id, actor);
@@ -293,15 +332,28 @@ export class RequisitionsService {
     const requisition = await this.findScoped(id, actor);
     this.assertCanTransition(requisition.status, to);
 
-    const result = await this.requisitions.update(
-      { id, status: requisition.status },
-      { ...changes, status: to },
-    );
-    if (!result.affected) {
-      throw new ConflictException(
-        'Yêu cầu vừa được xử lý bởi người khác, vui lòng tải lại',
-      );
-    }
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const result = await manager
+        .getRepository(Requisition)
+        .update({ id, status: requisition.status }, { ...changes, status: to });
+      if (!result.affected) {
+        throw new ConflictException(
+          'Yêu cầu vừa được xử lý bởi người khác, vui lòng tải lại',
+        );
+      }
+
+      const code = requisition.code;
+      if (to === RequisitionStatus.REJECTED) {
+        await audit.record('REQUISITION_REJECTED', id, {
+          code,
+          reason: changes.rejectReason ?? '',
+        });
+      } else if (to === RequisitionStatus.APPROVED) {
+        await audit.record('REQUISITION_APPROVED', id, { code });
+      } else {
+        await audit.record('REQUISITION_SUBMITTED', id, { code });
+      }
+    });
 
     return this.get(id, actor);
   }

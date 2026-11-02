@@ -182,7 +182,7 @@ export function createFlow(ctx: E2eContext, t: FlowTokens, tag: string) {
 
     /** Removes everything this flow (and the tests using it) created. */
     async cleanup(): Promise<void> {
-      const q = (sql: string) => ctx.dataSource.query(sql);
+      const q = (sql: string) => ctx.maintenance.query(sql);
       const mine = `candidate_id IN (SELECT id FROM candidates WHERE email LIKE '${mailPrefix}%')`;
 
       await q(`DELETE FROM activity_logs WHERE
