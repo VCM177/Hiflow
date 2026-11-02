@@ -21,6 +21,8 @@ import {
 import { departmentScope } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
 import { Application } from '../applications/entities/application.entity';
+import { actorOf } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import { Requisition } from '../requisitions/entities/requisition.entity';
 import { Job } from './entities/job.entity';
 import { JOB_STATUS_LABEL } from './jobs.constants';
@@ -45,6 +47,7 @@ export class JobsService {
     private readonly requisitions: Repository<Requisition>,
     @InjectRepository(Application)
     private readonly applications: Repository<Application>,
+    private readonly tx: TxRunner,
   ) {}
 
   async list(
@@ -122,21 +125,26 @@ export class JobsService {
     await this.assertWithinApprovedHeadcount(requisition, quantity);
     this.assertSalary(dto.salaryMin, dto.salaryMax);
 
-    const saved = await this.jobs.save(
-      this.jobs.create({
-        requisitionId: requisition.id,
-        title: dto.title ?? requisition.title,
-        positionId: requisition.positionId,
-        departmentId: requisition.departmentId,
-        quantity,
-        salaryMin: dto.salaryMin ?? null,
-        salaryMax: dto.salaryMax ?? null,
-        location: dto.location ?? null,
-        description: dto.description ?? null,
-        status: JobStatus.DRAFT,
-        createdById: actor.id,
-      }),
-    );
+    const saved = await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const repo = manager.getRepository(Job);
+      const created = await repo.save(
+        repo.create({
+          requisitionId: requisition.id,
+          title: dto.title ?? requisition.title,
+          positionId: requisition.positionId,
+          departmentId: requisition.departmentId,
+          quantity,
+          salaryMin: dto.salaryMin ?? null,
+          salaryMax: dto.salaryMax ?? null,
+          location: dto.location ?? null,
+          description: dto.description ?? null,
+          status: JobStatus.DRAFT,
+          createdById: actor.id,
+        }),
+      );
+      await audit.record('JOB_CREATED', created.id);
+      return created;
+    });
 
     return this.get(saved.id, actor);
   }
@@ -167,14 +175,31 @@ export class JobsService {
       );
     }
 
-    if (dto.title !== undefined) job.title = dto.title;
-    if (dto.quantity !== undefined) job.quantity = dto.quantity;
-    if (dto.salaryMin !== undefined) job.salaryMin = dto.salaryMin;
-    if (dto.salaryMax !== undefined) job.salaryMax = dto.salaryMax;
-    if (dto.location !== undefined) job.location = dto.location;
-    if (dto.description !== undefined) job.description = dto.description;
+    const changedFields: string[] = [];
+    const apply = <K extends keyof Job>(
+      field: K,
+      value: Job[K] | undefined,
+    ): void => {
+      if (value === undefined || (job[field] ?? null) === (value ?? null)) {
+        return;
+      }
+      job[field] = value;
+      changedFields.push(field);
+    };
 
-    await this.jobs.save(job);
+    apply('title', dto.title);
+    apply('quantity', dto.quantity);
+    apply('salaryMin', dto.salaryMin);
+    apply('salaryMax', dto.salaryMax);
+    apply('location', dto.location);
+    apply('description', dto.description);
+
+    if (changedFields.length > 0) {
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Job).save(job);
+        await audit.record('JOB_UPDATED', id, { changedFields });
+      });
+    }
     return this.get(id, actor);
   }
 
@@ -191,7 +216,7 @@ export class JobsService {
       );
     }
 
-    return this.changeStatus(job, JobStatus.OPEN, actor, {
+    return this.changeStatus(job, JobStatus.OPEN, actor, 'JOB_PUBLISHED', {
       publishedAt: new Date(),
     });
   }
@@ -199,7 +224,7 @@ export class JobsService {
   stop(id: string, actor: AuthUser): Promise<JobView> {
     return this.findScoped(id, actor).then((job) => {
       this.assertCanTransition(job.status, JobStatus.CLOSED);
-      return this.changeStatus(job, JobStatus.CLOSED, actor, {});
+      return this.changeStatus(job, JobStatus.CLOSED, actor, 'JOB_STOPPED', {});
     });
   }
 
@@ -210,10 +235,15 @@ export class JobsService {
       throw new ConflictException('Chỉ xóa được tin ở trạng thái Nháp');
     }
 
-    const result = await this.jobs.delete({ id, status: JobStatus.DRAFT });
-    if (!result.affected) {
-      throw new ConflictException(RACE_MESSAGE);
-    }
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const result = await manager
+        .getRepository(Job)
+        .delete({ id, status: JobStatus.DRAFT });
+      if (!result.affected) {
+        throw new ConflictException(RACE_MESSAGE);
+      }
+      await audit.record('JOB_DELETED', id);
+    });
   }
 
   /** The UPDATE is conditioned on the status we read, so concurrent calls cannot both win. */
@@ -221,15 +251,18 @@ export class JobsService {
     job: Job,
     to: JobStatus,
     actor: AuthUser,
+    event: 'JOB_PUBLISHED' | 'JOB_STOPPED',
     changes: Partial<Pick<Job, 'publishedAt'>>,
   ): Promise<JobView> {
-    const result = await this.jobs.update(
-      { id: job.id, status: job.status },
-      { ...changes, status: to },
-    );
-    if (!result.affected) {
-      throw new ConflictException(RACE_MESSAGE);
-    }
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const result = await manager
+        .getRepository(Job)
+        .update({ id: job.id, status: job.status }, { ...changes, status: to });
+      if (!result.affected) {
+        throw new ConflictException(RACE_MESSAGE);
+      }
+      await audit.record(event, job.id);
+    });
 
     return this.get(job.id, actor);
   }

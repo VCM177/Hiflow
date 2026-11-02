@@ -14,6 +14,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { AuditEvent } from '../audit/audit.decorators';
 import type { AuthUser } from '../../common/types/auth-user';
 import { CreateJobDto, ListJobsQueryDto, UpdateJobDto } from './jobs.dto';
 import { JobsService } from './jobs.service';
@@ -37,12 +38,14 @@ export class JobsController {
   }
 
   @Post()
+  @AuditEvent('JOB_CREATED')
   @RequirePermissions(PERMISSIONS.job.create)
   create(@Body() dto: CreateJobDto, @CurrentUser() actor: AuthUser) {
     return this.jobs.create(dto, actor);
   }
 
   @Patch(':id')
+  @AuditEvent('JOB_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.job.update)
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -53,6 +56,7 @@ export class JobsController {
   }
 
   @Post(':id/publish')
+  @AuditEvent('JOB_PUBLISHED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.job.publish)
   publish(
@@ -63,6 +67,7 @@ export class JobsController {
   }
 
   @Post(':id/stop')
+  @AuditEvent('JOB_STOPPED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.job.stop)
   stop(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: AuthUser) {
@@ -70,6 +75,7 @@ export class JobsController {
   }
 
   @Delete(':id')
+  @AuditEvent('JOB_DELETED')
   @HttpCode(204)
   @RequirePermissions(PERMISSIONS.job.delete)
   remove(
