@@ -78,6 +78,10 @@ export const PERMISSIONS = {
     overviewView: 'report.overview.view',
     overviewExport: 'report.overview.export',
   },
+  audit: {
+    eventView: 'audit.event.view',
+    eventExport: 'audit.event.export',
+  },
   activityLog: {
     listView: 'activity_log.list.view',
     listExport: 'activity_log.list.export',
