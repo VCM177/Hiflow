@@ -1,6 +1,14 @@
 # Spec thiết kế: Nhật ký kiểm toán (Audit Trail) v2
 
-**Trạng thái:** bản thiết kế, chưa cài đặt. Thay thế cơ chế interceptor mô tả trong `activity-log-spec.md` (file đó bị xóa ở commit cuối của kế hoạch này).
+**Trạng thái:** **đã cài đặt** (2026-11-02), thay thế hoàn toàn cơ chế interceptor và bảng `activity_logs` (đã xóa). Những chỗ bản cài đặt khác hoặc bổ sung so với thiết kế dưới đây:
+
+- Có thêm sự kiện `CANDIDATE_ANONYMIZED` (`trigger`: `REQUEST` hoặc `RETENTION`), vì chức năng ẩn danh ứng viên ra đời sau bản thiết kế.
+- Giai đoạn chuyển tiếp: trigger của bước 2 ghi nhưng chưa chặn; migration thứ hai (`EnforceAuditCapture`) mới bật mã lỗi `HF001`.
+- App e2e gắn `origin = 'e2e'` bằng tùy chọn kết nối (`-c hiflow.origin=e2e`), nên cả ghi không có ngữ cảnh cũng được dọn bởi global teardown.
+- Trigger giữ `hiflow.origin` của phiên khi không có `tx_id`; role owner không có ngữ cảnh vẫn ghi với `origin = 'maintenance'`.
+- Giá trị `hiflow.purge` chưa được đặt là `NULL`, không phải `false`; hàm bất biến dùng `coalesce` (lỗi này suýt để owner xóa được bảng audit, test `audit-db` đã bắt được).
+- Hàm bất biến cho phép **một** ngoại lệ khi `purge` bật: ghi `NULL` vào `ip` và `user_agent` của sự kiện cũ (hạn lưu của quyết định B). Lệnh `retention:run` làm việc này, và xóa bản sao thay đổi dòng của ứng viên đã ẩn danh (`src/database/audit-purge.ts`).
+- Xuất báo cáo (`REPORT_EXPORTED`) và tải CV (`*_CV_DOWNLOADED`) được ghi như các lần đọc dữ liệu cá nhân.
 
 ## 1. Mục tiêu
 
@@ -221,7 +229,7 @@ Nhãn tiếng Việt của từng sự kiện nằm ở shared-types, web dùng 
 3. Tách role DB; e2e dọn dấu vết của mình bằng role owner.
 4. Không làm chuỗi băm (hash chain) lúc này; thêm được về sau mà không đổi thiết kế.
 
-**Chờ xác nhận:**
+**Đã xác nhận ngày 2026-11-02 (theo mặc định):**
 
 | #   | Câu hỏi                                                                                                   | Mặc định đang dùng | Phải chốt trước               |
 | --- | --------------------------------------------------------------------------------------------------------- | ------------------ | ----------------------------- |

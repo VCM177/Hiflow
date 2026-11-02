@@ -1,61 +1,42 @@
 # Bàn giao Hiflow
 
-Cập nhật 2026-10-02, nhánh `develop`. Tài liệu này chỉ ghi trạng thái và việc kế tiếp; quy tắc làm việc nằm ở `CLAUDE.md`, nghiệp vụ ở `docs/business-flow.md`.
+Cập nhật 2026-11-02, nhánh `develop`. Tài liệu này chỉ ghi trạng thái và việc kế tiếp; quy tắc làm việc nằm ở `CLAUDE.md`, nghiệp vụ ở `docs/business-flow.md`.
 
 ## 1. Đang ở đâu
 
-| Hạng mục                               | Trạng thái                                           | Bằng chứng                                                                                       |
-| -------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Backend (NestJS)                       | Xong, Cổng A đã đóng ngày 2026-09-24                 | `docs/gate-a-audit.md`: 19 PASS, 309 unit và 556 e2e xanh                                        |
-| Cổng công khai (tin và form nộp hồ sơ) | Xong ở backend                                       | `modules/public`, `business-flow.md` mục 6                                                       |
-| Web (`apps/web`)                       | **Mới là scaffold của Next**, chưa có code giao diện | `apps/web/src/app` chỉ có `layout.tsx`, `page.tsx`, `globals.css`                                |
-| UX giai đoạn 1 và 2                    | Viết xong                                            | `docs/ux/01-discovery.md`, `docs/ux/02-define.md`                                                |
-| UX giai đoạn 4 (prototype)             | Có, bấm được                                         | Artifact wireframe (mục 5)                                                                       |
-| UX giai đoạn 3 và 5                    | Chưa làm                                             | Không có người dùng thật để kiểm thử                                                             |
-| Nhật ký kiểm toán v2                   | **Mới có thiết kế, chưa có dòng code nào**           | `docs/audit-trail-spec.md` ("chưa cài đặt"); không có `audit_events` hay `AuditService` trong mã |
+| Hạng mục                               | Trạng thái                                            | Bằng chứng                                                              |
+| -------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- |
+| Backend (NestJS)                       | Xong, Cổng A đã đóng ngày 2026-09-24                  | `docs/gate-a-audit.md`: 19 PASS, 309 unit và 556 e2e xanh               |
+| Cổng công khai (tin và form nộp hồ sơ) | Xong ở backend                                        | `modules/public`, `business-flow.md` mục 6                              |
+| Web (`apps/web`)                       | **Mới là scaffold của Next**, chưa có code giao diện  | `apps/web/src/app` chỉ có `layout.tsx`, `page.tsx`, `globals.css`       |
+| UX giai đoạn 1 và 2                    | Viết xong                                             | `docs/ux/01-discovery.md`, `docs/ux/02-define.md`                       |
+| UX giai đoạn 4 (prototype)             | Có, bấm được                                          | Artifact wireframe (mục 5)                                              |
+| UX giai đoạn 3 và 5                    | Chưa làm                                              | Không có người dùng thật để kiểm thử                                    |
+| Nhật ký kiểm toán v2                   | **Đã cài đặt** (2026-11-02), thay hẳn `activity_logs` | `docs/audit-trail-spec.md`, `modules/audit`, `test/audit-*.e2e-spec.ts` |
 
-Kiểm tra lúc bàn giao: `npm run lint`, `npm test` (34 suite, 309 test) và `npm run build` đều exit 0. Không chạy e2e vì lần này chỉ đổi tài liệu và hook.
+Kiểm tra lúc bàn giao (2026-11-02): `npm run lint`, `npm run build`, `npm test` (41 suite, 344 test) và toàn bộ `npm run test:e2e` (638 test pass, 5 bỏ qua là Supabase và Redis thật) đều exit 0, chạy trên Postgres 16 cục bộ với role `hiflow_app`; hai suite captcha cần `NODE_USE_ENV_PROXY=1` trong môi trường sandbox. Chưa chạy lại trên Neon.
 
 ## 2. Việc kế tiếp, theo thứ tự
 
-1. **Chốt nhật ký kiểm toán A đến E** (mục 3). Câu A chặn commit migration đầu tiên.
-2. **Sửa backend theo quyết định UX** (mục 4), mỗi việc một commit, đi qua `/tl-review plan`.
-3. **Web giai đoạn B** theo kế hoạch v2 (mục 5): B0 chuẩn bị, B1 token, B2 primitive, B3 lib, B4 phiên và khung, B5 component dùng chung, B6 backend nhỏ, B7 mười một module, B8 hoàn thiện. **Xong B5 mới được làm module.**
+1. ~~Chốt và làm nhật ký kiểm toán v2~~ **Xong** (2026-11-02): A đến E theo mặc định, cài đặt theo 7 bước của spec, mỗi bước một commit.
+2. ~~Sửa backend theo quyết định UX~~ **Xong**, trừ việc 5 ở mục 4 (sửa tệp ngoài repo).
+3. **Web giai đoạn B**, cần lập lại kế hoạch trước (mục 5): B0 chuẩn bị, B1 token, B2 primitive, B3 lib, B4 phiên và khung, B5 component dùng chung, B6 backend nhỏ (đã xong bằng `GET /users/options`), B7 mười một module, B8 hoàn thiện. **Xong B5 mới được làm module.**
 4. Bổ sung giai đoạn 3 và 5 của UX nếu báo cáo cần (mục 6).
-
-Quyết định thứ tự giữa 1 và 3: người dùng muốn xong backend trước khi làm web (ghi nhận khi bắt đầu thiết kế nhật ký, 2026-09-27).
+5. Đặt lịch chạy `npm run retention:run -w @hiflow/api` định kỳ (mã nguồn không tự lên lịch).
 
 ## 3. Chờ người dùng xác nhận
 
-**Nhật ký kiểm toán v2** (`docs/audit-trail-spec.md` mục 12, phản chiếu ở `business-flow.md` mục 7):
+**Nhật ký kiểm toán v2:** A đến E đã được xác nhận theo mặc định ngày 2026-11-02 (lưu giá trị thật và chỉ Admin đọc, IP và user-agent giữ 12 tháng, form công khai có sự kiện, không lưu email đăng nhập sai). Ghi nhận ở `business-flow.md` mục 7.
 
-| #   | Câu hỏi                                                                   | Mặc định đang dùng                        | Chặn                          |
-| --- | ------------------------------------------------------------------------- | ----------------------------------------- | ----------------------------- |
-| A   | Lưu giá trị thật của dữ liệu cá nhân trong bảng thay đổi dòng (không che) | Lưu thật, chỉ Admin đọc, xóa theo hạn lưu | commit migration              |
-| B   | Lưu IP và user-agent, giữ bao lâu                                         | Lưu, 12 tháng                             | commit `RequestContext`       |
-| C   | Form công khai sinh sự kiện `APPLICATION_SUBMITTED_ONLINE`                | Có                                        | commit chuyển module `public` |
-| D   | Ai được đọc                                                               | Chỉ Admin                                 | commit API đọc                |
-| E   | Đăng nhập sai với email không tồn tại có lưu email đã nhập                | Không                                     | commit sự kiện phiên          |
-
-Đã chốt (2026-09-27): làm lại triệt để và bỏ interceptor; xóa `activity_logs` và để `seed:demo` sinh lại sự kiện; tách role DB (`hiflow_app` lúc chạy, owner cho migration, seed và dọn e2e); chưa làm chuỗi băm. Thứ tự 7 commit ở spec mục 13.
-
-**Quyết định thiết kế UX A đến K** (`docs/ux/02-define.md` mục 4, `business-flow.md` mục 7 điểm 10 đến 19): do người thực hiện tự chốt ngày 2026-10-02 theo ủy quyền của người dùng, **chưa ai xác nhận lại**. Trong báo cáo cần ghi rõ như vậy.
+**Quyết định thiết kế UX A đến K** (`docs/ux/02-define.md` mục 4, `business-flow.md` mục 7 điểm 10 đến 19): do người thực hiện tự chốt ngày 2026-10-02 theo ủy quyền của người dùng. Điểm 11, 13, 18 và 20 đã cài; điểm 11 được xác nhận ngày 2026-11-02. Các điểm còn lại **chưa ai xác nhận lại**: trong báo cáo cần ghi rõ như vậy.
 
 **Quyền dùng lại giao diện cũ.** Kế hoạch giai đoạn B yêu cầu người dùng xác nhận quyền dùng lại mã nguồn bộ admin cũ trước B0. Quy tắc Isolation trong `CLAUDE.md` đã được sửa cho phép port, nhưng việc xác nhận bản quyền chưa được ghi lại ở đâu.
 
-## 4. Việc backend còn nợ từ quyết định UX
+## 4. Việc backend còn nợ
 
-Chưa làm. Mỗi việc một commit, chạy `rbac-matrix` và e2e liên quan.
-
-1. ~~Quyền phỏng vấn của Trưởng bộ phận và HR~~ **Xong** (2026-11-02, người dùng chọn: HR xem mọi lịch, chỉ ghi lịch của mình).
-2. ~~`DashboardService.todoFor` cho Trưởng bộ phận~~ **Xong** (hai việc `REQUISITIONS_TO_REVISE` và `DRAFT_REQUISITIONS`, `dashboard.e2e-spec.ts`).
-3. ~~Chi tiết hồ sơ rơi về CV của ứng viên~~ **Xong** (`applications.service.ts`, `application-cv.e2e-spec.ts`).
-4. ~~Mốc B6: chọn người phỏng vấn và người phụ trách~~ **Xong** bằng `GET /users/options` (2026-11-02, người dùng chọn endpoint tối giản thay vì cấp `user.list.view`).
-5. Sửa mục 1.1.2.1 trong danh sách chức năng (`D:\Hiflow\docs\danh-sach-chuc-nang.txt`, ngoài repo) thành "chuyển tới trang đích theo vai trò".
+Chỉ còn một việc ngoài repo: sửa mục 1.1.2.1 trong danh sách chức năng (`D:\Hiflow\docs\danh-sach-chuc-nang.txt`) thành "chuyển tới trang đích theo vai trò". Các việc backend khác của quyết định UX (quyền phỏng vấn của Trưởng bộ phận và HR, việc cần xử lý của Trưởng bộ phận, CV rơi về ứng viên, người dùng để chọn) đã xong.
 
 Giữ nguyên, không đổi (đã đối chiếu với code): mã 202 của form công khai (CV được kiểm tra và lưu trước khi trả lời) và 404 cho tin đã đóng.
-
-**Cập nhật 2026-11-02:** việc nợ 1 đến 4 đã xong; thêm chính sách lưu và xóa dữ liệu ứng viên (`business-flow.md` mục 6b, lệnh `retention:run`). Còn lại: nhật ký kiểm toán v2 (A đến E đã được xác nhận theo mặc định), việc 5 ngoài repo, và web giai đoạn B.
 
 **Thiết lập bắt buộc từ bước 2 của nhật ký kiểm toán v2** (máy nào chạy API hoặc e2e cũng phải làm một lần):
 

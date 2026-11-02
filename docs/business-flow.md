@@ -18,7 +18,7 @@ Tạo YÊU CẦU ─ gửi ─► Duyệt / Từ chối           │           
                                                 └─ ứng viên chấp nhận → NHẬN VIỆC
 ```
 
-Admin làm được mọi việc và là người duy nhất xem nhật ký hoạt động. Tổng quan và Báo cáo chỉ đọc số liệu.
+Admin làm được mọi việc và là người duy nhất xem nhật ký kiểm toán. Tổng quan và Báo cáo chỉ đọc số liệu.
 
 ## 2. Bốn máy trạng thái
 
@@ -48,13 +48,24 @@ Admin làm được mọi việc và là người duy nhất xem nhật ký ho�
 | HR             | Duyệt, từ chối, đóng yêu cầu; quản lý người dùng; báo cáo và xuất CSV; ghi kết quả phỏng vấn do chính mình đảm nhận | Toàn công ty (xem mọi lịch phỏng vấn, chỉ ghi kết quả lịch của mình); không xem được offer, không tạo được tin hay ứng viên |
 | Tuyển dụng     | Tin, ứng viên, hồ sơ, lịch phỏng vấn, offer                                                                         | Toàn công ty                                                                                                                |
 | Phỏng vấn viên | Xem và ghi kết quả phỏng vấn của mình                                                                               | Chỉ hồ sơ và ứng viên mình được xếp lịch                                                                                    |
-| Admin          | Tất cả, kể cả nhật ký hoạt động                                                                                     | Toàn bộ                                                                                                                     |
+| Admin          | Tất cả, kể cả nhật ký kiểm toán                                                                                     | Toàn bộ                                                                                                                     |
 
 HR không được cấp hay chạm vào tài khoản Admin; không ai tự đổi vai trò hay tự khóa chính mình. Khóa tài khoản hoặc đổi vai trò có hiệu lực ngay ở request kế tiếp.
 
 ## 5. Vết truy ngược
 
-Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi nào, ghi chú). Hồ sơ do ứng viên tự nộp qua website không có người đăng nhập nên được ghi dưới **tài khoản hệ thống** `system@hiflow.local` (tên hiển thị "Ứng viên (Website)"): tài khoản này do migration tạo, bị khóa, mật khẩu ngẫu nhiên không ai biết, không đăng nhập được, không xuất hiện trong danh sách người dùng, không được phân công hồ sơ hay xếp lịch phỏng vấn, và mọi API quản lý người dùng đều trả 404 với nó. Mọi thao tác ghi (POST, PUT, PATCH, DELETE) vào nhật ký hoạt động với mật khẩu đã được che. Timeline của yêu cầu tuyển dụng lấy từ nhật ký này.
+Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi nào, ghi chú). Hồ sơ do ứng viên tự nộp qua website không có người đăng nhập nên được ghi dưới **tài khoản hệ thống** `system@hiflow.local` (tên hiển thị "Ứng viên (Website)"): tài khoản này do migration tạo, bị khóa, mật khẩu ngẫu nhiên không ai biết, không đăng nhập được, không xuất hiện trong danh sách người dùng, không được phân công hồ sơ hay xếp lịch phỏng vấn, và mọi API quản lý người dùng đều trả 404 với nó. Ngoài ra có **nhật ký kiểm toán** (mục 5b). Timeline của yêu cầu tuyển dụng lấy từ nhật ký này.
+
+## 5b. Nhật ký kiểm toán
+
+Chỉ **Admin** đọc (`GET /audit-events`, chi tiết `GET /audit-events/:id`, xuất CSV `GET /audit-events/export`). Mỗi sự kiện nghiệp vụ ("Duyệt yêu cầu YC-012", "Chuyển trạng thái hồ sơ"...) ghi một dòng gồm người thực hiện (tên và vai trò **tại thời điểm đó**), đối tượng, dữ liệu riêng của sự kiện, nguồn (`app`, `seed`, `maintenance`, `e2e`), địa chỉ IP và user-agent; danh mục sự kiện và nhãn tiếng Việt nằm ở `packages/shared-types/src/audit-events.ts`. Cùng giao dịch, trigger của Postgres ghi **mọi cột đã đổi** (giá trị cũ và mới) của 10 bảng nghiệp vụ, nối với sự kiện bằng `tx_id`; mật khẩu chỉ ghi `[REDACTED]`. Ghi dữ liệu và ghi nhật ký cùng thành công hoặc cùng thất bại. Bảng chỉ thêm, không sửa: role chạy API không có quyền sửa hay xóa, và API từ chối khởi động nếu có.
+
+- Cũng ghi các lần **đọc dữ liệu cá nhân**: tải CV (ứng viên và hồ sơ), xuất báo cáo, xuất nhật ký.
+- Đăng nhập thành công, thất bại (sai mật khẩu, tài khoản bị khóa) và đăng xuất đều ghi; đăng nhập thất bại với email không tồn tại **không lưu email đã nhập**.
+- Hồ sơ nộp qua website ghi `APPLICATION_SUBMITTED_ONLINE` (chỉ mã tin, người thực hiện là tài khoản hệ thống); nộp trùng không ghi gì.
+- Ghi chú, nhận xét và nội dung ghi chú **không** nằm trong sự kiện; chúng nằm ở thay đổi dòng của bảng chứa chúng.
+- IP và user-agent giữ `AUDIT_IP_RETENTION_MONTHS` tháng (12), sau đó `retention:run` xóa riêng hai trường này. Khi ứng viên bị ẩn danh, `retention:run` xóa các bản sao giá trị thật của họ trong thay đổi dòng; sự kiện `CANDIDATE_ANONYMIZED` được giữ để chứng minh việc đã làm.
+- Dữ liệu demo sinh ra bởi `seed:demo` có nguồn `seed`, ngày lùi khớp lịch sử; `--reset` thay thế chúng.
 
 ## 6. "Mở tuyển dụng" và cách ứng viên nộp hồ sơ
 
@@ -76,12 +87,12 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 
 Căn cứ: Luật Bảo vệ dữ liệu cá nhân 2025 (hiệu lực 01/01/2026) cho cá nhân quyền yêu cầu xóa và yêu cầu xóa khi hết mục đích xử lý. Các con số dưới đây là **chính sách của dự án**, chưa đối chiếu với nguyên văn Nghị định hướng dẫn.
 
-- **Ẩn danh, không xóa dòng.** Ứng viên được ẩn danh để phễu và báo cáo vẫn đếm đủ: họ tên thành "Ứng viên đã ẩn danh", email thành `anonymized-<id>@anonymized.invalid`, xóa điện thoại, ngày sinh, ghi chú và CV (cả CV ở hồ sơ ứng viên lẫn CV nộp kèm từng hồ sơ), xóa ghi chú của các hồ sơ của họ, và che nội dung request đã lưu trong nhật ký hoạt động của ứng viên và các hồ sơ đó. Cột `anonymized_at` đánh dấu việc đã làm.
+- **Ẩn danh, không xóa dòng.** Ứng viên được ẩn danh để phễu và báo cáo vẫn đếm đủ: họ tên thành "Ứng viên đã ẩn danh", email thành `anonymized-<id>@anonymized.invalid`, xóa điện thoại, ngày sinh, ghi chú và CV (cả CV ở hồ sơ ứng viên lẫn CV nộp kèm từng hồ sơ), xóa ghi chú của các hồ sơ của họ, ghi sự kiện `CANDIDATE_ANONYMIZED`. Cột `anonymized_at` đánh dấu việc đã làm. Bản sao giá trị thật trong nhật ký kiểm toán bị xóa ở lần chạy `retention:run` kế tiếp (mục 5b).
 - **Theo yêu cầu:** `POST /candidates/:id/anonymize`, chỉ HR và Admin (`candidate.item.anonymize`), có ghi nhật ký. Làm ngay, không chờ hết hạn lưu.
 - **Điều kiện:** ứng viên chỉ được ẩn danh khi mọi hồ sơ của họ đã **Từ chối** hoặc **Ứng viên rút** (hoặc chưa có hồ sơ nào). Còn hồ sơ đang xử lý (Mới, Sàng lọc, Phỏng vấn, Đề nghị) hoặc đã **Nhận việc** thì trả 409: người đã nhận việc thuộc dữ liệu nhân sự, nằm ngoài phạm vi Hiflow. Việc kiểm tra và xóa nằm trong một giao dịch có khóa dòng ứng viên, nên một hồ sơ tạo cùng lúc không lọt qua.
 - **Sau khi ẩn danh:** không sửa, không thêm ghi chú hay CV, không tạo hồ sơ mới cho ứng viên đó (409). Hồ sơ cũ vẫn xem được, đã mất mọi thông tin nhận dạng.
 - **Hết hạn lưu:** ứng viên không còn hồ sơ đang xử lý và không có hoạt động nào trong `CANDIDATE_RETENTION_MONTHS` tháng (mặc định 12, số nguyên 1 đến 120, tính từ lần cập nhật, nộp hồ sơ hay đổi trạng thái muộn nhất) sẽ bị ẩn danh bởi `npm run retention:run -w @hiflow/api`. Thêm `-- --dry-run` để chỉ đếm. Lệnh phải được **một bộ lập lịch bên ngoài gọi định kỳ**; mã nguồn không tự chạy nó. Mỗi lần xử lý tối đa 500 ứng viên; lỗi của một ứng viên không dừng cả lần chạy.
-- **Chưa được ẩn danh (giới hạn đã biết):** nội dung ghi chú trong lịch sử đổi trạng thái, nhận xét phỏng vấn, ghi chú offer, và nhật ký hoạt động của đối tượng khác (phỏng vấn, offer). Đây là văn bản do nhân viên viết và có thể nhắc tên người; xử lý cùng lúc với nhật ký kiểm toán v2.
+- **Chưa được ẩn danh (giới hạn đã biết):** nội dung ghi chú trong lịch sử đổi trạng thái, nhận xét phỏng vấn, ghi chú offer, và thay đổi dòng của các bảng đó trong nhật ký kiểm toán. Đây là văn bản do nhân viên viết và có thể nhắc tên người.
 
 ## 7. Những giả định cần được xác nhận
 
@@ -93,7 +104,7 @@ Căn cứ: Luật Bảo vệ dữ liệu cá nhân 2025 (hiệu lực 01/01/2026
 6. Giá trị chọn: tuổi tối thiểu ứng viên 16, khung phỏng vấn 60 phút, tối đa 10 vòng, khoảng báo cáo tối đa 366 ngày.
 7. Người phỏng vấn có thể là phỏng vấn viên, trưởng bộ phận hoặc HR; người phụ trách hồ sơ là Tuyển dụng, HR hoặc Admin.
 
-**Nhật ký kiểm toán v2 (chờ xác nhận, chi tiết ở `docs/audit-trail-spec.md` mục 12):**
+**Nhật ký kiểm toán v2 (đã cài; A đến E được người dùng xác nhận theo mặc định ngày 2026-11-02, chi tiết ở `docs/audit-trail-spec.md` mục 12):**
 
 - A. Dữ liệu cá nhân trong bảng thay đổi dòng lưu giá trị thật (không che), chỉ Admin đọc, xóa theo hạn lưu.
 - B. Lưu IP và user-agent, giữ 12 tháng.

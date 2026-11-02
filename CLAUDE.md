@@ -12,7 +12,7 @@ npm run format              # prettier (a pre-commit hook also runs it)
 npm run lint
 npm run build               # types + api + web
 npm test                    # unit tests (fast)
-npm run test:e2e            # ~12 minutes, real database: run it in the BACKGROUND
+npm run test:e2e            # real database, run it in the BACKGROUND (about 2 minutes on a local Postgres, longer on Neon)
 npm run test:e2e -w @hiflow/api -- <name>     # one e2e file, e.g. lifecycle
 
 npm run migration:run -w @hiflow/api
@@ -25,6 +25,7 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 
 ## Environment
 
+- **Two database roles.** `DATABASE_URL` is the restricted role the API runs as (`hiflow_app`: read and write business tables, only read and insert into the audit tables; the API refuses to start as a role that could change them). `DATABASE_OWNER_URL` is the owner, for migrations, seeds and test maintenance only (`typeorm.config.ts` default export; `ownerDataSourceOptions`). Create the restricted role first (`neon roles create --name hiflow_app`); `DB_APP_ROLE` renames it. In production `AUDIT_ORIGIN` must be `app`.
 - `apps/api/.env` is git-ignored and holds the Neon connection string and JWT secret. **Never print, echo or paste it.** `.env.example` documents every variable.
 - The Neon project is dedicated to Hiflow and the Neon CLI is already logged in on this machine.
 - `.env` uses `sslmode=verify-full`; `psql` needs `sslmode=require` instead (libpq wants a root cert for verify-full).
@@ -42,7 +43,7 @@ Demo accounts (`*@hiflow.local`): admin, hr, manager, recruiter, interviewer. Pa
 - **Status changes** are conditional updates (`UPDATE ... WHERE id = ? AND status = <what we read>`); zero rows means someone else won, so answer 409. Application status changes go only through `ApplicationWorkflowService`; do not write to that column anywhere else.
 - Postgres constraint errors go through `rethrowDbError` (23505 unique, 23503 and **23001** foreign key/RESTRICT, all -> 409).
 - List endpoints extend `PaginationQueryDto`, validate `sortBy` against a whitelist, and escape user text with `containsPattern`.
-- Only writes (POST/PUT/PATCH/DELETE) are audited, and secrets are redacted. Name the path parameter `:id` so the entity id is recorded.
+- **Audit trail** (`docs/audit-trail-spec.md`): every write to business data goes through `TxRunner.run(actorOf(user), async (manager, audit) => ...)` and calls `audit.record(EVENT, entityId, data)`; the events are listed in `packages/shared-types/src/audit-events.ts`, and each route declares its event with `@AuditEvent(EVENT)` (`conditional: true` when it may legitimately end without one) or `@NoAudit('reason')`. A trigger also records every changed column in `audit_row_changes`, in the same transaction; the API role writing a business table outside `TxRunner` fails with `HF001`, and `password_hash` is stored as `[REDACTED]`. Reads of personal data (CV downloads, exports) use `AuditService.recordStandalone`. Do not use a repository's `save`/`update`/`delete` outside `TxRunner`; use `manager.getRepository(...)` inside it. The old `:id` path-parameter rule no longer applies: the service passes the entity id.
 - Shared enums used by several columns make TypeORM emit a duplicate `CREATE TYPE` in generated migrations: fix by hand (keep one CREATE, and the one DROP after every dependent table is dropped in `down()`) and prove both `up` and `down`.
 - ESLint is strict: `import type` for interfaces used in decorated parameters, `this: void` on bare method references, no `any` from `body`/`query` results (type them).
 
@@ -82,7 +83,7 @@ This project must not contain the name, domain, brand or data of any other proje
 
 ## Current state
 
-The backend passed its first gate (12 modules, 71 documented routes, 111 unit tests, 421 e2e tests, migrations and seeds proven from an empty database) and has since been hardened for the internet: rate limiting, private CV storage with signed downloads, session cookie, proxy secret and CORS whitelist, OpenAPI contract with servers and 401/403/429, and the public job board and application form (see Backend rules). Business rules are written up in `docs/business-flow.md`. Gate A is **closed** (2026-09-24, `docs/gate-a-audit.md`): 309 unit and 556 e2e tests green, including the real Supabase and Upstash Redis specs, and migrations plus seeds proven from an empty database. Never run two e2e runs at once: they fight over the same interviewer slots and fail with 409.
+The backend passed its first gate (12 modules, 71 documented routes, 111 unit tests, 421 e2e tests, migrations and seeds proven from an empty database) and has since been hardened for the internet: rate limiting, private CV storage with signed downloads, session cookie, proxy secret and CORS whitelist, OpenAPI contract with servers and 401/403/429, and the public job board and application form (see Backend rules). Business rules are written up in `docs/business-flow.md`. Gate A is **closed** (2026-09-24, `docs/gate-a-audit.md`): 309 unit and 556 e2e tests green, including the real Supabase and Upstash Redis specs, and migrations plus seeds proven from an empty database. Never run two e2e runs at once: they fight over the same interviewer slots and fail with 409. Since then: the audit trail v2 replaced the activity log (events plus a row-level trail written by triggers in the same transaction, see Backend rules), HR and department managers record their own interviews, recruiters pick people through `GET /users/options`, and candidates can be anonymised on request or after `CANDIDATE_RETENTION_MONTHS`; the suite is now 344 unit and 638 e2e tests, and migrations plus seeds were proven again from an empty database.
 
 **Next, in order:**
 
@@ -101,4 +102,6 @@ The backend passed its first gate (12 modules, 71 documented routes, 111 unit te
 - Only the candidate confirmation email exists; no other notification (email or in-app). Resend delivers to arbitrary addresses only after a sending domain is verified.
 - `test/supabase-storage.e2e-spec.ts` and `test/throttle-redis.e2e-spec.ts` use the real services when `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (must be the `service_role` key: the `anon` key is refused by the private bucket) and `REDIS_URL` are set, and skip otherwise. Nothing has run against a real Resend account yet.
 - **Candidate data retention** (`docs/business-flow.md` section 6b): `POST /candidates/:id/anonymize` (HR, Admin) and the `retention:run` command erase a candidate's personal data and CVs but keep the row for the reports. The command must be run by an external scheduler; nothing in the repo schedules it. Anonymising changes the candidate's email, so an e2e test that anonymises must clean up by ids and job tag, not by the `e2e-` email prefix (see `candidate-anonymize.e2e-spec.ts`). Staff-written free text (status history notes, interview feedback, offer notes) is not erased yet. The retention figures are project policy, not checked against the text of Decree 356/2025.
+- **Audit trail in tests.** The app e2e runs as `hiflow_app` with `AUDIT_ORIGIN=e2e`; a test that builds or removes data by hand uses `ctx.maintenance` (owner, capture off), never `ctx.dataSource`. A global teardown deletes the audit rows tagged `e2e`. Read events with `test/helpers/audit.ts`. Anonymising a candidate changes their email, so such a test cleans up by ids, not by the `e2e-` prefix.
+- **Audit retention.** `retention:run` also runs as the owner: it deletes the row-level copies of an erased candidate and blanks the IP address and user agent of events older than `AUDIT_IP_RETENTION_MONTHS` (12). Decision A stores real values in `audit_row_changes`, so these copies exist until that command runs; staff-written free text (status history notes, interview feedback, offer notes) is also stored there and is not erased.
 - `E2E_LOGS=1` prints the server's error log during an e2e run, for finding why a request answered 500.
