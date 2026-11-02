@@ -4,6 +4,7 @@ import { UserRole } from './roles';
 export const PERMISSIONS = {
   user: {
     listView: 'user.list.view',
+    optionsView: 'user.options.view',
     create: 'user.account.create',
     update: 'user.account.update',
     roleAssign: 'user.role.assign',
@@ -135,6 +136,7 @@ export const ROLE_PERMISSIONS: Readonly<
     P.dashboard.overviewView,
   ],
   [UserRole.RECRUITER]: [
+    P.user.optionsView,
     P.department.listView,
     P.position.listView,
     P.requisition.listView,

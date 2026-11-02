@@ -50,7 +50,7 @@ Chưa làm. Mỗi việc một commit, chạy `rbac-matrix` và e2e liên quan.
 1. ~~Quyền phỏng vấn của Trưởng bộ phận và HR~~ **Xong** (2026-11-02, người dùng chọn: HR xem mọi lịch, chỉ ghi lịch của mình).
 2. ~~`DashboardService.todoFor` cho Trưởng bộ phận~~ **Xong** (hai việc `REQUISITIONS_TO_REVISE` và `DRAFT_REQUISITIONS`, `dashboard.e2e-spec.ts`).
 3. ~~Chi tiết hồ sơ rơi về CV của ứng viên~~ **Xong** (`applications.service.ts`, `application-cv.e2e-spec.ts`).
-4. Mốc B6: RECRUITER được `user.listView` để chọn người phỏng vấn và người phụ trách.
+4. ~~Mốc B6: chọn người phỏng vấn và người phụ trách~~ **Xong** bằng `GET /users/options` (2026-11-02, người dùng chọn endpoint tối giản thay vì cấp `user.list.view`).
 5. Sửa mục 1.1.2.1 trong danh sách chức năng (`D:\Hiflow\docs\danh-sach-chuc-nang.txt`, ngoài repo) thành "chuyển tới trang đích theo vai trò".
 
 Giữ nguyên, không đổi (đã đối chiếu với code): mã 202 của form công khai (CV được kiểm tra và lưu trước khi trả lời) và 404 cho tin đã đóng.

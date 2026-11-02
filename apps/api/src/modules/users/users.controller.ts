@@ -21,6 +21,7 @@ import {
   ResetPasswordDto,
   SetStatusDto,
   UpdateUserDto,
+  UserOptionsQueryDto,
 } from './users.dto';
 import { UsersService } from './users.service';
 
@@ -34,6 +35,13 @@ export class UsersController {
   @RequirePermissions(PERMISSIONS.user.listView)
   list(@Query() query: ListUsersQueryDto) {
     return this.users.list(query);
+  }
+
+  /** Declared before `:id`, which would otherwise swallow the word "options". */
+  @Get('options')
+  @RequirePermissions(PERMISSIONS.user.optionsView)
+  options(@Query() query: UserOptionsQueryDto) {
+    return this.users.options(query);
   }
 
   @Get(':id')

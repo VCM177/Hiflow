@@ -23,3 +23,16 @@ export const toUserView = (user: User): UserView => ({
   isActive: user.isActive,
   createdAt: user.createdAt,
 });
+
+/** The few fields needed to pick a person in a form; no contact details. */
+export interface UserOption {
+  id: string;
+  fullName: string;
+  role: UserRole;
+}
+
+export const toUserOption = (user: User): UserOption => ({
+  id: user.id,
+  fullName: user.fullName,
+  role: user.role,
+});

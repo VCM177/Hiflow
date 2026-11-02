@@ -24,6 +24,8 @@ describe('Users and profile (e2e)', () => {
   let admin: string;
   let hr: string;
   let interviewer: string;
+  let recruiter: string;
+  let manager: string;
 
   const cleanup = () =>
     ctx.dataSource.query(`DELETE FROM users WHERE email LIKE '${PREFIX}%'`);
@@ -52,6 +54,8 @@ describe('Users and profile (e2e)', () => {
     admin = await loginAs(ctx.server, 'admin@hiflow.local');
     hr = await loginAs(ctx.server, 'hr@hiflow.local');
     interviewer = await loginAs(ctx.server, 'interviewer@hiflow.local');
+    recruiter = await loginAs(ctx.server, 'recruiter@hiflow.local');
+    manager = await loginAs(ctx.server, 'manager@hiflow.local');
     await cleanup();
   });
 
@@ -123,6 +127,91 @@ describe('Users and profile (e2e)', () => {
         .get('/users?isActive=maybe')
         .set(bearer(hr))
         .expect(400);
+    });
+  });
+
+  describe('options for pickers', () => {
+    interface Option {
+      id: string;
+      fullName: string;
+      role: string;
+    }
+    interface OptionPage {
+      items: Option[];
+      meta: { total: number };
+    }
+    const options = (token: string, query = '') =>
+      request(ctx.server).get(`/users/options${query}`).set(bearer(token));
+
+    it('lets a recruiter pick people without learning their email or department', async () => {
+      const page = (await options(recruiter).expect(200)).body as OptionPage;
+
+      expect(page.items.length).toBeGreaterThanOrEqual(3);
+      for (const item of page.items) {
+        expect(Object.keys(item).sort()).toEqual(['fullName', 'id', 'role']);
+      }
+      expect(JSON.stringify(page)).not.toContain('@');
+    });
+
+    it('narrows the roles to who can own an application or sit on a panel', async () => {
+      const assignees = (
+        await options(recruiter, '?purpose=ASSIGNEE&limit=100').expect(200)
+      ).body as OptionPage;
+      const panel = (
+        await options(recruiter, '?purpose=INTERVIEWER&limit=100').expect(200)
+      ).body as OptionPage;
+
+      expect(
+        assignees.items.every((i) =>
+          ['RECRUITER', 'HR_MANAGER', 'ADMIN'].includes(i.role),
+        ),
+      ).toBe(true);
+      expect(
+        panel.items.every((i) =>
+          ['INTERVIEWER', 'DEPT_MANAGER', 'HR_MANAGER'].includes(i.role),
+        ),
+      ).toBe(true);
+      expect(panel.items.some((i) => i.role === 'INTERVIEWER')).toBe(true);
+    });
+
+    it('lists only active people, never the built-in system account, and searches by name', async () => {
+      const person = await newUser('opt-active');
+      const found = async () =>
+        (
+          await options(
+            recruiter,
+            `?purpose=ASSIGNEE&search=${encodeURIComponent('E2E opt-active')}`,
+          ).expect(200)
+        ).body as OptionPage;
+
+      expect((await found()).items.map((i) => i.id)).toEqual([person.id]);
+
+      await request(ctx.server)
+        .patch(`/users/${person.id}/status`)
+        .set(bearer(hr))
+        .send({ isActive: false })
+        .expect(200);
+      expect((await found()).items).toEqual([]);
+
+      const all = (await options(admin, '?limit=100').expect(200))
+        .body as OptionPage;
+      expect(all.items.some((i) => i.fullName === 'Ứng viên (Website)')).toBe(
+        false,
+      );
+    });
+
+    it('is not swallowed by the :id route and rejects bad input', async () => {
+      await options(recruiter, '?purpose=NOBODY').expect(400);
+      await options(recruiter, '?sortBy=email').expect(400);
+      await options(recruiter, '?limit=500').expect(400);
+    });
+
+    it('is closed to everyone without the permission, and to anonymous callers', async () => {
+      await request(ctx.server).get('/users/options').expect(401);
+      await options(interviewer).expect(403);
+      await options(manager).expect(403);
+      await options(hr).expect(403);
+      await options(admin).expect(200);
     });
   });
 

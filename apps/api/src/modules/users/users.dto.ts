@@ -44,6 +44,21 @@ export class ListUsersQueryDto extends PaginationQueryDto {
   sortBy: 'fullName' | 'email' | 'role' | 'createdAt' = 'createdAt';
 }
 
+/** Who the caller is choosing a person for. */
+export const USER_OPTION_PURPOSES = ['ASSIGNEE', 'INTERVIEWER'] as const;
+
+export class UserOptionsQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsIn(USER_OPTION_PURPOSES)
+  purpose?: (typeof USER_OPTION_PURPOSES)[number];
+
+  @IsIn(['fullName'])
+  sortBy = 'fullName' as const;
+
+  @IsIn(['asc', 'desc'])
+  sortDir: 'asc' | 'desc' = 'asc';
+}
+
 export class CreateUserDto {
   @Transform(normaliseEmail)
   @IsEmail({}, { message: 'Email không hợp lệ' })

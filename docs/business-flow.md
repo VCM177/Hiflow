@@ -103,6 +103,10 @@ Mỗi lần đổi trạng thái hồ sơ ghi một dòng lịch sử (ai, khi n
 18. CV trên chi tiết hồ sơ rơi về CV của ứng viên khi hồ sơ không có CV riêng (đã cài: `GET /applications/:id/cv` ưu tiên CV nộp kèm, nếu không có thì dùng CV ở hồ sơ ứng viên; `hasCv` của chi tiết hồ sơ cho biết có CV tải được hay không).
 19. Tin đã đóng giữ 404 giống tin nháp và không tồn tại; giao diện hiện trang thân thiện gợi ý tin đang mở. Mã 202 của form nộp hồ sơ giữ nguyên.
 
+**Đã xác nhận (2026-11-02):**
+
+20. Nhân viên tuyển dụng chọn người phụ trách hồ sơ và người phỏng vấn qua `GET /users/options` (quyền `user.options.view`), chỉ trả `id`, họ tên và vai trò của người đang hoạt động; không có email, phòng ban hay tài khoản hệ thống. Họ không đọc được danh sách người dùng đầy đủ. Tham số `purpose` (`ASSIGNEE` hoặc `INTERVIEWER`) thu hẹp theo vai trò hợp lệ. HR đã có `user.list.view` nên không cần quyền này. Đã cài.
+
 **Đã xác nhận (2026-09-24, khi kiểm định Cổng A):**
 
 8. Trưởng bộ phận gọi dữ liệu của phòng ban khác nhận **404**, không phải 403, để không lộ việc bản ghi có tồn tại. Thiếu quyền thì vẫn là 403.

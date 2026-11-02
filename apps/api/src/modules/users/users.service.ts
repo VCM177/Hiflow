@@ -15,10 +15,17 @@ import {
 } from '../../common/pagination/paginate';
 import { hashPassword } from '../../common/security/password';
 import type { AuthUser } from '../../common/types/auth-user';
+import { ASSIGNABLE_ROLES } from '../applications/applications.constants';
 import { Department } from '../departments/entities/department.entity';
+import { INTERVIEWER_ROLES } from '../interviews/interviews.constants';
 import { User } from './entities/user.entity';
-import { toUserView, UserView } from './user-view';
-import { CreateUserDto, ListUsersQueryDto, UpdateUserDto } from './users.dto';
+import { toUserOption, toUserView, UserOption, UserView } from './user-view';
+import {
+  CreateUserDto,
+  ListUsersQueryDto,
+  UpdateUserDto,
+  UserOptionsQueryDto,
+} from './users.dto';
 
 const SORT_COLUMNS: Record<ListUsersQueryDto['sortBy'], string> = {
   fullName: 'account.fullName',
@@ -68,6 +75,39 @@ export class UsersService {
 
     const page = await paginate(qb, query.page, query.limit);
     return { items: page.items.map(toUserView), meta: page.meta };
+  }
+
+  /**
+   * Active people who can be picked as an application's owner or as an
+   * interviewer, for callers who may not read the user list.
+   */
+  async options(query: UserOptionsQueryDto): Promise<Paginated<UserOption>> {
+    const roles =
+      query.purpose === 'ASSIGNEE'
+        ? ASSIGNABLE_ROLES
+        : query.purpose === 'INTERVIEWER'
+          ? INTERVIEWER_ROLES
+          : [...new Set([...ASSIGNABLE_ROLES, ...INTERVIEWER_ROLES])];
+
+    const qb = this.users
+      .createQueryBuilder('account')
+      .where('account.isSystem = false')
+      .andWhere('account.isActive = true')
+      .andWhere('account.role IN (:...roles)', { roles });
+
+    if (query.search) {
+      qb.andWhere('account.fullName ILIKE :q', {
+        q: containsPattern(query.search),
+      });
+    }
+
+    qb.orderBy(
+      'account.fullName',
+      query.sortDir === 'asc' ? 'ASC' : 'DESC',
+    ).addOrderBy('account.id', 'ASC');
+
+    const page = await paginate(qb, query.page, query.limit);
+    return { items: page.items.map(toUserOption), meta: page.meta };
   }
 
   async get(id: string): Promise<UserView> {
