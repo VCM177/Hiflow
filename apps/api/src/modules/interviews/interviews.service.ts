@@ -20,6 +20,9 @@ import {
 } from '../../common/pagination/paginate';
 import type { AuthUser } from '../../common/types/auth-user';
 import { Application } from '../applications/entities/application.entity';
+import { actorOf } from '../audit/audit.types';
+import type { AuditRecorder } from '../audit/audit.types';
+import { TxRunner } from '../audit/tx-runner.service';
 import { User } from '../users/entities/user.entity';
 import { Interview } from './entities/interview.entity';
 import {
@@ -53,6 +56,7 @@ export class InterviewsService {
     @InjectRepository(Application)
     private readonly applications: Repository<Application>,
     @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly tx: TxRunner,
   ) {}
 
   async list(
@@ -139,15 +143,20 @@ export class InterviewsService {
     const round = dto.round ?? (await this.nextRound(application.id));
     await this.assertRoundFree(application.id, round);
 
-    const saved = await this.interviews.save(
-      this.interviews.create({
-        applicationId: application.id,
-        interviewerId: dto.interviewerId,
-        scheduledAt,
-        round,
-        result: InterviewResult.PENDING,
-      }),
-    );
+    const saved = await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const repo = manager.getRepository(Interview);
+      const created = await repo.save(
+        repo.create({
+          applicationId: application.id,
+          interviewerId: dto.interviewerId,
+          scheduledAt,
+          round,
+          result: InterviewResult.PENDING,
+        }),
+      );
+      await audit.record('INTERVIEW_SCHEDULED', created.id);
+      return created;
+    });
 
     return this.get(saved.id, actor);
   }
@@ -159,6 +168,8 @@ export class InterviewsService {
   ): Promise<InterviewView> {
     const interview = await this.findScoped(id, actor);
     this.assertPending(interview);
+
+    const changedFields: string[] = [];
 
     if (dto.scheduledAt !== undefined || dto.interviewerId !== undefined) {
       const scheduledAt =
@@ -172,19 +183,31 @@ export class InterviewsService {
       }
       await this.assertNoClash(interviewerId, scheduledAt, id);
 
-      interview.scheduledAt = scheduledAt;
-      interview.interviewerId = interviewerId;
+      if (scheduledAt.getTime() !== interview.scheduledAt.getTime()) {
+        interview.scheduledAt = scheduledAt;
+        changedFields.push('scheduledAt');
+      }
+      if (interviewerId !== interview.interviewerId) {
+        interview.interviewerId = interviewerId;
+        changedFields.push('interviewerId');
+      }
     }
 
     if (dto.round !== undefined && dto.round !== interview.round) {
       await this.assertRoundFree(interview.applicationId, dto.round, id);
       interview.round = dto.round;
+      changedFields.push('round');
     }
 
-    // Relations are loaded for the view; clear them so the new ids are written.
-    interview.interviewer = undefined;
-    interview.application = undefined;
-    await this.interviews.save(interview);
+    if (changedFields.length > 0) {
+      // Relations are loaded for the view; clear them so the new ids are written.
+      interview.interviewer = undefined;
+      interview.application = undefined;
+      await this.tx.run(actorOf(actor), async (manager, audit) => {
+        await manager.getRepository(Interview).save(interview);
+        await audit.record('INTERVIEW_UPDATED', id, { changedFields });
+      });
+    }
     return this.get(id, actor);
   }
 
@@ -192,7 +215,9 @@ export class InterviewsService {
     const interview = await this.findScoped(id, actor);
     this.assertPending(interview);
 
-    await this.settle(id, InterviewResult.CANCELLED, null);
+    await this.settle(id, InterviewResult.CANCELLED, null, actor, (audit) =>
+      audit.record('INTERVIEW_CANCELLED', id, { reason: null }),
+    );
     return this.get(id, actor);
   }
 
@@ -216,7 +241,9 @@ export class InterviewsService {
       throw new BadRequestException('Vui lòng nhập nhận xét khi không đạt');
     }
 
-    await this.settle(id, dto.result, dto.feedback ?? null);
+    await this.settle(id, dto.result, dto.feedback ?? null, actor, (audit) =>
+      audit.record('INTERVIEW_RESULT_RECORDED', id, { result: dto.result }),
+    );
     return this.get(id, actor);
   }
 
@@ -225,14 +252,18 @@ export class InterviewsService {
     id: string,
     result: InterviewResult,
     feedback: string | null,
+    actor: AuthUser,
+    record: (audit: AuditRecorder) => Promise<void>,
   ): Promise<void> {
-    const outcome = await this.interviews.update(
-      { id, result: InterviewResult.PENDING },
-      { result, feedback },
-    );
-    if (!outcome.affected) {
-      throw new ConflictException(RACE_MESSAGE);
-    }
+    await this.tx.run(actorOf(actor), async (manager, audit) => {
+      const outcome = await manager
+        .getRepository(Interview)
+        .update({ id, result: InterviewResult.PENDING }, { result, feedback });
+      if (!outcome.affected) {
+        throw new ConflictException(RACE_MESSAGE);
+      }
+      await record(audit);
+    });
   }
 
   private assertPending(interview: Interview): void {

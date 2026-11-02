@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import type { AuthUser } from '../../common/types/auth-user';
+import { AuditEvent } from '../audit/audit.decorators';
 import {
   CreateInterviewDto,
   ListInterviewsQueryDto,
@@ -41,12 +42,14 @@ export class InterviewsController {
   }
 
   @Post()
+  @AuditEvent('INTERVIEW_SCHEDULED')
   @RequirePermissions(PERMISSIONS.interview.create)
   create(@Body() dto: CreateInterviewDto, @CurrentUser() actor: AuthUser) {
     return this.interviews.create(dto, actor);
   }
 
   @Patch(':id')
+  @AuditEvent('INTERVIEW_UPDATED', { conditional: true })
   @RequirePermissions(PERMISSIONS.interview.update)
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -57,6 +60,7 @@ export class InterviewsController {
   }
 
   @Post(':id/cancel')
+  @AuditEvent('INTERVIEW_CANCELLED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.interview.cancel)
   cancel(
@@ -67,6 +71,7 @@ export class InterviewsController {
   }
 
   @Post(':id/result')
+  @AuditEvent('INTERVIEW_RESULT_RECORDED')
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.interview.resultRecord)
   recordResult(
