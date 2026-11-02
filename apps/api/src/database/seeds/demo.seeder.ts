@@ -2,6 +2,7 @@ import {
   ApplicationStatus,
   InterviewResult,
   JobStatus,
+  OfferStatus,
   RequisitionStatus,
 } from '@hiflow/shared-types';
 import { DataSource, EntityManager } from 'typeorm';
@@ -15,6 +16,12 @@ import { Requisition } from '../../modules/requisitions/entities/requisition.ent
 import { REQUISITION_CODE_SEQUENCE } from '../../modules/requisitions/requisitions.constants';
 import { seedBase, seedPassword } from './base.seeder';
 import {
+  beginSeedContext,
+  SeedActor,
+  seedActors,
+  SeedTrail,
+} from './seed-trail';
+import {
   DEMO_CANDIDATES,
   DEMO_EMAIL_PATTERN,
   DEMO_JOBS,
@@ -27,6 +34,9 @@ const DAY_MS = 86_400_000;
 const daysAgo = (n: number) => new Date(Date.now() - n * DAY_MS);
 const daysAhead = (n: number) => new Date(Date.now() + n * DAY_MS);
 const isoDay = (date: Date) => date.toISOString().slice(0, 10);
+const HOUR_MS = 3_600_000;
+/** An event is never dated in the future, however the demo's timeline was laid out. */
+const notAfterNow = (ms: number) => new Date(Math.min(ms, Date.now()));
 
 export interface DemoSummary {
   skipped: boolean;
@@ -55,9 +65,18 @@ async function hasDemoData(manager: EntityManager): Promise<boolean> {
   return rows.length > 0;
 }
 
-/** Removes exactly what a previous run created, and nothing else. */
+/**
+ * Removes exactly what a previous run created, and nothing else: its rows, and
+ * the trail it left. The clean-up itself is not recorded (capture is off), so a
+ * rebuilt demo does not carry a trace of having been torn down.
+ */
 async function removeDemoData(manager: EntityManager): Promise<void> {
   const demoRequisitions = `SELECT id FROM requisitions WHERE reason LIKE '${DEMO_REASON_PREFIX}%'`;
+
+  await manager.query(`SELECT set_config('hiflow.purge', 'on', true)`);
+  await manager.query(`DELETE FROM audit_row_changes WHERE origin = 'seed'`);
+  await manager.query(`DELETE FROM audit_events WHERE origin = 'seed'`);
+  await manager.query(`SELECT set_config('hiflow.capture', 'off', true)`);
 
   // Deleting an application cascades to its history, interviews and offer.
   await manager.query(
@@ -74,6 +93,9 @@ async function removeDemoData(manager: EntityManager): Promise<void> {
   await manager.query(
     `DELETE FROM requisitions WHERE reason LIKE '${DEMO_REASON_PREFIX}%'`,
   );
+
+  await manager.query(`SELECT set_config('hiflow.capture', 'on', true)`);
+  await manager.query(`SELECT set_config('hiflow.purge', 'off', true)`);
 }
 
 async function idsBy(
@@ -101,10 +123,11 @@ async function nextRequisitionCode(manager: EntityManager): Promise<string> {
  */
 async function writeHistory(
   manager: EntityManager,
+  trail: SeedTrail,
   applicationId: string,
   finalStatus: ApplicationStatus,
   appliedAt: Date,
-  actorId: string,
+  actor: SeedActor,
 ): Promise<void> {
   const path = DEMO_PATHS[finalStatus];
 
@@ -124,11 +147,19 @@ async function writeHistory(
       fromStatus: step === 0 ? null : path[step - 1],
       toStatus: to,
       note,
-      changedById: actorId,
-      changedAt: new Date(
-        Math.min(appliedAt.getTime() + step * DAY_MS, Date.now()),
-      ),
+      changedById: actor.id,
+      changedAt: notAfterNow(appliedAt.getTime() + step * DAY_MS),
     });
+
+    if (step > 0) {
+      await trail.record(
+        'APPLICATION_STATUS_CHANGED',
+        applicationId,
+        actor,
+        notAfterNow(appliedAt.getTime() + step * DAY_MS),
+        { from: path[step - 1], to, note },
+      );
+    }
   }
 }
 
@@ -151,17 +182,25 @@ export async function seedDemo(
     }
     if (existing) await removeDemoData(manager);
 
+    const txId = await beginSeedContext(manager);
+    const trail = new SeedTrail(manager, txId);
+    const actors = await seedActors(manager);
     const users = await idsBy(manager, 'users', 'email');
     const departments = await idsBy(manager, 'departments', 'code');
     const positions = await idsBy(manager, 'job_positions', 'code');
     const person = (name: string) => users.get(`${name}@hiflow.local`)!;
+    const actor = (name: string): SeedActor =>
+      actors.get(`${name}@hiflow.local`)!;
     const summary = { ...EMPTY };
 
     // Requisitions that became jobs (approved), then the two that did not.
     const jobIds = new Map<string, string>();
     for (const job of DEMO_JOBS) {
+      const code = await nextRequisitionCode(manager);
+      const createdAt = daysAgo(job.publishedDaysAgo + 3);
+      const approvedAt = daysAgo(job.publishedDaysAgo + 1);
       const requisition = await manager.insert(Requisition, {
-        code: await nextRequisitionCode(manager),
+        code,
         title: `Tuyển ${job.quantity} ${job.title.toLowerCase()}`,
         departmentId: departments.get(job.department)!,
         positionId: positions.get(job.position)!,
@@ -170,13 +209,37 @@ export async function seedDemo(
         status: RequisitionStatus.APPROVED,
         createdById: person(job.createdBy),
         approvedById: person('hr'),
-        approvedAt: daysAgo(job.publishedDaysAgo + 1),
-        createdAt: daysAgo(job.publishedDaysAgo + 3),
+        approvedAt,
+        createdAt,
       });
+      const requisitionId = requisition.identifiers[0].id as string;
       summary.requisitions++;
+      await trail.record(
+        'REQUISITION_CREATED',
+        requisitionId,
+        actor(job.createdBy),
+        createdAt,
+        { code },
+      );
+      await trail.record(
+        'REQUISITION_SUBMITTED',
+        requisitionId,
+        actor(job.createdBy),
+        new Date(createdAt.getTime() + HOUR_MS),
+        { code },
+      );
+      await trail.record(
+        'REQUISITION_APPROVED',
+        requisitionId,
+        actor('hr'),
+        approvedAt,
+        { code },
+      );
 
+      const jobCreatedAt = daysAgo(job.publishedDaysAgo + 1);
+      const publishedAt = daysAgo(job.publishedDaysAgo);
       const inserted = await manager.insert(Job, {
-        requisitionId: requisition.identifiers[0].id as string,
+        requisitionId,
         title: job.title,
         positionId: positions.get(job.position)!,
         departmentId: departments.get(job.department)!,
@@ -186,17 +249,32 @@ export async function seedDemo(
         location: job.location,
         description: `<p>Tuyển dụng vị trí <strong>${job.title}</strong> tại ${job.location}.</p>`,
         status: JobStatus.OPEN,
-        publishedAt: daysAgo(job.publishedDaysAgo),
+        publishedAt,
         createdById: person('recruiter'),
-        createdAt: daysAgo(job.publishedDaysAgo + 1),
+        createdAt: jobCreatedAt,
       });
-      jobIds.set(job.key, inserted.identifiers[0].id as string);
+      const jobId = inserted.identifiers[0].id as string;
+      jobIds.set(job.key, jobId);
       summary.jobs++;
+      await trail.record(
+        'JOB_CREATED',
+        jobId,
+        actor('recruiter'),
+        new Date(jobCreatedAt.getTime() + HOUR_MS),
+      );
+      await trail.record(
+        'JOB_PUBLISHED',
+        jobId,
+        actor('recruiter'),
+        publishedAt,
+      );
     }
 
     for (const other of DEMO_OTHER_REQUISITIONS) {
-      await manager.insert(Requisition, {
-        code: await nextRequisitionCode(manager),
+      const code = await nextRequisitionCode(manager);
+      const createdAt = daysAgo(other.createdDaysAgo);
+      const inserted = await manager.insert(Requisition, {
+        code,
         title: other.title,
         departmentId: departments.get(other.department)!,
         positionId: positions.get(other.position)!,
@@ -206,9 +284,36 @@ export async function seedDemo(
         rejectReason: other.rejectReason,
         approvedById: null,
         createdById: person('manager'),
-        createdAt: daysAgo(other.createdDaysAgo),
+        createdAt,
       });
+      const requisitionId = inserted.identifiers[0].id as string;
       summary.requisitions++;
+      await trail.record(
+        'REQUISITION_CREATED',
+        requisitionId,
+        actor('manager'),
+        createdAt,
+        { code },
+      );
+
+      if (other.status !== RequisitionStatus.DRAFT) {
+        await trail.record(
+          'REQUISITION_SUBMITTED',
+          requisitionId,
+          actor('manager'),
+          new Date(createdAt.getTime() + HOUR_MS),
+          { code },
+        );
+      }
+      if (other.status === RequisitionStatus.REJECTED) {
+        await trail.record(
+          'REQUISITION_REJECTED',
+          requisitionId,
+          actor('hr'),
+          notAfterNow(createdAt.getTime() + DAY_MS),
+          { code, reason: other.rejectReason ?? '' },
+        );
+      }
     }
 
     for (const c of DEMO_CANDIDATES) {
@@ -220,7 +325,14 @@ export async function seedDemo(
         source: c.source,
         createdAt: new Date(appliedAt.getTime() - 3_600_000),
       });
+      const candidateId = candidate.identifiers[0].id as string;
       summary.candidates++;
+      await trail.record(
+        'CANDIDATE_CREATED',
+        candidateId,
+        actor('recruiter'),
+        new Date(appliedAt.getTime() - HOUR_MS),
+      );
 
       const application = await manager.insert(Application, {
         candidateId: candidate.identifiers[0].id as string,
@@ -231,18 +343,25 @@ export async function seedDemo(
       });
       const applicationId = application.identifiers[0].id as string;
       summary.applications++;
+      await trail.record(
+        'APPLICATION_CREATED',
+        applicationId,
+        actor('recruiter'),
+        appliedAt,
+      );
 
       await writeHistory(
         manager,
+        trail,
         applicationId,
         c.status,
         appliedAt,
-        person('recruiter'),
+        actor('recruiter'),
       );
 
       if (c.interview) {
         const pending = c.interview.result === InterviewResult.PENDING;
-        await manager.insert(Interview, {
+        const interview = await manager.insert(Interview, {
           applicationId,
           round: 1,
           scheduledAt: pending
@@ -257,11 +376,28 @@ export async function seedDemo(
                 ? 'Chưa đáp ứng yêu cầu chuyên môn'
                 : null,
         });
+        const interviewId = interview.identifiers[0].id as string;
         summary.interviews++;
+        const interviewStage = appliedAt.getTime() + 2 * DAY_MS;
+        await trail.record(
+          'INTERVIEW_SCHEDULED',
+          interviewId,
+          actor('recruiter'),
+          notAfterNow(interviewStage + HOUR_MS),
+        );
+        if (!pending) {
+          await trail.record(
+            'INTERVIEW_RESULT_RECORDED',
+            interviewId,
+            actor('interviewer'),
+            notAfterNow(interviewStage + DAY_MS - HOUR_MS),
+            { result: c.interview.result },
+          );
+        }
       }
 
       if (c.offer) {
-        await manager.insert(Offer, {
+        const offer = await manager.insert(Offer, {
           applicationId,
           salary: c.offer.salary,
           startDate: isoDay(daysAhead(c.offer.startInDays)),
@@ -273,7 +409,24 @@ export async function seedDemo(
           note: 'Thử việc 2 tháng, lương thỏa thuận',
           createdById: person('recruiter'),
         });
+        const offerId = offer.identifiers[0].id as string;
         summary.offers++;
+        const offerStage = appliedAt.getTime() + 3 * DAY_MS;
+        await trail.record(
+          'OFFER_CREATED',
+          offerId,
+          actor('recruiter'),
+          notAfterNow(offerStage + HOUR_MS),
+        );
+        if (c.offer.status !== OfferStatus.PENDING) {
+          await trail.record(
+            'OFFER_RESPONSE_RECORDED',
+            offerId,
+            actor('recruiter'),
+            notAfterNow(offerStage + DAY_MS - 1000),
+            { response: c.offer.status },
+          );
+        }
       }
     }
 

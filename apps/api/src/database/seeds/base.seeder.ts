@@ -10,6 +10,7 @@ import { Department } from '../../modules/departments/entities/department.entity
 import { JobPosition } from '../../modules/positions/entities/job-position.entity';
 import { User } from '../../modules/users/entities/user.entity';
 import { DEPARTMENTS, POSITIONS, USERS } from './base-seed.data';
+import { beginSeedContext } from './seed-trail';
 
 export const DEFAULT_SEED_PASSWORD = 'Hiflow@2026';
 
@@ -50,6 +51,7 @@ export async function seedBase(
   const passwordHash = await bcrypt.hash(password, 10);
 
   return dataSource.transaction(async (manager) => {
+    await beginSeedContext(manager);
     const departments = await insertIgnoring(manager, Department, DEPARTMENTS);
     const positions = await insertIgnoring(manager, JobPosition, POSITIONS);
 

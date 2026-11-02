@@ -21,6 +21,9 @@ describe('Demo seed (e2e)', () => {
 
   const q = <T>(sql: string, params: unknown[] = []): Promise<T> =>
     ctx.dataSource.query(sql, params);
+  /** Direct writes go through the owner connection, like the seed itself. */
+  const w = (sql: string, params: unknown[] = []): Promise<unknown> =>
+    ctx.maintenance.query(sql, params);
   const count = async (sql: string, params: unknown[] = []) =>
     Number((await q<{ n: string }[]>(sql, params))[0].n);
 
@@ -29,16 +32,16 @@ describe('Demo seed (e2e)', () => {
 
   beforeAll(async () => {
     ctx = await createE2eApp();
-    await q(`DELETE FROM candidates WHERE email = $1`, [KEEP_EMAIL]);
+    await w(`DELETE FROM candidates WHERE email = $1`, [KEEP_EMAIL]);
   });
 
   afterAll(async () => {
-    await q(`DELETE FROM candidates WHERE email = $1`, [KEEP_EMAIL]);
+    await w(`DELETE FROM candidates WHERE email = $1`, [KEEP_EMAIL]);
     await ctx.app.close();
   });
 
   it('builds the pipeline described in the plan', async () => {
-    const summary = await seedDemo(ctx.dataSource, { reset: true });
+    const summary = await seedDemo(ctx.maintenance, { reset: true });
 
     expect(summary).toEqual({
       skipped: false,
@@ -215,7 +218,7 @@ describe('Demo seed (e2e)', () => {
       `SELECT COUNT(*) AS n FROM candidates c WHERE ${DEMO}`,
     );
 
-    const again = await seedDemo(ctx.dataSource);
+    const again = await seedDemo(ctx.maintenance);
 
     expect(again.skipped).toBe(true);
     expect(
@@ -224,12 +227,12 @@ describe('Demo seed (e2e)', () => {
   });
 
   it('rebuilds on reset without duplicating, and never touches data it did not create', async () => {
-    await q(
+    await w(
       `INSERT INTO candidates (full_name, email) VALUES ('Giữ lại', $1)`,
       [KEEP_EMAIL],
     );
 
-    const rebuilt = await seedDemo(ctx.dataSource, { reset: true });
+    const rebuilt = await seedDemo(ctx.maintenance, { reset: true });
 
     expect(rebuilt).toMatchObject({
       skipped: false,
@@ -249,6 +252,115 @@ describe('Demo seed (e2e)', () => {
         KEEP_EMAIL,
       ]),
     ).toBe(1);
+  });
+
+  describe('its audit trail', () => {
+    const seedEvents = () =>
+      q<{ event: string; entity_id: string; occurred_at: Date }[]>(
+        `SELECT event, entity_id, occurred_at FROM audit_events
+         WHERE origin = 'seed' ORDER BY occurred_at, id`,
+      );
+
+    it('leaves the events a real run would have, tagged seed and never dated in the future', async () => {
+      const events = await seedEvents();
+      const names = new Set(events.map((e) => e.event));
+
+      for (const expected of [
+        'REQUISITION_CREATED',
+        'REQUISITION_SUBMITTED',
+        'REQUISITION_APPROVED',
+        'REQUISITION_REJECTED',
+        'JOB_CREATED',
+        'JOB_PUBLISHED',
+        'CANDIDATE_CREATED',
+        'APPLICATION_CREATED',
+        'APPLICATION_STATUS_CHANGED',
+        'INTERVIEW_SCHEDULED',
+        'INTERVIEW_RESULT_RECORDED',
+        'OFFER_CREATED',
+        'OFFER_RESPONSE_RECORDED',
+      ]) {
+        expect(names).toContain(expected);
+      }
+      expect(events.every((e) => e.occurred_at.getTime() <= Date.now())).toBe(
+        true,
+      );
+    });
+
+    it('tells each requisition’s story in order, with the reason it was turned down', async () => {
+      const events = await seedEvents();
+      const storyOf = (id: string) =>
+        events.filter((e) => e.entity_id === id).map((e) => e.event);
+      const rows = await q<{ id: string; status: string }[]>(
+        `SELECT id, status FROM requisitions WHERE reason LIKE '[demo]%'`,
+      );
+
+      for (const row of rows) {
+        const story = storyOf(row.id);
+        expect(story[0]).toBe('REQUISITION_CREATED');
+        if (row.status === 'APPROVED') {
+          expect(story).toEqual([
+            'REQUISITION_CREATED',
+            'REQUISITION_SUBMITTED',
+            'REQUISITION_APPROVED',
+          ]);
+        }
+        if (row.status === 'REJECTED') {
+          expect(story.at(-1)).toBe('REQUISITION_REJECTED');
+        }
+      }
+
+      const admin = await loginAs(ctx.server, 'admin@hiflow.local');
+      const rejected = rows.find((r) => r.status === 'REJECTED')!;
+      const timeline = (
+        await request(ctx.server)
+          .get(`/requisitions/${rejected.id}/history`)
+          .set(bearer(admin))
+          .expect(200)
+      ).body as { event: string; note: string | null }[];
+      expect(timeline.map((e) => e.event)).toEqual([
+        'CREATED',
+        'SUBMITTED',
+        'REJECTED',
+      ]);
+      expect(timeline[2].note).toBe('Ngân sách quý này chưa được duyệt');
+    });
+
+    it('has one status change for every step an application took after its first', async () => {
+      const steps = await count(
+        `SELECT COUNT(*) AS n FROM application_status_histories
+         WHERE from_status IS NOT NULL AND application_id IN (${demoApps})`,
+      );
+      const recorded = await count(
+        `SELECT COUNT(*) AS n FROM audit_events
+         WHERE event = 'APPLICATION_STATUS_CHANGED' AND entity_id IN (${demoApps})`,
+      );
+
+      expect(recorded).toBe(steps);
+    });
+
+    it('is replaced, not doubled, by a reset, and leaves other origins and its own teardown alone', async () => {
+      const before = (await seedEvents()).length;
+      await w(
+        `INSERT INTO audit_events (event, entity_type, tx_id, origin)
+         VALUES ('E2E_SURVIVOR', 'User', uuid_generate_v4(), 'e2e')`,
+      );
+
+      await seedDemo(ctx.maintenance, { reset: true });
+
+      expect((await seedEvents()).length).toBe(before);
+      expect(
+        await count(
+          `SELECT COUNT(*) AS n FROM audit_events WHERE event = 'E2E_SURVIVOR'`,
+        ),
+      ).toBe(1);
+      // Tearing the old demo down is not itself something that happened.
+      expect(
+        await count(
+          `SELECT COUNT(*) AS n FROM audit_row_changes WHERE op = 'D' AND origin = 'seed'`,
+        ),
+      ).toBe(0);
+    });
   });
 
   it('gives the dashboard something to show on first launch', async () => {
