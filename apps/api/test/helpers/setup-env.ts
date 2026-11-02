@@ -4,3 +4,4 @@
 // values before it boots an app.
 process.env.THROTTLE_LIMIT_SCALE ??= '1000';
 process.env.THROTTLE_STORAGE ??= 'memory';
+process.env.AUDIT_ORIGIN ??= 'e2e';

@@ -57,11 +57,17 @@ export function validateEnv(
 
   assertOneOf('STORAGE_DRIVER', storage, ['local', 'supabase']);
   assertOneOf('MAIL_DRIVER', mail, ['outbox', 'resend']);
+  const auditOrigin = choiceOf(config.AUDIT_ORIGIN);
+  assertOneOf('AUDIT_ORIGIN', auditOrigin, ['app', 'e2e']);
   retentionMonths(choiceOf(config.CANDIDATE_RETENTION_MONTHS));
 
   // A container's disk does not survive a restart, so CVs kept on it would vanish.
   if (isProduction && storage !== 'supabase') {
     throw new Error('Production needs STORAGE_DRIVER=supabase');
+  }
+  // Rows tagged otherwise are wiped by the test clean-up, never in production.
+  if (isProduction && auditOrigin !== undefined && auditOrigin !== 'app') {
+    throw new Error('Production needs AUDIT_ORIGIN=app');
   }
   // The outbox never sends anything: candidates would never get their mail.
   if (isProduction && mail !== 'resend') {

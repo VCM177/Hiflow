@@ -57,6 +57,13 @@ Giữ nguyên, không đổi (đã đối chiếu với code): mã 202 của for
 
 **Cập nhật 2026-11-02:** việc nợ 1 đến 4 đã xong; thêm chính sách lưu và xóa dữ liệu ứng viên (`business-flow.md` mục 6b, lệnh `retention:run`). Còn lại: nhật ký kiểm toán v2 (A đến E đã được xác nhận theo mặc định), việc 5 ngoài repo, và web giai đoạn B.
 
+**Thiết lập bắt buộc từ bước 2 của nhật ký kiểm toán v2** (máy nào chạy API hoặc e2e cũng phải làm một lần):
+
+1. Tạo role hạn chế: `neon roles create --name hiflow_app` (hoặc `CREATE ROLE hiflow_app LOGIN PASSWORD '...'` trên Postgres thường) rồi đặt mật khẩu.
+2. Trong `apps/api/.env`: `DATABASE_URL` trỏ tới **hiflow_app** (API chạy bằng role này), thêm `DATABASE_OWNER_URL` trỏ tới role chủ sở hữu hiện tại (migration, seed, bảo trì e2e). Biến mẫu nằm ở `.env.example`.
+3. `npm run migration:run -w @hiflow/api` (migration dừng với thông báo rõ nếu role chưa tồn tại).
+4. API từ chối khởi động nếu role đang dùng có quyền UPDATE, DELETE hoặc TRUNCATE trên bảng audit; thông báo lỗi nói cách sửa.
+
 ## 5. Tài liệu và tài nguyên nằm ngoài repo
 
 Các thứ dưới đây nằm trên máy của người dùng hoặc trên claude.ai, không có trong git:

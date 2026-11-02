@@ -122,4 +122,14 @@ describe('validateEnv', () => {
       validateEnv({ ...BASE, CANDIDATE_RETENTION_MONTHS: '0' }),
     ).toThrow(/CANDIDATE_RETENTION_MONTHS/);
   });
+
+  it('only knows two audit origins, and production only the real one', () => {
+    expect(() => validateEnv({ ...BASE, AUDIT_ORIGIN: 'e2e' })).not.toThrow();
+    expect(() => validateEnv({ ...BASE, AUDIT_ORIGIN: 'seed' })).toThrow(
+      /AUDIT_ORIGIN/,
+    );
+    expect(() => validateEnv({ ...PRODUCTION, AUDIT_ORIGIN: 'e2e' })).toThrow(
+      'Production needs AUDIT_ORIGIN=app',
+    );
+  });
 });

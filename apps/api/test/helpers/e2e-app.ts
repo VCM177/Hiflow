@@ -7,10 +7,14 @@ import { DataSource } from 'typeorm';
 import { AppModule } from './../../src/app.module';
 import { configureApp } from './../../src/app.setup';
 import { seedBase, seedPassword } from './../../src/database/seeds/base.seeder';
+import { openMaintenance } from './maintenance';
 
 export interface E2eContext {
   app: INestApplication;
+  /** The API's own connection, as the restricted role. */
   dataSource: DataSource;
+  /** The owner role, for data a test builds or removes by hand. */
+  maintenance: DataSource;
   server: App;
 }
 
@@ -34,9 +38,17 @@ export async function createE2eApp(): Promise<E2eContext> {
   await app.init();
 
   const dataSource = app.get(DataSource);
-  await seedBase(dataSource, seedPassword());
+  const maintenance = await openMaintenance();
+  await seedBase(maintenance, seedPassword());
 
-  return { app, dataSource, server: app.getHttpServer() as App };
+  // Closing the app also closes the owner connection it was given.
+  const closeApp = app.close.bind(app);
+  app.close = async () => {
+    await closeApp();
+    await maintenance.destroy();
+  };
+
+  return { app, dataSource, maintenance, server: app.getHttpServer() as App };
 }
 
 /** Logs a seeded demo account in and returns its bearer token. */
