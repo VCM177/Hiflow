@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { AttemptLimiter } from '../../common/throttle/attempt-limiter';
 import { ApplicationWorkflowService } from '../applications/application-workflow.service';
+import type { TxRunner } from '../audit/tx-runner.service';
 import { Job } from '../jobs/entities/job.entity';
 import type { MailMessage } from '../mail/mail.service';
 import { StorageService } from '../storage/storage.service';
@@ -69,6 +70,21 @@ function build(options: { job?: unknown; createNew?: string | null } = {}) {
       return Promise.resolve(work(manager));
     }),
   };
+  const audit = { record: jest.fn().mockResolvedValue(undefined) };
+  /** Runs the work the way the real runner does: inside the data source's transaction. */
+  const tx = {
+    run: (_actor: unknown, work: (m: unknown, a: unknown) => unknown) =>
+      dataSource.transaction((m) => work(m, audit)),
+  };
+  const systemUser = {
+    id: () => Promise.resolve('system-1'),
+    actor: () =>
+      Promise.resolve({
+        id: 'system-1',
+        name: 'Ứng viên (Website)',
+        role: 'RECRUITER',
+      }),
+  };
   /** The messages handed to the mail service, typed. */
   const sentMail = () => mail.send.mock.calls as [MailMessage][];
 
@@ -76,11 +92,12 @@ function build(options: { job?: unknown; createNew?: string | null } = {}) {
     jobs as unknown as Repository<Job>,
     dataSource as unknown as DataSource,
     { createNew } as unknown as ApplicationWorkflowService,
-    { id: () => Promise.resolve('system-1') } as unknown as SystemUserService,
+    systemUser as unknown as SystemUserService,
     storage as unknown as StorageService,
     mail,
     turnstile as unknown as TurnstileService,
     limiter as unknown as AttemptLimiter,
+    tx as unknown as TxRunner,
   );
 
   return {
@@ -93,6 +110,7 @@ function build(options: { job?: unknown; createNew?: string | null } = {}) {
     createNew,
     dataSource,
     sentMail,
+    audit,
   };
 }
 
@@ -247,5 +265,21 @@ describe('PublicApplicationsService.submit', () => {
     await expect(service.submit('job-1', DTO, CV, 'ip')).resolves.toBe(
       APPLICATION_RECEIPT,
     );
+  });
+
+  it('records a new submission as the system account, with the job, and a repeat not at all', async () => {
+    const created = build({ createNew: 'app-1' });
+    await created.service.submit('job-1', DTO, CV, '203.0.113.1');
+
+    expect(created.audit.record).toHaveBeenCalledWith(
+      'APPLICATION_SUBMITTED_ONLINE',
+      'app-1',
+      { jobId: 'job-1' },
+    );
+
+    const repeat = build({ createNew: null });
+    await repeat.service.submit('job-1', DTO, CV, '203.0.113.1');
+
+    expect(repeat.audit.record).not.toHaveBeenCalled();
   });
 });

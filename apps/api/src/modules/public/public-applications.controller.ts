@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
+import { AuditEvent } from '../audit/audit.decorators';
 import { RateLimit } from '../../common/throttle/rate-limit.decorator';
 import { THROTTLE_POLICY } from '../../common/throttle/throttle.constants';
 import { CV_MAX_BYTES } from '../storage/cv-file.validator';
@@ -42,6 +43,8 @@ export class PublicApplicationsController {
 
   @Public()
   @RateLimit(THROTTLE_POLICY.PUBLIC_APPLY_IP)
+  // A repeat or an email already on file creates no application, so no event.
+  @AuditEvent('APPLICATION_SUBMITTED_ONLINE', { conditional: true })
   @Post(':id/applications')
   @HttpCode(202)
   @ApiConsumes('multipart/form-data')

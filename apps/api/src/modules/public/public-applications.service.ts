@@ -10,6 +10,7 @@ import { DataSource, Repository } from 'typeorm';
 import { AttemptLimiter } from '../../common/throttle/attempt-limiter';
 import { THROTTLE_POLICY } from '../../common/throttle/throttle.constants';
 import { ApplicationWorkflowService } from '../applications/application-workflow.service';
+import { TxRunner } from '../audit/tx-runner.service';
 import { Candidate } from '../candidates/entities/candidate.entity';
 import { Job } from '../jobs/entities/job.entity';
 import {
@@ -46,6 +47,7 @@ export class PublicApplicationsService {
     private readonly mail: MailService,
     private readonly turnstile: TurnstileService,
     private readonly limiter: AttemptLimiter,
+    private readonly tx: TxRunner,
   ) {}
 
   async submit(
@@ -100,12 +102,12 @@ export class PublicApplicationsService {
    * prove the email belongs to the sender, so it must never overwrite anything.
    * Returns false when this candidate had already applied to this job.
    */
-  private record(
+  private async record(
     jobId: string,
     dto: SubmitApplicationDto,
     cvFileKey: string,
   ): Promise<boolean> {
-    return this.dataSource.transaction(async (manager) => {
+    return this.tx.run(await this.system.actor(), async (manager, audit) => {
       // ON CONFLICT DO NOTHING keeps two simultaneous first submissions from the
       // same address from failing each other with a unique violation.
       await manager
@@ -133,6 +135,10 @@ export class PublicApplicationsService {
         createdById: await this.system.id(),
         historyNote: 'Ứng viên nộp hồ sơ qua website',
       });
+
+      if (id !== null) {
+        await audit.record('APPLICATION_SUBMITTED_ONLINE', id, { jobId });
+      }
 
       return id !== null;
     });
