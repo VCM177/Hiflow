@@ -113,4 +113,13 @@ describe('validateEnv', () => {
       );
     });
   });
+
+  it('accepts a valid retention period and refuses a bad one at boot', () => {
+    expect(() =>
+      validateEnv({ ...BASE, CANDIDATE_RETENTION_MONTHS: '6' }),
+    ).not.toThrow();
+    expect(() =>
+      validateEnv({ ...BASE, CANDIDATE_RETENTION_MONTHS: '0' }),
+    ).toThrow(/CANDIDATE_RETENTION_MONTHS/);
+  });
 });
