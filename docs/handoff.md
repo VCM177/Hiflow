@@ -20,7 +20,7 @@ Kiểm tra lúc bàn giao (2026-11-02): `npm run lint`, `npm run build`, `npm te
 
 1. ~~Chốt và làm nhật ký kiểm toán v2~~ **Xong** (2026-11-02): A đến E theo mặc định, cài đặt theo 7 bước của spec, mỗi bước một commit.
 2. ~~Sửa backend theo quyết định UX~~ **Xong**, trừ việc 5 ở mục 4 (sửa tệp ngoài repo).
-3. **Web giai đoạn B**, kế hoạch đề xuất ở `docs/web-plan.md` (chờ duyệt 8 câu ở mục 8 của nó; kế hoạch cũ đã mất, mục 5): B0 chuẩn bị, B1 token, B2 primitive, B3 lib, B4 phiên và khung, B5 component dùng chung, B6 backend nhỏ (đã xong bằng `GET /users/options`), B7 mười một module, B8 hoàn thiện. **Xong B5 mới được làm module.**
+3. **Web giai đoạn B**, kế hoạch đề xuất ở `docs/web-plan.md` (chi tiết nhiệm vụ: `docs/web-plan-detail.md`, hợp đồng API: `docs/web-api-contract.md`) (chờ duyệt 8 câu ở mục 8 của nó; kế hoạch cũ đã mất, mục 5): B0 chuẩn bị, B1 token, B2 primitive, B3 lib, B4 phiên và khung, B5 component dùng chung, B6 backend nhỏ (đã xong bằng `GET /users/options`), B7 mười một module, B8 hoàn thiện. **Xong B5 mới được làm module.**
 4. Bổ sung giai đoạn 3 và 5 của UX nếu báo cáo cần (mục 6).
 5. Đặt lịch chạy `npm run retention:run -w @hiflow/api` định kỳ (mã nguồn không tự lên lịch).
 

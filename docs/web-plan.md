@@ -1,6 +1,6 @@
 # Kế hoạch web giai đoạn B
 
-Viết ngày 2026-11-02, thay cho kế hoạch v2 đã mất (xem `docs/handoff.md` mục 5). Đây là **bản đề xuất chờ duyệt**: các mục "Cần bạn chốt" ở mục 8 chưa có câu trả lời, và theo `CLAUDE.md` không viết code web trước khi chúng được chốt. Mọi khẳng định về hiện trạng đã đối chiếu với repo ngày viết.
+Bản chi tiết từng nhiệm vụ nằm ở `docs/web-plan-detail.md`; hợp đồng API đầy đủ ở `docs/web-api-contract.md`. Viết ngày 2026-11-02, thay cho kế hoạch v2 đã mất (xem `docs/handoff.md` mục 5). Đây là **bản đề xuất chờ duyệt**: các mục "Cần bạn chốt" ở mục 8 chưa có câu trả lời, và theo `CLAUDE.md` không viết code web trước khi chúng được chốt. Mọi khẳng định về hiện trạng đã đối chiếu với repo ngày viết.
 
 ## 1. Đầu vào và hiện trạng
 
