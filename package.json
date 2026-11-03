@@ -22,7 +22,7 @@
     "prepare": "husky"
   },
   "overrides": {
-    "multer": "^2.3.0"
+    "multer": "^2.5.0"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,tsx,json,css,md,yml,yaml}": "prettier --write"
