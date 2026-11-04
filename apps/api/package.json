@@ -25,7 +25,8 @@
     "migration:show": "npm run typeorm -- migration:show",
     "seed:base": "ts-node src/database/seeds/seed-base.ts",
     "seed:demo": "ts-node src/database/seeds/seed-demo.ts",
-    "retention:run": "ts-node src/database/retention.ts"
+    "retention:run": "ts-node src/database/retention.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@hiflow/shared-types": "^0.1.0",

@@ -19,7 +19,8 @@
     "test:e2e": "npm run build:types && npm run test:e2e -w @hiflow/api",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typecheck": "npm run build:types && npm run typecheck -w @hiflow/api && npm run typecheck -w @hiflow/web"
   },
   "overrides": {
     "multer": "^2.5.0"
