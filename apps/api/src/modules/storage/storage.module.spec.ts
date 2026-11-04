@@ -7,6 +7,30 @@ import { SupabaseStorage } from './supabase.storage';
 const configOf = (values: Record<string, string>) => new ConfigService(values);
 
 describe('createStorage', () => {
+  // ConfigService falls back to process.env for keys it was not given, so a
+  // machine that has real Supabase keys would otherwise hide a missing setting.
+  const savedEnv: Record<string, string | undefined> = {};
+  const isolatedKeys = [
+    'STORAGE_DRIVER',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_BUCKET',
+  ];
+
+  beforeEach(() => {
+    for (const key of isolatedKeys) {
+      savedEnv[key] = process.env[key];
+      delete process.env[key];
+    }
+  });
+
+  afterEach(() => {
+    for (const key of isolatedKeys) {
+      if (savedEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = savedEnv[key];
+    }
+  });
+
   it('uses local disk by default, for development and tests', () => {
     expect(createStorage(configOf({}))).toBeInstanceOf(LocalDiskStorage);
     expect(createStorage(configOf({ STORAGE_DRIVER: 'local' }))).toBeInstanceOf(
