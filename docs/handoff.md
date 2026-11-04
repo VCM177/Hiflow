@@ -1,67 +1,129 @@
 # Bàn giao Hiflow
 
-Cập nhật 2026-11-02, nhánh `develop`. Tài liệu này chỉ ghi trạng thái và việc kế tiếp; quy tắc làm việc nằm ở `CLAUDE.md`, nghiệp vụ ở `docs/business-flow.md`.
+Cập nhật 2026-11-04, nhánh `develop` (đã push, cây làm việc sạch, commit `f4f608a`). Tài liệu này chỉ ghi trạng thái và việc kế tiếp; quy tắc làm việc nằm ở `CLAUDE.md`, nghiệp vụ ở `docs/business-flow.md`.
+
+## 0. Phiên sau làm gì đầu tiên
+
+1. **Đóng Cổng A** bằng cách chạy hai spec dịch vụ thật ở cloud (mục 2). Cần người dùng tạo môi trường cloud có biến môi trường trước.
+2. **Web giai đoạn B**: người dùng trả lời 8 câu ở `docs/web-plan.md` mục 8, rồi làm phiên 1 (B0 và B6) theo `docs/web-plan-detail.md`. Phiên 1 không phụ thuộc khóa dịch vụ nên có thể làm song song với việc 1 hoặc khi chờ.
+3. Việc ngoài repo còn lại: sửa mục 1.1.2.1 trong danh sách chức năng, đặt lịch `retention:run` (mục 4).
+
+Credit cloud của người dùng hết hạn **2026-11-05**: ưu tiên việc cần cloud trước hạn đó.
 
 ## 1. Đang ở đâu
 
-| Hạng mục                               | Trạng thái                                            | Bằng chứng                                                              |
-| -------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- |
-| Backend (NestJS)                       | Xong, Cổng A đã đóng ngày 2026-09-24                  | `docs/gate-a-audit.md`: 19 PASS, 309 unit và 556 e2e xanh               |
-| Cổng công khai (tin và form nộp hồ sơ) | Xong ở backend                                        | `modules/public`, `business-flow.md` mục 6                              |
-| Web (`apps/web`)                       | **Mới là scaffold của Next**, chưa có code giao diện  | `apps/web/src/app` chỉ có `layout.tsx`, `page.tsx`, `globals.css`       |
-| UX giai đoạn 1 và 2                    | Viết xong                                             | `docs/ux/01-discovery.md`, `docs/ux/02-define.md`                       |
-| UX giai đoạn 4 (prototype)             | Có, bấm được                                          | Artifact wireframe (mục 5)                                              |
-| UX giai đoạn 3 và 5                    | Chưa làm                                              | Không có người dùng thật để kiểm thử                                    |
-| Nhật ký kiểm toán v2                   | **Đã cài đặt** (2026-11-02), thay hẳn `activity_logs` | `docs/audit-trail-spec.md`, `modules/audit`, `test/audit-*.e2e-spec.ts` |
+| Hạng mục                               | Trạng thái                                                                                                      | Bằng chứng                                                                |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Backend (NestJS)                       | Hoàn tất về chức năng và kiểm thử cục bộ; **Cổng A chưa đóng**: 17 PASS, 0 FAIL, **2 SKIPPED** (mục 1.1 và 1.3) | `docs/gate-a-audit.md` (2026-11-03): 344 unit, 638 e2e pass, 5 bỏ qua     |
+| Cổng công khai (tin và form nộp hồ sơ) | Xong ở backend                                                                                                  | `modules/public`, `business-flow.md` mục 6                                |
+| Nhật ký kiểm toán v2                   | Đã cài đặt (2026-11-02), thay hẳn `activity_logs`                                                               | `docs/audit-trail-spec.md`, `modules/audit`, `test/audit-*.e2e-spec.ts`   |
+| Phụ thuộc                              | Đã vá lỗ hổng mức cao của API (2026-11-03); phần còn lại cần bản major và không tới được từ phía khách          | `CLAUDE.md` mục Known gaps, `npm audit --omit=dev`                        |
+| Web (`apps/web`)                       | **Mới là scaffold của Next 16**, chưa có code giao diện. Đã có kế hoạch chi tiết, chờ duyệt                     | `docs/web-plan.md`, `docs/web-plan-detail.md`, `docs/web-api-contract.md` |
+| UX giai đoạn 1, 2, 4                   | Có (giai đoạn 4 là prototype bấm được)                                                                          | `docs/ux/*`, artifact ở mục 5                                             |
+| UX giai đoạn 3 và 5                    | Chưa làm (không có người dùng thật)                                                                             |                                                                           |
 
-Kiểm tra lúc bàn giao (2026-11-02): `npm run lint`, `npm run build`, `npm test` (41 suite, 344 test) và toàn bộ `npm run test:e2e` (638 test pass, 5 bỏ qua là Supabase và Redis thật) đều exit 0, chạy trên Postgres 16 cục bộ với role `hiflow_app`; hai suite captcha cần `NODE_USE_ENV_PROXY=1` trong môi trường sandbox. Chưa chạy lại trên Neon.
+Mọi kết quả kiểm thử trên là **Postgres 16 cục bộ trong container cloud** với role giới hạn `hiflow_app`. **Chưa chạy trên Neon thật** (cần thiết lập ở mục 4).
 
-## 2. Việc kế tiếp, theo thứ tự
+## 2. Đóng Cổng A: chạy hai spec dịch vụ thật ở cloud
 
-1. ~~Chốt và làm nhật ký kiểm toán v2~~ **Xong** (2026-11-02): A đến E theo mặc định, cài đặt theo 7 bước của spec, mỗi bước một commit.
-2. ~~Sửa backend theo quyết định UX~~ **Xong**, trừ việc 5 ở mục 4 (sửa tệp ngoài repo).
-3. **Web giai đoạn B**, kế hoạch đề xuất ở `docs/web-plan.md` (chi tiết nhiệm vụ: `docs/web-plan-detail.md`, hợp đồng API: `docs/web-api-contract.md`) (chờ duyệt 8 câu ở mục 8 của nó; kế hoạch cũ đã mất, mục 5): B0 chuẩn bị, B1 token, B2 primitive, B3 lib, B4 phiên và khung, B5 component dùng chung, B6 backend nhỏ (đã xong bằng `GET /users/options`), B7 mười một module, B8 hoàn thiện. **Xong B5 mới được làm module.**
-4. Bổ sung giai đoạn 3 và 5 của UX nếu báo cáo cần (mục 6).
-5. Đặt lịch chạy `npm run retention:run -w @hiflow/api` định kỳ (mã nguồn không tự lên lịch).
+Mục 1.1 (Supabase) và 1.3 (Redis) của cổng đang SKIPPED vì container không có khóa. Cả hai từng xanh ngày 2026-09-24 trên máy người dùng; cần chạy lại sau các thay đổi từ đó.
 
-## 3. Chờ người dùng xác nhận
+### 2.1 Người dùng chuẩn bị (tôi không làm được)
 
-**Nhật ký kiểm toán v2:** A đến E đã được xác nhận theo mặc định ngày 2026-11-02 (lưu giá trị thật và chỉ Admin đọc, IP và user-agent giữ 12 tháng, form công khai có sự kiện, không lưu email đăng nhập sai). Ghi nhận ở `business-flow.md` mục 7.
+Trong cài đặt môi trường cloud (https://claude.ai/code, ô chọn môi trường ở màn hình phiên mới, rê chuột lên môi trường rồi bấm biểu tượng cài đặt, hoặc **New environment**):
 
-**Quyết định thiết kế UX A đến K** (`docs/ux/02-define.md` mục 4, `business-flow.md` mục 7 điểm 10 đến 19): do người thực hiện tự chốt ngày 2026-10-02 theo ủy quyền của người dùng. Điểm 11, 13, 18 và 20 đã cài; điểm 11 được xác nhận ngày 2026-11-02. Các điểm còn lại **chưa ai xác nhận lại**: trong báo cáo cần ghi rõ như vậy.
+1. **Name:** bắt buộc có, nếu không nút lưu bị xám (ví dụ `hiflow-test`).
+2. **Environment variables** (định dạng `.env`, mỗi dòng `TÊN=giá_trị`, khóa một dòng thì **không bọc dấu nháy**):
+   ```
+   SUPABASE_URL=https://<mã-project>.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=<khóa service_role>
+   REDIS_URL=rediss://default:<mật khẩu>@<host>.upstash.io:6379
+   ```
+   `SUPABASE_BUCKET` tùy chọn (mặc định đọc từ code); bucket phải **tồn tại và là riêng tư**.
+3. **Network access:** đổi sang **Custom**, thêm hai host (Supabase và Upstash) vào **Allowed domains**, giữ ô "Also include default list of common package managers". Hoặc chọn **Full** để thử nhanh.
+4. **Không dùng "Network secrets":** cơ chế đó chỉ chèn header HTTP ở proxy, **không** tạo biến `process.env`, nên spec không thấy khóa.
+5. Mở **phiên mới** chọn môi trường đó. Phiên đang chạy chỉ đọc biến mới sau khi máy ảo được khôi phục.
 
-**Quyền dùng lại giao diện cũ.** Kế hoạch giai đoạn B yêu cầu người dùng xác nhận quyền dùng lại mã nguồn bộ admin cũ trước B0. Quy tắc Isolation trong `CLAUDE.md` đã được sửa cho phép port, nhưng việc xác nhận bản quyền chưa được ghi lại ở đâu.
+Cảnh báo cho người dùng: biến môi trường hiển thị với **mọi người dùng chung môi trường**, và `service_role` có toàn quyền trên project. Chỉ dùng project Supabase và instance Upstash **tạo riêng để thử, không có dữ liệu thật**, và xoay hoặc xóa khóa sau khi chạy xong. Không bao giờ nhờ người dùng dán khóa vào chat.
 
-## 4. Việc backend còn nợ
+### 2.2 Phiên sau làm
 
-Chỉ còn một việc ngoài repo: sửa mục 1.1.2.1 trong danh sách chức năng (`D:\Hiflow\docs\danh-sach-chuc-nang.txt`) thành "chuyển tới trang đích theo vai trò". Các việc backend khác của quyết định UX (quyền phỏng vấn của Trưởng bộ phận và HR, việc cần xử lý của Trưởng bộ phận, CV rơi về ứng viên, người dùng để chọn) đã xong.
+1. **Kiểm tra biến đã tới phiên, không in giá trị:**
+   ```
+   for v in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY REDIS_URL; do [ -n "${!v}" ] && echo "$v: có" || echo "$v: KHÔNG có"; done
+   ```
+   Nếu thiếu thì dừng và nói người dùng kiểm tra mục 2.1 (đặc biệt là có mở phiên mới chưa, và tên môi trường).
+2. **Dựng lại Postgres cục bộ** (máy ảo mới không còn gì từ phiên trước):
+   ```
+   pg_ctlcluster 16 main start
+   su postgres -c "psql -c \"CREATE ROLE hiflow LOGIN PASSWORD 'hiflow_local' SUPERUSER\" -c 'CREATE DATABASE hiflow_local OWNER hiflow'"
+   psql postgresql://hiflow:hiflow_local@127.0.0.1:5432/hiflow_local -c "CREATE ROLE hiflow_app LOGIN PASSWORD 'hiflow_app_local' NOSUPERUSER NOCREATEDB NOCREATEROLE"
+   ```
+3. **Tạo `apps/api/.env` bằng công cụ Write**, không bằng `cat` hay `echo` (hook `guard.mjs` chặn mọi lệnh có vẻ in tệp `.env`). Nội dung chỉ cần 3 dòng, vì biến của môi trường cloud đã có sẵn trong tiến trình và `dotenv` không ghi đè:
+   ```
+   DATABASE_URL=postgresql://hiflow_app:hiflow_app_local@127.0.0.1:5432/hiflow_local
+   DATABASE_OWNER_URL=postgresql://hiflow:hiflow_local@127.0.0.1:5432/hiflow_local
+   JWT_SECRET=local-test-secret-not-for-production
+   ```
+4. `npm ci` (nếu cần), rồi `npm run migration:run -w @hiflow/api` và `npm run seed:base -w @hiflow/api` (10 migration).
+5. Chạy hai spec và đọc **exit code thật** (suite phải **chạy**, không bỏ qua):
+   ```
+   npm run test:e2e -w @hiflow/api -- supabase-storage --verbose
+   npm run test:e2e -w @hiflow/api -- throttle-redis --verbose
+   ```
+   Kỳ vọng của Supabase: tải lên, tải qua Signed URL (đúng nội dung), địa chỉ công khai của cùng đối tượng bị từ chối, xóa rồi tải trả 404. Kỳ vọng của Redis: hai kết nối dùng chung một bộ đếm (lần thứ 3 bị chặn với giới hạn 2), và ứng dụng chọn kho Redis khi có `REDIS_URL`.
+6. **Redis có thể không chạy được ở cloud.** Tài liệu của môi trường mô tả mọi lưu lượng đi qua proxy HTTP/HTTPS với danh sách cho phép theo tên host, và không nói gì về cổng TCP 6379 hay 6380. Nếu kết nối Redis bị chặn: ghi đúng thông báo lỗi, **không** đánh PASS, và nhờ người dùng chạy riêng spec Redis trên máy của họ.
+7. Nếu cả hai xanh: cập nhật mục 1.1 và 1.3 trong `docs/gate-a-audit.md` bằng kết quả thật (lệnh, exit code, số test), đổi kết luận thành **CỔNG ĐÃ ĐÓNG** (19 PASS), sửa lại đoạn "Current state" trong `CLAUDE.md`, rồi commit và push. Nếu chỉ một xanh: ghi mục còn lại là SKIPPED kèm lý do.
+8. Nhắc người dùng xoay hoặc xóa khóa thử.
 
-Giữ nguyên, không đổi (đã đối chiếu với code): mã 202 của form công khai (CV được kiểm tra và lưu trước khi trả lời) và 404 cho tin đã đóng.
+## 3. Web giai đoạn B
 
-**Thiết lập bắt buộc từ bước 2 của nhật ký kiểm toán v2** (máy nào chạy API hoặc e2e cũng phải làm một lần):
+Kế hoạch đầy đủ: `docs/web-plan.md` (kiến trúc, mốc B0 đến B8, Cổng B, rủi ro), `docs/web-plan-detail.md` (từng nhiệm vụ, quy ước chung, 12 module, 14 kịch bản Playwright, lịch 11 phiên) và `docs/web-api-contract.md` (79 thao tác API, quyền theo vai trò, trường form; ảnh chụp 2026-11-03, sẽ được thay bằng kiểu dùng chung ở B6).
 
-1. Tạo role hạn chế: `neon roles create --name hiflow_app` (hoặc `CREATE ROLE hiflow_app LOGIN PASSWORD '...'` trên Postgres thường) rồi đặt mật khẩu.
-2. Trong `apps/api/.env`: `DATABASE_URL` trỏ tới **hiflow_app** (API chạy bằng role này), thêm `DATABASE_OWNER_URL` trỏ tới role chủ sở hữu hiện tại (migration, seed, bảo trì e2e). Biến mẫu nằm ở `.env.example`.
-3. `npm run migration:run -w @hiflow/api` (migration dừng với thông báo rõ nếu role chưa tồn tại).
-4. API từ chối khởi động nếu role đang dùng có quyền UPDATE, DELETE hoặc TRUNCATE trên bảng audit; thông báo lỗi nói cách sửa.
+**Việc cần người dùng:** trả lời 8 câu ở `web-plan.md` mục 8, hoặc nói "theo đề xuất". Kế hoạch chi tiết đã dùng đề xuất làm giả định (`G1` đến `G8`). Câu quan trọng nhất là G1: B1 đến B5 port từ bộ admin cũ **trên máy người dùng**, hay viết mới từ Radix + Tailwind ngay ở cloud. Bộ cũ không có trong cloud và không được đưa vào repo (quy tắc cách ly).
+
+**Phiên 1 (không phụ thuộc G1, làm được ở cloud):**
+
+- B0: `transpilePackages` cho `@hiflow/shared-types`, `strict` và script `typecheck`, Vitest + Testing Library, Playwright, biến môi trường phía máy chủ (`API_ORIGIN`, `PROXY_SECRET`), README web.
+- B6: chuyển 9 giao diện `*-view.ts` và các bản đồ `*_LABEL` vào `packages/shared-types`, thêm `Jsonified<T>`, API dùng lại, test kiểu.
+
+Trước khi viết bất cứ gì dùng API của Next 16, đọc `node_modules/next/dist/docs/` (`apps/web/AGENTS.md`): ví dụ `middleware` đã đổi thành `proxy.ts`.
+
+**Hai điểm dễ sai đã được ghi trong kế hoạch:** (1) API tính giới hạn tốc độ theo IP, nên Route Handler và các lời gọi lúc dựng trang phải chuyển `X-Forwarded-For` của khách, nếu không mọi khách dùng chung một ngưỡng; (2) sitemap UX còn ghi `/activity-log`, cần đổi thành `/audit-events`, và HR cùng Trưởng bộ phận nay có mục Lịch phỏng vấn.
+
+## 4. Việc còn nợ ngoài web
+
+- **Chạy e2e trên Neon thật** (cloud không có Neon). Thiết lập một lần, máy nào chạy API hoặc e2e cũng phải làm:
+  1. Tạo role hạn chế: `neon roles create --name hiflow_app` rồi đặt mật khẩu.
+  2. Trong `apps/api/.env`: `DATABASE_URL` trỏ tới **hiflow_app** (API chạy bằng role này), thêm `DATABASE_OWNER_URL` trỏ tới role chủ sở hữu hiện tại (migration, seed, bảo trì e2e). Biến mẫu nằm ở `.env.example`.
+  3. `npm run migration:run -w @hiflow/api`.
+  4. API từ chối khởi động nếu role đang dùng có quyền UPDATE, DELETE hoặc TRUNCATE trên bảng audit; thông báo lỗi nói cách sửa.
+- **Đặt lịch** `npm run retention:run -w @hiflow/api` định kỳ (mã nguồn không tự lên lịch). Lệnh ẩn danh hồ sơ ứng viên quá `CANDIDATE_RETENTION_MONTHS` (12), xóa bản sao giá trị thật của ứng viên đã ẩn danh trong nhật ký, và xóa IP cũ hơn `AUDIT_IP_RETENTION_MONTHS` (12). Có `-- --dry-run`.
+- **Sửa tệp ngoài repo:** mục 1.1.2.1 trong `D:\Hiflow\docs\danh-sach-chuc-nang.txt` thành "chuyển tới trang đích theo vai trò".
+- **Quyền dùng lại bộ admin cũ** chưa được ghi lại ở đâu; cần người dùng xác nhận trước B1.
+- **Quyết định UX 10 đến 19** do người thực hiện tự chốt ngày 2026-10-02 theo ủy quyền; điểm 11, 13, 18, 20 đã cài, điểm 11 được xác nhận 2026-11-02, phần còn lại **chưa ai xác nhận lại** (báo cáo cần ghi rõ như vậy).
+- **Khoảng trống backend đã biết** (chi tiết ở `CLAUDE.md` mục Known gaps): văn bản nhân viên viết tay (ghi chú lịch sử trạng thái, nhận xét phỏng vấn, ghi chú offer) chưa được ẩn danh; chưa có danh sách phòng ban công khai; Swagger chưa mô tả phản hồi thành công; chỉ có email xác nhận cho ứng viên và Resend chưa từng gửi thật; `CacheService` dùng bộ nhớ trong; con số 12 tháng là chính sách của dự án, chưa đối chiếu nguyên văn Nghị định 356/2025.
 
 ## 5. Tài liệu và tài nguyên nằm ngoài repo
 
 Các thứ dưới đây nằm trên máy của người dùng hoặc trên claude.ai, không có trong git:
 
-- Kế hoạch giai đoạn B v2 (danh sách file port, mốc B0 đến B8, Definition of Done, checklist Cổng B): **file plan trên máy đã mất** — đường dẫn ghi trước đây không còn tồn tại (có thể do lỗi mã hóa tên file), và hai file plan còn lại trong thư mục đó thuộc dự án khác, không được chép vào đây theo quy tắc Isolation. Cần hỏi lại người dùng để lập lại kế hoạch này trước khi bắt đầu B0. Phạm vi port (ui/layout/shared, lib, hooks, providers; viết mới `features/*`) đã ghi ở `CLAUDE.md` mục "Isolation" và "Next" nên không mất hoàn toàn.
+- Kế hoạch giai đoạn B v2 cũ đã **mất** (đường dẫn không còn tồn tại; hai file plan còn lại ở thư mục đó thuộc dự án khác, không được chép vào đây). Đã thay bằng `docs/web-plan.md` và `docs/web-plan-detail.md`.
 - Prototype giao diện (bản 2, sáng và tối, 5 vai trò, 4 trạng thái bảng): https://claude.ai/artifact/G8sqf8DyGAkdWV1VQ6bk5k
 - Danh sách chức năng gốc (12 nhóm): `D:\Hiflow\docs\danh-sach-chuc-nang.txt`.
-- Công cụ quét rò rỉ: `D:\Hiflow\tools\leak-scan.sh`, chạy trong pre-commit.
+- Công cụ quét rò rỉ: `D:\Hiflow\tools\leak-scan.sh`, chạy trong pre-commit. **Không có trong cloud**, nên ở cloud pre-commit bỏ qua bước này: tự kiểm tra không đưa tên, miền hay dữ liệu của dự án khác vào repo.
 - Bộ admin cũ để port, chỉ đọc: đường dẫn nằm trong `.claude/settings.local.json` (không commit). Không ghi tên hay đường dẫn của nó vào repo.
 
-## 6. Quy tắc dễ vấp
+## 6. Quy tắc dễ vấp (đã gặp thật)
 
-- **Quét rò rỉ** chặn mọi file chứa một số chuỗi, kể cả URL nguồn tham khảo. Đã gặp: đuôi miền quốc gia Việt Nam, một từ viết tắt về hệ thống nhân sự cũ, và tên role mặc định của Neon. Tài liệu UX vì vậy ghi nguồn tiếng Việt bằng tên trang và ngày truy cập. Sửa nội dung bị chặn, **không** dùng `--no-verify`.
-- **Hook `guard.mjs`:** một lệnh commit chỉ được một `-m` (header). Không tách nhiều `git commit` trong một lệnh. Push thường (không force, không đụng `main` hoặc `master`) đã được phê duyệt; merge hay push vào `main` cần người dùng xác nhận từng lần.
-- **Không chạy hai bộ e2e cùng lúc:** chúng tranh khung giờ phỏng vấn và lỗi 409. `npm run test:e2e` mất khoảng 15 phút, chạy nền.
-- **Không in `apps/api/.env`.** Mọi biến được mô tả ở `.env.example`.
-- **Nhật ký thay đổi lớn đang chờ:** nếu làm nhật ký kiểm toán v2, bước cuối phải sửa `CLAUDE.md` (bỏ quy tắc đặt tên `:id`, thêm quy tắc audit) và `/tl-review` mục A-07.
+- **Hook `guard.mjs`:** một lệnh `git commit` mỗi lệnh Bash, chỉ một `-m` (header). Khi hook chặn thì **cả lệnh bị hủy**, kể cả phần sửa tệp đi kèm trong cùng lệnh: tách ra và kiểm tra lại tệp đã được sửa chưa. Không nối các bước kiểm tra bằng `;` trước khi commit: dùng `&&` để lint lỗi thì dừng. Push thường (không force, không đụng `main` hoặc `master`) đã được phê duyệt; merge hay push vào `main` cần người dùng xác nhận từng lần.
+- **Không in `apps/api/.env`.** Tạo tệp bằng công cụ Write. Mọi biến được mô tả ở `.env.example`.
+- **Heredoc không có dấu nháy** (`<<EOF`) để shell chạy mọi đoạn trong dấu backtick của nội dung. Dùng `<<'EOF'`, hoặc ghi tệp bằng công cụ Write.
+- **Postgres cục bộ tắt giữa các lượt** (container khởi động lại). Chạy `pg_ctlcluster 16 main start` trước mỗi lượt e2e. Chạy khi DB tắt sẽ hỏng, và có thể để sót dữ liệu `E2E-`.
+- **Không chạy hai bộ e2e cùng lúc:** chúng tranh khung giờ phỏng vấn và lỗi 409. Dữ liệu `E2E-` sót từ lượt hỏng cũng gây 409 ở các suite chạy sớm; kiểm tra và dọn bằng role owner.
+- **e2e ở cloud:** hai suite captcha cần `NODE_USE_ENV_PROXY=1` (Node 22 không tự đi qua proxy của sandbox; dự án chuẩn là Node 20). Chạy nền, ghi log ra tệp kèm dòng `EXIT=` và chờ bằng cách đọc tệp đó. **Không** chờ bằng `pgrep -f "jest --config"`: lệnh chờ tự khớp chính nó.
+- **Test ghi dữ liệu trực tiếp** dùng `ctx.maintenance` (owner, capture tắt), không bao giờ `ctx.dataSource` (role giới hạn bị chặn `HF001`). Test ẩn danh phải dọn theo id và tiêu đề tin, không theo tiền tố email `e2e-`.
+- **Báo cáo trung thực:** test bỏ qua là bỏ qua, không phải pass; không thay thế bằng dữ liệu giả; ghi exit code thật.
 - Nói chuyện với người dùng bằng tiếng Việt; mã, comment và commit bằng tiếng Anh, commit chỉ có header.
 
 ## 7. Giới hạn đã biết của phần UX
