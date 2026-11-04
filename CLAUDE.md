@@ -10,10 +10,12 @@ Recruitment management system built for a school report. Monorepo: `apps/api` (N
 npm run dev                 # api :4000 + web :3000
 npm run format              # prettier (a pre-commit hook also runs it)
 npm run lint
+npm run typecheck           # api and web
 npm run build               # types + api + web
-npm test                    # unit tests (fast)
+npm test                    # unit tests, api (Jest) and web (Vitest) (fast)
 npm run test:e2e            # real database, run it in the BACKGROUND (about 2 minutes on a local Postgres, longer on Neon)
 npm run test:e2e -w @hiflow/api -- <name>     # one e2e file, e.g. lifecycle
+npm run test:e2e -w @hiflow/web        # Playwright against the real API; see apps/web/README.md
 
 npm run migration:run -w @hiflow/api
 npm run seed:base -w @hiflow/api              # departments, positions, 5 demo accounts

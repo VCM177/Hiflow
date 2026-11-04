@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hiflow web (`@hiflow/web`)
 
-## Getting Started
+Giao diện quản trị và cổng tuyển dụng công khai của Hiflow, viết bằng Next.js 16 (App Router), React 19 và Tailwind 4. Kế hoạch: `docs/web-plan.md` và `docs/web-plan-detail.md`. Hợp đồng API: `docs/web-api-contract.md`. Quy tắc làm việc: `CLAUDE.md` ở gốc repo.
 
-First, run the development server:
+Next 16 khác bản bạn quen. Trước khi dùng một API của Next, đọc trang tương ứng trong `node_modules/next/dist/docs/` (xem `AGENTS.md`).
+
+## Chạy
+
+Từ gốc repo:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev          # API :4000 và web :3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Chỉ web: `npm run dev -w @hiflow/web`. Web cần API chạy ở `API_ORIGIN`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Biến môi trường
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Sao `.env.example` thành `.env.local` khi cần đổi giá trị. Không có biến nào có tiền tố `NEXT_PUBLIC_` chứa bí mật.
 
-## Learn More
+| Biến                             | Phía      | Ý nghĩa                                                                                      |
+| -------------------------------- | --------- | -------------------------------------------------------------------------------------------- |
+| `API_ORIGIN`                     | máy chủ   | Địa chỉ gốc của API. Trình duyệt không gọi thẳng API, chỉ gọi `/api/*` của web.              |
+| `PROXY_SECRET`                   | máy chủ   | Cùng giá trị với `PROXY_SECRET` của API; route chuyển tiếp thêm vào `x-hiflow-proxy-secret`. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | công khai | Khóa site của Cloudflare Turnstile (không phải khóa bí mật).                                 |
 
-To learn more about Next.js, take a look at the following resources:
+## Kiểm tra chất lượng
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Mỗi commit chạy, từ gốc repo:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run format
+npm run lint
+npm run typecheck    # API và web
+npm test             # unit của API và web (Vitest + Testing Library)
+npm run build
+```
 
-## Deploy on Vercel
+### Kiểm thử trình duyệt (Playwright)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Cần API và Postgres cục bộ đang chạy (xem `CLAUDE.md`, mục Commands). Playwright tự khởi động web ở cổng 3100 và chuyển `/api` tới `E2E_API_URL` (mặc định `http://localhost:4000`):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run test:e2e -w @hiflow/web
+```
+
+Ở môi trường cloud, Chromium đã có sẵn: không chạy `playwright install`, và đặt `NODE_USE_ENV_PROXY=1` nếu cần ra ngoài qua proxy.
+
+## Quy ước
+
+- Kiểu, nhãn trạng thái và quyền lấy từ `@hiflow/shared-types`; không khai báo lại enum ở web.
+- Tầng giao diện dùng chung (`components/ui`, `components/layout`, `components/shared`, `lib`, `hooks`, `providers`) chỉ được port theo `docs/port-manifest.md`.
+- Phụ thuộc npm được thêm trong cùng commit với nơi dùng đầu tiên.
