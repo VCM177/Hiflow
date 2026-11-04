@@ -4,7 +4,7 @@ Viết ngày 2026-11-03. Phần mở rộng của `docs/web-plan.md` (tổng qua
 
 ## 0. Giả định
 
-8 câu ở `web-plan.md` mục 8 chưa được trả lời. Kế hoạch dưới đây **dùng đề xuất của tôi làm giả định**, ký hiệu `[G1]` đến `[G8]` ở chỗ nó ảnh hưởng. Nếu bạn đổi câu nào, chỉ các nhiệm vụ mang ký hiệu đó phải viết lại.
+8 câu ở `web-plan.md` mục 8 đã được chốt ngày 2026-11-04 theo đề xuất. Kế hoạch dưới đây dùng các đề xuất đó, ký hiệu `[G1]` đến `[G8]` ở chỗ nó ảnh hưởng. Nếu bạn đổi câu nào, chỉ các nhiệm vụ mang ký hiệu đó phải viết lại.
 
 | Ký hiệu | Giả định                                                                                                                        |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------- |

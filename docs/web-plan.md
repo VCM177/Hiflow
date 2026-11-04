@@ -1,6 +1,6 @@
 # Kế hoạch web giai đoạn B
 
-Bản chi tiết từng nhiệm vụ nằm ở `docs/web-plan-detail.md`; hợp đồng API đầy đủ ở `docs/web-api-contract.md`. Viết ngày 2026-11-02, thay cho kế hoạch v2 đã mất (xem `docs/handoff.md` mục 5). Đây là **bản đề xuất chờ duyệt**: các mục "Cần bạn chốt" ở mục 8 chưa có câu trả lời, và theo `CLAUDE.md` không viết code web trước khi chúng được chốt. Mọi khẳng định về hiện trạng đã đối chiếu với repo ngày viết.
+Bản chi tiết từng nhiệm vụ nằm ở `docs/web-plan-detail.md`; hợp đồng API đầy đủ ở `docs/web-api-contract.md`. Viết ngày 2026-11-02, thay cho kế hoạch v2 đã mất (xem `docs/handoff.md` mục 5). Các câu ở mục 8 đã được chốt ngày 2026-11-04 (theo đề xuất), nên việc viết code web được phép bắt đầu. Mọi khẳng định về hiện trạng đã đối chiếu với repo ngày viết.
 
 ## 1. Đầu vào và hiện trạng
 
@@ -122,9 +122,9 @@ Kiểm định bằng `/gate-audit` mở rộng, ghi vào `docs/gate-b-audit.md`
 - Khả năng truy cập AA (kiểm bằng công cụ và bằng tay cho luồng chính), không còn cảnh báo lint, `npm run build` sạch.
 - Không có chuỗi quyền, trạng thái hay màu viết cứng; không còn bản sao kiểu của API.
 
-## 8. Cần bạn chốt
+## 8. Đã chốt
 
-Mỗi câu có đề xuất của tôi. Trả lời kiểu "theo đề xuất" là đủ.
+Ngày 2026-11-04 chủ dự án trả lời "theo đề xuất" cho cả 8 câu: cột Đề xuất dưới đây là quyết định đã chốt. Với câu 1, hướng là port ở máy chủ dự án (B1 đến B3 phần port, và B5), phần còn lại làm ở cloud.
 
 | #   | Câu hỏi                                                                                                                         | Đề xuất                                                                                                                                                              | Hệ quả nếu khác                                                                                             |
 | --- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
