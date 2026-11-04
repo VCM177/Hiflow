@@ -1,4 +1,5 @@
 import {
+  APPLICATION_STATUS_LABEL,
   ApplicationStatus,
   type DashboardOverview,
   hasPermission,
@@ -10,7 +11,6 @@ import { CacheService } from '../../common/cache/cache.service';
 import { Period, resolvePeriod } from '../../common/period';
 import { departmentScope } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
-import { APPLICATION_STATUS_LABEL } from '../applications/applications.constants';
 import { OWN_INTERVIEWS_ONLY } from '../interviews/interviews.constants';
 import { DashboardQueryDto } from './dashboard.dto';
 

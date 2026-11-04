@@ -1,6 +1,7 @@
 import {
   canTransition,
   JobStatus,
+  REQUISITION_STATUS_LABEL,
   REQUISITION_TRANSITIONS,
   RequisitionStatus,
   UserRole,
@@ -31,10 +32,7 @@ import { Department } from '../departments/entities/department.entity';
 import { Job } from '../jobs/entities/job.entity';
 import { JobPosition } from '../positions/entities/job-position.entity';
 import { Requisition } from './entities/requisition.entity';
-import {
-  REQUISITION_CODE_SEQUENCE,
-  REQUISITION_STATUS_LABEL,
-} from './requisitions.constants';
+import { REQUISITION_CODE_SEQUENCE } from './requisitions.constants';
 import {
   CreateRequisitionDto,
   ListRequisitionsQueryDto,

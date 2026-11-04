@@ -1,4 +1,5 @@
 import {
+  APPLICATION_STATUS_LABEL,
   APPLICATION_TRANSITIONS,
   ApplicationStatus,
   canTransition,
@@ -14,10 +15,7 @@ import { EntityManager } from 'typeorm';
 import type { AuditRecorder } from '../audit/audit.types';
 import { Interview } from '../interviews/entities/interview.entity';
 import { Offer } from '../offers/entities/offer.entity';
-import {
-  APPLICATION_STATUS_LABEL,
-  RACE_MESSAGE,
-} from './applications.constants';
+import { RACE_MESSAGE } from './applications.constants';
 import { Application } from './entities/application.entity';
 import { ApplicationStatusHistory } from './entities/application-status-history.entity';
 

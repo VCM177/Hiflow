@@ -1,17 +1,18 @@
 import {
   CandidateSource,
+  JOB_STATUS_LABEL,
   JobStatus,
   type Report,
   ReportType,
+  REQUISITION_STATUS_LABEL,
   RequisitionStatus,
+  SOURCE_LABEL,
 } from '@hiflow/shared-types';
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CacheService } from '../../common/cache/cache.service';
 import { CsvColumn, toCsv } from '../../common/csv';
 import { Period, resolvePeriod } from '../../common/period';
-import { JOB_STATUS_LABEL } from '../jobs/jobs.constants';
-import { REQUISITION_STATUS_LABEL } from '../requisitions/requisitions.constants';
 import {
   CandidateSourceRow,
   JobResultRow,
@@ -19,7 +20,6 @@ import {
   REPORT_COLUMNS,
   REPORT_TITLES,
   RequisitionProgressRow,
-  SOURCE_LABEL,
 } from './reports.definitions';
 import { ReportQueryDto } from './reports.dto';
 

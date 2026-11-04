@@ -1,5 +1,6 @@
 import {
   canTransition,
+  JOB_STATUS_LABEL,
   JOB_TRANSITIONS,
   JobStatus,
   RequisitionStatus,
@@ -26,7 +27,6 @@ import { actorOf } from '../audit/audit.types';
 import { TxRunner } from '../audit/tx-runner.service';
 import { Requisition } from '../requisitions/entities/requisition.entity';
 import { Job } from './entities/job.entity';
-import { JOB_STATUS_LABEL } from './jobs.constants';
 import { CreateJobDto, ListJobsQueryDto, UpdateJobDto } from './jobs.dto';
 import { toJobView } from './job-view';
 

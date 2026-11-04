@@ -1,12 +1,4 @@
-import { InterviewResult, UserRole } from '@hiflow/shared-types';
-
-export const INTERVIEW_RESULT_LABEL: Readonly<Record<InterviewResult, string>> =
-  {
-    [InterviewResult.PENDING]: 'Chờ kết quả',
-    [InterviewResult.PASSED]: 'Đạt',
-    [InterviewResult.FAILED]: 'Không đạt',
-    [InterviewResult.CANCELLED]: 'Đã hủy',
-  };
+import { UserRole } from '@hiflow/shared-types';
 
 /** Roles that can sit on an interview panel. */
 export const INTERVIEWER_ROLES: readonly UserRole[] = [

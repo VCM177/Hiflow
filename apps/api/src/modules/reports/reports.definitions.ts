@@ -1,4 +1,4 @@
-import { CandidateSource, ReportType } from '@hiflow/shared-types';
+import { ReportType } from '@hiflow/shared-types';
 import { CsvColumn } from '../../common/csv';
 
 export type RequisitionProgressRow = {
@@ -80,14 +80,6 @@ export const REPORT_COLUMNS = {
     { key: 'hired', label: 'Nhận việc' },
     { key: 'hireRate', label: 'Tỷ lệ nhận việc (%)' },
   ] satisfies CsvColumn<CandidateSourceRow>[],
-};
-
-export const SOURCE_LABEL: Readonly<Record<CandidateSource, string>> = {
-  [CandidateSource.WEBSITE]: 'Website',
-  [CandidateSource.REFERRAL]: 'Giới thiệu',
-  [CandidateSource.SOCIAL]: 'Mạng xã hội',
-  [CandidateSource.AGENCY]: 'Đơn vị tuyển dụng',
-  [CandidateSource.OTHER]: 'Khác',
 };
 
 /** A percentage rounded to one decimal, 0 when there is nothing to divide by. */
