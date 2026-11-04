@@ -1,6 +1,6 @@
 # Phụ lục: hợp đồng API cho web
 
-Sinh ngày 2026-11-03 từ bản build thật của API (79 thao tác) và metadata quyền của từng route. **Đây là ảnh chụp**: sau mốc B6 các kiểu này được thay bằng kiểu dùng chung trong `packages/shared-types` (xem `docs/web-plan.md` mục 3.4). Cột "Ai gọi được": Ad = Admin, HR = Quản lý nhân sự, TBP = Trưởng bộ phận, TD = Tuyển dụng, PV = Phỏng vấn viên. Trưởng bộ phận và Phỏng vấn viên còn bị giới hạn phạm vi dữ liệu (ngoài phạm vi trả 404). Tham số có giá trị mặc định là tùy chọn.
+Sinh ngày 2026-11-03 từ bản build thật của API (79 thao tác) và metadata quyền của từng route. **Đây là ảnh chụp**: từ mốc B6 (2026-11-04) các kiểu phản hồi nằm ở `packages/shared-types/src/views/` và nhãn ở `packages/shared-types/src/labels.ts`; nếu hai nơi lệch nhau thì lấy `shared-types` làm chuẩn (xem `docs/web-plan.md` mục 3.4). Cột "Ai gọi được": Ad = Admin, HR = Quản lý nhân sự, TBP = Trưởng bộ phận, TD = Tuyển dụng, PV = Phỏng vấn viên. Trưởng bộ phận và Phỏng vấn viên còn bị giới hạn phạm vi dữ liệu (ngoài phạm vi trả 404). Tham số có giá trị mặc định là tùy chọn.
 
 ## Health
 
