@@ -1,32 +1,36 @@
 # Bàn giao Hiflow
 
-Cập nhật 2026-11-04, nhánh `develop` (đã push, cây làm việc sạch, commit `f4f608a`). Tài liệu này chỉ ghi trạng thái và việc kế tiếp; quy tắc làm việc nằm ở `CLAUDE.md`, nghiệp vụ ở `docs/business-flow.md`.
+Cập nhật 2026-11-04, nhánh `claude/jolly-hawking-58ad29` (đã push, cây làm việc sạch; `develop` chưa có các commit B0 và B6). Tài liệu này chỉ ghi trạng thái và việc kế tiếp; quy tắc làm việc nằm ở `CLAUDE.md`, nghiệp vụ ở `docs/business-flow.md`.
 
 ## 0. Phiên sau làm gì đầu tiên
 
-1. **Đóng Cổng A** bằng cách chạy hai spec dịch vụ thật ở cloud (mục 2). Cần người dùng tạo môi trường cloud có biến môi trường trước.
-2. **Web giai đoạn B**: người dùng trả lời 8 câu ở `docs/web-plan.md` mục 8, rồi làm phiên 1 (B0 và B6) theo `docs/web-plan-detail.md`. Phiên 1 không phụ thuộc khóa dịch vụ nên có thể làm song song với việc 1 hoặc khi chờ.
+1. **Đóng Cổng A**: chỉ còn mục 1.3 (Redis thật). Container cloud không tới được cổng TCP 6379, nên người dùng chạy `npm run test:e2e -w @hiflow/api -- throttle-redis --verbose` trên máy mình (mục 2). Mục 1.1 (Supabase) đã PASS ngày 2026-11-04.
+2. **Web giai đoạn B**: 8 câu đã chốt theo đề xuất (2026-11-04). **B0 và B6 đã xong** (nhánh `claude/jolly-hawking-58ad29`, chưa vào `develop`). Bước kế tiếp:
+   - Người dùng merge nhánh đó vào `develop`, rồi chạy phiên **local** làm B1 đến B3 (phần port), theo prompt `docs/handoff-local-web.md`.
+   - Sau đó cloud làm B4, rồi local làm B5, rồi cloud làm B7 và B8 (`docs/web-plan-detail.md` mục 4).
 3. Việc ngoài repo còn lại: sửa mục 1.1.2.1 trong danh sách chức năng, đặt lịch `retention:run` (mục 4).
 
 Credit cloud của người dùng hết hạn **2026-11-05**: ưu tiên việc cần cloud trước hạn đó.
 
 ## 1. Đang ở đâu
 
-| Hạng mục                               | Trạng thái                                                                                                      | Bằng chứng                                                                |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Backend (NestJS)                       | Hoàn tất về chức năng và kiểm thử cục bộ; **Cổng A chưa đóng**: 17 PASS, 0 FAIL, **2 SKIPPED** (mục 1.1 và 1.3) | `docs/gate-a-audit.md` (2026-11-03): 344 unit, 638 e2e pass, 5 bỏ qua     |
-| Cổng công khai (tin và form nộp hồ sơ) | Xong ở backend                                                                                                  | `modules/public`, `business-flow.md` mục 6                                |
-| Nhật ký kiểm toán v2                   | Đã cài đặt (2026-11-02), thay hẳn `activity_logs`                                                               | `docs/audit-trail-spec.md`, `modules/audit`, `test/audit-*.e2e-spec.ts`   |
-| Phụ thuộc                              | Đã vá lỗ hổng mức cao của API (2026-11-03); phần còn lại cần bản major và không tới được từ phía khách          | `CLAUDE.md` mục Known gaps, `npm audit --omit=dev`                        |
-| Web (`apps/web`)                       | **Mới là scaffold của Next 16**, chưa có code giao diện. Đã có kế hoạch chi tiết, chờ duyệt                     | `docs/web-plan.md`, `docs/web-plan-detail.md`, `docs/web-api-contract.md` |
-| UX giai đoạn 1, 2, 4                   | Có (giai đoạn 4 là prototype bấm được)                                                                          | `docs/ux/*`, artifact ở mục 5                                             |
-| UX giai đoạn 3 và 5                    | Chưa làm (không có người dùng thật)                                                                             |                                                                           |
+| Hạng mục                               | Trạng thái                                                                                                                                              | Bằng chứng                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Backend (NestJS)                       | Hoàn tất về chức năng và kiểm thử cục bộ; **Cổng A chưa đóng**: 17 PASS, 0 FAIL, **2 SKIPPED** (mục 1.1 và 1.3)                                         | `docs/gate-a-audit.md` (2026-11-03): 344 unit, 638 e2e pass, 5 bỏ qua     |
+| Cổng công khai (tin và form nộp hồ sơ) | Xong ở backend                                                                                                                                          | `modules/public`, `business-flow.md` mục 6                                |
+| Nhật ký kiểm toán v2                   | Đã cài đặt (2026-11-02), thay hẳn `activity_logs`                                                                                                       | `docs/audit-trail-spec.md`, `modules/audit`, `test/audit-*.e2e-spec.ts`   |
+| Phụ thuộc                              | Đã vá lỗ hổng mức cao của API (2026-11-03); phần còn lại cần bản major và không tới được từ phía khách                                                  | `CLAUDE.md` mục Known gaps, `npm audit --omit=dev`                        |
+| Web (`apps/web`)                       | **B0 xong** (Vitest, Playwright, `typecheck`, biến môi trường) và **B6 xong** (view, nhãn, `Jsonified` ở `shared-types`). Chưa có giao diện (B1 trở đi) | `docs/web-plan.md`, `docs/web-plan-detail.md`, `docs/web-api-contract.md` |
+| UX giai đoạn 1, 2, 4                   | Có (giai đoạn 4 là prototype bấm được)                                                                                                                  | `docs/ux/*`, artifact ở mục 5                                             |
+| UX giai đoạn 3 và 5                    | Chưa làm (không có người dùng thật)                                                                                                                     |                                                                           |
 
 Mọi kết quả kiểm thử trên là **Postgres 16 cục bộ trong container cloud** với role giới hạn `hiflow_app`. **Chưa chạy trên Neon thật** (cần thiết lập ở mục 4).
 
 ## 2. Đóng Cổng A: chạy hai spec dịch vụ thật ở cloud
 
-Mục 1.1 (Supabase) và 1.3 (Redis) của cổng đang SKIPPED vì container không có khóa. Cả hai từng xanh ngày 2026-09-24 trên máy người dùng; cần chạy lại sau các thay đổi từ đó.
+**Kết quả 2026-11-04:** Supabase (1.1) đã PASS ở cloud (3/3, exit 0); Redis (1.3) không chạy được vì container không phân giải DNS và chỉ ra ngoài qua proxy HTTP/HTTPS (`ENOTFOUND`), nên cần chạy trên máy người dùng. Phần còn lại của mục này là quy trình gốc.
+
+Mục 1.1 (Supabase) và 1.3 (Redis) của cổng từng SKIPPED vì container không có khóa. Cả hai từng xanh ngày 2026-09-24 trên máy người dùng; cần chạy lại sau các thay đổi từ đó.
 
 ### 2.1 Người dùng chuẩn bị (tôi không làm được)
 
@@ -80,12 +84,21 @@ Cảnh báo cho người dùng: biến môi trường hiển thị với **mọi
 
 Kế hoạch đầy đủ: `docs/web-plan.md` (kiến trúc, mốc B0 đến B8, Cổng B, rủi ro), `docs/web-plan-detail.md` (từng nhiệm vụ, quy ước chung, 12 module, 14 kịch bản Playwright, lịch 11 phiên) và `docs/web-api-contract.md` (79 thao tác API, quyền theo vai trò, trường form; ảnh chụp 2026-11-03, sẽ được thay bằng kiểu dùng chung ở B6).
 
-**Việc cần người dùng:** trả lời 8 câu ở `web-plan.md` mục 8, hoặc nói "theo đề xuất". Kế hoạch chi tiết đã dùng đề xuất làm giả định (`G1` đến `G8`). Câu quan trọng nhất là G1: B1 đến B5 port từ bộ admin cũ **trên máy người dùng**, hay viết mới từ Radix + Tailwind ngay ở cloud. Bộ cũ không có trong cloud và không được đưa vào repo (quy tắc cách ly).
+**Đã chốt (2026-11-04):** cả 8 câu theo đề xuất; G1 là port ở máy người dùng (B1 đến B3 phần port, và B5).
 
-**Phiên 1 (không phụ thuộc G1, làm được ở cloud):**
+**Phiên 1 (cloud) đã xong:**
 
 - B0: `transpilePackages` cho `@hiflow/shared-types`, `strict` và script `typecheck`, Vitest + Testing Library, Playwright, biến môi trường phía máy chủ (`API_ORIGIN`, `PROXY_SECRET`), README web.
 - B6: chuyển 9 giao diện `*-view.ts` và các bản đồ `*_LABEL` vào `packages/shared-types`, thêm `Jsonified<T>`, API dùng lại, test kiểu.
+
+**Ghi chú từ phiên 1 (cloud, 2026-11-04):**
+
+- Cổng chất lượng mỗi commit: `format:check`, `lint`, `typecheck`, `test`, `build` (đều exit 0); e2e API đầy đủ exit 0 (648 test pass, spec Redis bỏ qua vì không tới được Redis). Kiểm thử trình duyệt: `npm run test:e2e -w @hiflow/web` (Playwright tự dựng web ở cổng 3100, `E2E_API_URL` trỏ tới API).
+- Test khói Playwright mở `/` chứ không phải `/login` (trang đăng nhập chưa có); B4.8 thay bằng luồng đăng nhập thật.
+- Vitest 3 dùng Vite 7, nên không thêm `@vitejs/plugin-react` (bản 6 cần Vite 8); JSX tự động qua esbuild trong `vitest.config.ts`.
+- Mới ở `shared-types`: `Jsonified<T>`, `views/` (mọi kiểu phản hồi, gồm `DashboardOverview`, `Report`, `ReportType`, `AuthUser`) và `labels.ts` (thêm `OFFER_STATUS_LABEL` và `USER_ROLE_LABEL`, chữ lấy từ `business-flow.md` và bảng menu, **người dùng chưa xác nhận lại**). `test/view-contract.e2e-spec.ts` khóa phản hồi thật với kiểu chung.
+- Một test của API (`storage.module.spec.ts`) từng phụ thuộc vào biến môi trường thật (fail khi có `SUPABASE_URL`); đã sửa cho độc lập với môi trường.
+- Kiểu dòng của báo cáo (`RequisitionProgressRow`, `JobResultRow`, `CandidateSourceRow`) vẫn ở API; web hiện dùng `Report.rows` dạng lỏng. Chuyển khi B7 cần.
 
 Trước khi viết bất cứ gì dùng API của Next 16, đọc `node_modules/next/dist/docs/` (`apps/web/AGENTS.md`): ví dụ `middleware` đã đổi thành `proxy.ts`.
 
