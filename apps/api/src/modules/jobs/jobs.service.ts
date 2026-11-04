@@ -3,6 +3,7 @@ import {
   JOB_TRANSITIONS,
   JobStatus,
   RequisitionStatus,
+  type JobView,
 } from '@hiflow/shared-types';
 import {
   BadRequestException,
@@ -27,7 +28,7 @@ import { Requisition } from '../requisitions/entities/requisition.entity';
 import { Job } from './entities/job.entity';
 import { JOB_STATUS_LABEL } from './jobs.constants';
 import { CreateJobDto, ListJobsQueryDto, UpdateJobDto } from './jobs.dto';
-import { JobView, toJobView } from './job-view';
+import { toJobView } from './job-view';
 
 const SORT_COLUMNS: Record<ListJobsQueryDto['sortBy'], string> = {
   title: 'job.title',

@@ -1,33 +1,9 @@
-import { JobStatus } from '@hiflow/shared-types';
+import type { JobView, NamedRef } from '@hiflow/shared-types';
 import { Job } from './entities/job.entity';
-
-interface Ref {
-  id: string;
-  name: string;
-}
-
-export interface JobView {
-  id: string;
-  requisition: { id: string; code: string } | null;
-  title: string;
-  position: Ref | null;
-  department: Ref | null;
-  quantity: number;
-  salaryMin: number | null;
-  salaryMax: number | null;
-  location: string | null;
-  description: string | null;
-  status: JobStatus;
-  publishedAt: Date | null;
-  createdBy: Ref | null;
-  applicationCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 const ref = (
   entity: { id: string; name?: string; fullName?: string } | null | undefined,
-): Ref | null =>
+): NamedRef | null =>
   entity ? { id: entity.id, name: entity.name ?? entity.fullName ?? '' } : null;
 
 export const toJobView = (job: Job, applicationCount: number): JobView => ({

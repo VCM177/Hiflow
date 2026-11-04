@@ -1,4 +1,8 @@
-import { ApplicationStatus, OfferStatus } from '@hiflow/shared-types';
+import {
+  ApplicationStatus,
+  OfferStatus,
+  type OfferView,
+} from '@hiflow/shared-types';
 import {
   BadRequestException,
   ConflictException,
@@ -15,7 +19,7 @@ import { Application } from '../applications/entities/application.entity';
 import { actorOf } from '../audit/audit.types';
 import { TxRunner } from '../audit/tx-runner.service';
 import { Offer } from './entities/offer.entity';
-import { OfferView, toOfferView } from './offer-view';
+import { toOfferView } from './offer-view';
 import { CreateOfferDto, RespondOfferDto, UpdateOfferDto } from './offers.dto';
 
 const today = (): string => new Date().toISOString().slice(0, 10);

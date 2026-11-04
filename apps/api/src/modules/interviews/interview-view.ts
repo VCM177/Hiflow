@@ -1,21 +1,5 @@
-import { InterviewResult } from '@hiflow/shared-types';
+import type { InterviewView } from '@hiflow/shared-types';
 import { Interview } from './entities/interview.entity';
-
-export interface InterviewView {
-  id: string;
-  application: {
-    id: string;
-    candidate: { id: string; fullName: string } | null;
-    job: { id: string; title: string } | null;
-  } | null;
-  round: number;
-  scheduledAt: Date;
-  interviewer: { id: string; name: string } | null;
-  result: InterviewResult;
-  feedback: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 export const toInterviewView = (i: Interview): InterviewView => ({
   id: i.id,

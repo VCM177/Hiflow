@@ -2,6 +2,7 @@ import {
   ApplicationStatus,
   InterviewResult,
   UserRole,
+  type InterviewView,
 } from '@hiflow/shared-types';
 import {
   BadRequestException,
@@ -37,7 +38,7 @@ import {
   RecordResultDto,
   UpdateInterviewDto,
 } from './interviews.dto';
-import { InterviewView, toInterviewView } from './interview-view';
+import { toInterviewView } from './interview-view';
 
 const SORT_COLUMNS: Record<ListInterviewsQueryDto['sortBy'], string> = {
   scheduledAt: 'interview.scheduledAt',

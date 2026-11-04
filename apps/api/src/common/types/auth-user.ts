@@ -1,14 +1,11 @@
-import { GrantedPermission, UserRole } from '@hiflow/shared-types';
+import type {
+  AuthUser,
+  GrantedPermission,
+  UserRole,
+} from '@hiflow/shared-types';
 
-/** The authenticated principal attached to `request.user` by the JWT guard. */
-export interface AuthUser {
-  id: string;
-  email: string;
-  fullName: string;
-  role: UserRole;
-  departmentId: string | null;
-  permissions: readonly GrantedPermission[];
-}
+// The shape lives in shared-types so the web app reads the same one from GET /auth/me.
+export type { AuthUser };
 
 export interface JwtPayload {
   sub: string;

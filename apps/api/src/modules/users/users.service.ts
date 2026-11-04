@@ -1,4 +1,4 @@
-import { UserRole } from '@hiflow/shared-types';
+import { UserRole, type UserOption, type UserView } from '@hiflow/shared-types';
 import {
   BadRequestException,
   ForbiddenException,
@@ -21,7 +21,7 @@ import { TxRunner } from '../audit/tx-runner.service';
 import { Department } from '../departments/entities/department.entity';
 import { INTERVIEWER_ROLES } from '../interviews/interviews.constants';
 import { User } from './entities/user.entity';
-import { toUserOption, toUserView, UserOption, UserView } from './user-view';
+import { toUserOption, toUserView } from './user-view';
 import {
   CreateUserDto,
   ListUsersQueryDto,

@@ -1,17 +1,5 @@
-import { UserRole } from '@hiflow/shared-types';
+import type { UserOption, UserView } from '@hiflow/shared-types';
 import { User } from './entities/user.entity';
-
-/** What the API exposes of a user; the password hash never leaves the server. */
-export interface UserView {
-  id: string;
-  email: string;
-  fullName: string;
-  role: UserRole;
-  departmentId: string | null;
-  departmentName: string | null;
-  isActive: boolean;
-  createdAt: Date;
-}
 
 export const toUserView = (user: User): UserView => ({
   id: user.id,
@@ -23,13 +11,6 @@ export const toUserView = (user: User): UserView => ({
   isActive: user.isActive,
   createdAt: user.createdAt,
 });
-
-/** The few fields needed to pick a person in a form; no contact details. */
-export interface UserOption {
-  id: string;
-  fullName: string;
-  role: UserRole;
-}
 
 export const toUserOption = (user: User): UserOption => ({
   id: user.id,

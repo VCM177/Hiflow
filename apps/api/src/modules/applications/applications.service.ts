@@ -4,6 +4,8 @@ import {
   JobStatus,
   PERMISSIONS,
   UserRole,
+  type ApplicationDetail,
+  type ApplicationListItem,
 } from '@hiflow/shared-types';
 import {
   BadRequestException,
@@ -35,8 +37,6 @@ import { FileDownload, StorageService } from '../storage/storage.service';
 import { User } from '../users/entities/user.entity';
 import { ApplicationWorkflowService } from './application-workflow.service';
 import {
-  ApplicationDetail,
-  ApplicationListItem,
   toHistoryItem,
   toInterviewItem,
   toListItem,

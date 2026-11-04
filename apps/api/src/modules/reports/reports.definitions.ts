@@ -1,6 +1,5 @@
-import { CandidateSource } from '@hiflow/shared-types';
+import { CandidateSource, ReportType } from '@hiflow/shared-types';
 import { CsvColumn } from '../../common/csv';
-import { ReportType } from './reports.dto';
 
 export type RequisitionProgressRow = {
   code: string;

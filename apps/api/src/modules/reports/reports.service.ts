@@ -1,6 +1,8 @@
 import {
   CandidateSource,
   JobStatus,
+  type Report,
+  ReportType,
   RequisitionStatus,
 } from '@hiflow/shared-types';
 import { Injectable } from '@nestjs/common';
@@ -19,15 +21,7 @@ import {
   RequisitionProgressRow,
   SOURCE_LABEL,
 } from './reports.definitions';
-import { ReportQueryDto, ReportType } from './reports.dto';
-
-export interface Report {
-  type: ReportType;
-  title: string;
-  period: { from: string; to: string };
-  columns: { key: string; label: string }[];
-  rows: Record<string, string | number>[];
-}
+import { ReportQueryDto } from './reports.dto';
 
 interface Filters {
   period: Period;

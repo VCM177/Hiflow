@@ -4,6 +4,8 @@ import {
   REQUISITION_TRANSITIONS,
   RequisitionStatus,
   UserRole,
+  type RequisitionEvent,
+  type RequisitionView,
 } from '@hiflow/shared-types';
 import {
   BadRequestException,
@@ -38,11 +40,7 @@ import {
   ListRequisitionsQueryDto,
   UpdateRequisitionDto,
 } from './requisitions.dto';
-import {
-  RequisitionEvent,
-  RequisitionView,
-  toRequisitionView,
-} from './requisition-view';
+import { toRequisitionView } from './requisition-view';
 
 const SORT_COLUMNS: Record<ListRequisitionsQueryDto['sortBy'], string> = {
   code: 'req.code',

@@ -1,3 +1,4 @@
+import { type UserView } from '@hiflow/shared-types';
 import {
   BadRequestException,
   Injectable,
@@ -10,7 +11,7 @@ import type { AuthUser } from '../../common/types/auth-user';
 import { actorOf } from '../audit/audit.types';
 import { TxRunner } from '../audit/tx-runner.service';
 import { User } from './entities/user.entity';
-import { toUserView, UserView } from './user-view';
+import { toUserView } from './user-view';
 import { ChangePasswordDto } from './users.dto';
 
 /** Self-service actions: every signed-in user may do these to their own account. */

@@ -1,3 +1,7 @@
+import {
+  type AuditEventDetail,
+  type AuditEventView,
+} from '@hiflow/shared-types';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
@@ -10,8 +14,6 @@ import {
 } from '../../common/pagination/paginate';
 import {
   AuditEventCsvRow,
-  AuditEventDetail,
-  AuditEventView,
   toAuditCsvRow,
   toAuditEventView,
   toAuditRowChangeView,

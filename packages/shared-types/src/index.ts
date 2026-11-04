@@ -4,3 +4,4 @@ export * from './statuses';
 export * from './transitions';
 export * from './permissions';
 export * from './jsonified';
+export * from './views';

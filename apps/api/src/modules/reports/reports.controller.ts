@@ -1,4 +1,4 @@
-import { PERMISSIONS } from '@hiflow/shared-types';
+import { PERMISSIONS, ReportType } from '@hiflow/shared-types';
 import {
   BadRequestException,
   Controller,
@@ -16,7 +16,7 @@ import type { AuthUser } from '../../common/types/auth-user';
 import { AuditEvent } from '../audit/audit.decorators';
 import { AuditService } from '../audit/audit.service';
 import { actorOf } from '../audit/audit.types';
-import { ReportQueryDto, ReportType } from './reports.dto';
+import { ReportQueryDto } from './reports.dto';
 import { ReportsService } from './reports.service';
 
 const reportTypePipe = new ParseEnumPipe(ReportType, {

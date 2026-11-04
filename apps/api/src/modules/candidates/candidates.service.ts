@@ -1,4 +1,8 @@
-import { UserRole } from '@hiflow/shared-types';
+import {
+  UserRole,
+  type CandidateDetailView,
+  type CandidateView,
+} from '@hiflow/shared-types';
 import {
   BadRequestException,
   ConflictException,
@@ -27,11 +31,7 @@ import {
   UploadedFileData,
 } from '../storage/storage.service';
 import { CandidateAnonymizerService } from './candidate-anonymizer.service';
-import {
-  CandidateDetailView,
-  CandidateView,
-  toCandidateView,
-} from './candidate-view';
+import { toCandidateView } from './candidate-view';
 import {
   CreateCandidateDto,
   ListCandidatesQueryDto,

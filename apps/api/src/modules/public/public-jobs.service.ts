@@ -1,4 +1,4 @@
-import { JobStatus } from '@hiflow/shared-types';
+import { JobStatus, type PublicJobView } from '@hiflow/shared-types';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
@@ -8,7 +8,7 @@ import {
   Paginated,
 } from '../../common/pagination/paginate';
 import { Job } from '../jobs/entities/job.entity';
-import { PublicJobView, toPublicJobView } from './public-job-view';
+import { toPublicJobView } from './public-job-view';
 import { ListPublicJobsQueryDto } from './public-jobs.dto';
 
 const SORT_COLUMNS: Record<ListPublicJobsQueryDto['sortBy'], string> = {
