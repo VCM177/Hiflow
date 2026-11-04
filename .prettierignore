@@ -5,3 +5,6 @@ coverage
 package-lock.json
 apps/api/uploads
 apps/web/public
+next-env.d.ts
+playwright-report
+test-results
