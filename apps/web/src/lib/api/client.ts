@@ -1,3 +1,4 @@
+import { loginUrlFor } from '@/lib/auth/next-path';
 import { buildQueryString, type QueryValue } from './query-string';
 import { ApiError, messagesFromBody, parseRetryAfter } from './errors';
 
@@ -13,13 +14,17 @@ export interface ApiRequestOptions {
   signal?: AbortSignal;
 }
 
-function defaultUnauthorized() {
+const LOGIN_PATH = '/login';
+
+export function redirectToLogin() {
   if (typeof window === 'undefined') return;
+  // On the login page a 401 is a wrong password, not an ended session.
+  if (window.location.pathname === LOGIN_PATH) return;
   const next = `${window.location.pathname}${window.location.search}`;
-  window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+  window.location.assign(loginUrlFor(next));
 }
 
-let onUnauthorized: () => void = defaultUnauthorized;
+let onUnauthorized: () => void = redirectToLogin;
 
 /**
  * Sets what happens on a 401 (the session ended). The default sends the user to the

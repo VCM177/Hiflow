@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { apiRequest, setUnauthorizedHandler } from './client';
+import { apiRequest, redirectToLogin, setUnauthorizedHandler } from './client';
 import { ApiError } from './errors';
 
 function jsonResponse(
@@ -144,5 +144,37 @@ describe('apiRequest', () => {
     await expect(
       apiRequest('GET', '/x', { signal: controller.signal }),
     ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+describe('redirectToLogin', () => {
+  const original = window.location;
+  const assign = vi.fn();
+
+  function at(pathname: string, search = '') {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { pathname, search, assign },
+    });
+  }
+
+  afterEach(() => {
+    assign.mockReset();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: original,
+    });
+  });
+
+  it('sends an ended session to login, remembering the page', () => {
+    at('/jobs', '?status=OPEN');
+    redirectToLogin();
+    expect(assign).toHaveBeenCalledWith('/login?next=%2Fjobs%3Fstatus%3DOPEN');
+  });
+
+  it('does nothing on the login page, where a 401 is a wrong password', () => {
+    at('/login', '?next=%2Fjobs');
+    redirectToLogin();
+    expect(assign).not.toHaveBeenCalled();
   });
 });
