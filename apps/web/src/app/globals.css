@@ -3,8 +3,8 @@
 
 /* Tailwind utilities for the tokens: bg-hf-primary, text-hf-text-heading, rounded-hf-control, ... */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-hf-bg-page: var(--hf-bg-page);
   --color-hf-bg-surface: var(--hf-bg-surface);
