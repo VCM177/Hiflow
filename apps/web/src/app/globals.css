@@ -1,26 +1,64 @@
 @import 'tailwindcss';
+@import '../styles/tokens.css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Tailwind utilities for the tokens: bg-hf-primary, text-hf-text-heading, rounded-hf-control, ... */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-hf-bg-page: var(--hf-bg-page);
+  --color-hf-bg-surface: var(--hf-bg-surface);
+  --color-hf-bg-card: var(--hf-bg-card);
+  --color-hf-text-heading: var(--hf-text-heading);
+  --color-hf-text-body: var(--hf-text-body);
+  --color-hf-text-muted: var(--hf-text-muted);
+  --color-hf-border: var(--hf-border);
+  --color-hf-border-control: var(--hf-border-control);
+  --color-hf-primary: var(--hf-primary);
+  --color-hf-primary-hover: var(--hf-primary-hover);
+  --color-hf-primary-foreground: var(--hf-primary-foreground);
+  --color-hf-warning: var(--hf-warning);
+  --color-hf-success: var(--hf-success);
+  --color-hf-destructive: var(--hf-destructive);
+  --color-hf-neutral: var(--hf-neutral);
+  --color-hf-warning-text: var(--hf-warning-text);
+  --color-hf-success-text: var(--hf-success-text);
+  --color-hf-neutral-text: var(--hf-neutral-text);
+  --color-hf-chart-1: var(--hf-chart-1);
+  --color-hf-chart-2: var(--hf-chart-2);
+  --color-hf-chart-3: var(--hf-chart-3);
+  --color-hf-chart-4: var(--hf-chart-4);
+  --color-hf-chart-5: var(--hf-chart-5);
+  --color-hf-ring: var(--hf-ring);
+
+  --radius-hf-badge: var(--hf-radius-badge);
+  --radius-hf-control: var(--hf-radius-control);
+  --radius-hf-container: var(--hf-radius-container);
+  --radius-hf-overlay: var(--hf-radius-overlay);
+
+  --shadow-hf-card: var(--hf-shadow-card);
+  --shadow-hf-overlay: var(--hf-shadow-overlay);
+
+  --text-hf-micro: var(--hf-text-micro);
+  --text-hf-micro--line-height: var(--hf-text-micro--line-height);
+
+  --ease-hf-standard: var(--hf-ease-standard);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--hf-bg-page);
+  color: var(--hf-text-body);
+  font-family: var(--font-sans), sans-serif;
+}
+
+/* Reduced motion: every transition and animation finishes at once. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
