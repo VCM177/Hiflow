@@ -47,11 +47,11 @@ describe('Button', () => {
   it('renders its child element when asChild is set', () => {
     render(
       <Button asChild>
-        <a href="/jobs">Xem tin</a>
+        <a href="#tin-tuyen-dung">Xem tin</a>
       </Button>,
     );
     const link = screen.getByRole('link', { name: 'Xem tin' });
-    expect(link).toHaveAttribute('href', '/jobs');
+    expect(link).toHaveAttribute('href', '#tin-tuyen-dung');
     expect(link).toHaveClass('rounded-hf-control');
   });
 
