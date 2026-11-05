@@ -30,6 +30,13 @@ describe('useCountdown', () => {
     expect(result.current.secondsLeft).toBe(0);
   });
 
+  it('can begin at a given value', () => {
+    const { result } = renderHook(() => useCountdown(2));
+    expect(result.current.secondsLeft).toBe(2);
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current.secondsLeft).toBe(1);
+  });
+
   it('restarts from a new value', () => {
     const { result } = renderHook(() => useCountdown());
     act(() => result.current.start(10));
