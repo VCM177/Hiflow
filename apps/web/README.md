@@ -24,6 +24,12 @@ Sao `.env.example` thành `.env.local` khi cần đổi giá trị. Không có b
 | `PROXY_SECRET`                   | máy chủ   | Cùng giá trị với `PROXY_SECRET` của API; route chuyển tiếp thêm vào `x-hiflow-proxy-secret`. |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | công khai | Khóa site của Cloudflare Turnstile (không phải khóa bí mật).                                 |
 
+## Phiên đăng nhập và proxy
+
+- Trình duyệt chỉ gọi `/api/*` của web. `src/app/api/[...path]/route.ts` chuyển tiếp tới `API_ORIGIN`, thêm `x-hiflow-proxy-secret`, giữ nguyên cookie, `Retry-After` và `Content-Disposition`, truyền thân yêu cầu dạng luồng (tệp CV không nằm trọn trong bộ nhớ) và bỏ `accessToken` khỏi thân phản hồi `POST /auth/login` (token chỉ còn ở cookie HttpOnly).
+- `src/proxy.ts` chỉ kiểm tra lạc quan: không có cookie `hf_access_token` thì chuyển tới `/login?next=`. Quyền thật do API quyết.
+- **`X-Forwarded-For` và `TRUST_PROXY`.** Route chuyển tiếp giữ nguyên `X-Forwarded-For` mà nền tảng đứng trước web (ví dụ Vercel) đặt, để API tính giới hạn theo địa chỉ của khách. Hãy đặt `TRUST_PROXY` của API bằng số lớp proxy nằm giữa khách và API **kể cả web**: web gọi thẳng API thì là `1`. Web phải chạy sau một nền tảng tự đặt lại `X-Forwarded-For`; nếu nhận kết nối trực tiếp từ Internet, khách giả được header này và né giới hạn tốc độ.
+
 ## Kiểm tra chất lượng
 
 Mỗi commit chạy, từ gốc repo:
@@ -38,7 +44,7 @@ npm run build
 
 ### Kiểm thử trình duyệt (Playwright)
 
-Cần API và Postgres cục bộ đang chạy (xem `CLAUDE.md`, mục Commands). Playwright tự khởi động web ở cổng 3100 và chuyển `/api` tới `E2E_API_URL` (mặc định `http://localhost:4000`):
+Cần API và Postgres cục bộ đang chạy với dữ liệu `seed:base` (xem `CLAUDE.md`, mục Commands). Khởi động API với `THROTTLE_LIMIT_SCALE=100`: mỗi lượt kiểm thử đăng nhập nhiều lần, mà giới hạn đăng nhập mặc định là 10 lần mỗi phút cho mỗi IP. Mật khẩu của tài khoản mẫu là mật khẩu seed mặc định; đặt `E2E_PASSWORD` nếu bạn đã đổi `SEED_DEFAULT_PASSWORD`. Playwright tự khởi động web ở cổng 3100 và chuyển `/api` tới `E2E_API_URL` (mặc định `http://localhost:4000`):
 
 ```bash
 npm run test:e2e -w @hiflow/web

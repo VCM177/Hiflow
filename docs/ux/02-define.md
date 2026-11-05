@@ -242,7 +242,7 @@ flowchart LR
     subgraph ADM["Nhóm Quản trị"]
       U["/users"] --> U2["/users/:id"]
       CT["/catalogs<br>tab Phòng ban, Vị trí"]
-      AL["/activity-log"]
+      AL["/audit-events"]
     end
     PR["/profile<br>thông tin, đổi mật khẩu"]
   end
@@ -273,11 +273,11 @@ Menu của mỗi vai trò:
 
 - **Admin:** Chính (7 mục) và Quản trị (3 mục).
 - **HR:** Tổng quan, Yêu cầu, Tin, Ứng viên, Hồ sơ, Lịch phỏng vấn, Báo cáo, Người dùng.
-- **Trưởng bộ phận:** Tổng quan, Yêu cầu, Tin, Hồ sơ.
+- **Trưởng bộ phận:** Tổng quan, Yêu cầu, Tin, Hồ sơ, Lịch phỏng vấn.
 - **Tuyển dụng:** Tổng quan, Yêu cầu, Tin, Ứng viên, Hồ sơ, Lịch phỏng vấn.
 - **Phỏng vấn viên:** Lịch phỏng vấn, Hồ sơ, Ứng viên.
 
-(*) Quyền mới theo quyết định B, **chưa cài đặt**; hiện chỉ Phỏng vấn viên và Admin nhập được kết quả. Khi cài, Lịch phỏng vấn sẽ xuất hiện trong menu của Trưởng bộ phận.
+(*) Quyền mới theo quyết định B (quyết định 11), **đã cài**: HR và Trưởng bộ phận xem và nhập kết quả cho lịch của mình, nên Lịch phỏng vấn có trong menu của Trưởng bộ phận. Đường dẫn nhật ký là `/audit-events` (không còn `/activity-log`). Menu thật cấu hình trong `apps/web/src/config/navigation.ts` theo `docs/web-plan-detail.md` bảng 2.1.
 
 Danh mục chỉ hiện trong menu của Admin (quyết định E); các vai trò khác dùng dữ liệu này ngầm trong các ô chọn phòng ban và vị trí.
 
