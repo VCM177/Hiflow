@@ -30,8 +30,31 @@ export function Sidebar({ groups, collapsed, onToggle }: SidebarProps) {
         collapsed ? 'w-16' : 'w-60',
       )}
     >
-      <div className="flex h-14 items-center px-4 text-lg font-semibold text-hf-text-heading">
-        {collapsed ? 'H' : 'Hiflow'}
+      <div
+        className={cn(
+          'flex h-14 shrink-0 items-center',
+          collapsed ? 'justify-center' : 'justify-between pr-2 pl-4',
+        )}
+      >
+        {!collapsed && (
+          <span className="text-lg font-semibold text-hf-text-heading">
+            Hiflow
+          </span>
+        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={toggleLabel}
+              aria-expanded={!collapsed}
+              onClick={onToggle}
+            >
+              {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{toggleLabel}</TooltipContent>
+        </Tooltip>
       </div>
 
       <nav aria-label="Menu chính" className="flex-1 overflow-y-auto px-2 py-2">
@@ -83,23 +106,6 @@ export function Sidebar({ groups, collapsed, onToggle }: SidebarProps) {
           </div>
         ))}
       </nav>
-
-      <div className="border-t border-hf-border p-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={toggleLabel}
-              aria-expanded={!collapsed}
-              onClick={onToggle}
-            >
-              {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">{toggleLabel}</TooltipContent>
-        </Tooltip>
-      </div>
     </aside>
   );
 }
