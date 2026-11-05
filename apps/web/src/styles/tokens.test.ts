@@ -54,6 +54,7 @@ describe('design tokens: contrast', () => {
     ['warning status text on card', 'hf-warning-text', card],
     ['success status text on card', 'hf-success-text', card],
     ['destructive status text on card', 'hf-destructive', card],
+    ['destructive text on tinted badge', 'hf-destructive-text', '#fce8ed'],
     ['neutral status text on card', 'hf-neutral-text', card],
   ])('%s meets AA (4.5:1)', (_label, token, background) => {
     expect(contrast(tokens[token], background)).toBeGreaterThanOrEqual(4.5);

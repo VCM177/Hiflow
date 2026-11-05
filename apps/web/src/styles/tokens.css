@@ -36,6 +36,7 @@
   --hf-warning-text: #b45309;
   --hf-success-text: #047857;
   --hf-neutral-text: #475569;
+  --hf-destructive-text: #be123c;
 
   /* Chart series, in order */
   --hf-chart-1: var(--hf-primary);
