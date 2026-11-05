@@ -19,6 +19,7 @@ Mỗi phụ thuộc npm được thêm trong cùng commit với tệp đầu ti�
 - `chỉnh`: giữ phần lớn, có thay đổi hành vi hoặc API (ghi rõ ở cột thay đổi).
 - `mới`: viết mới cho Hiflow, không có bản nguồn.
 
-| Tệp trong Hiflow            | Trạng thái | Thay đổi                                                                                                               |
-| --------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/src/lib/utils.ts` | chỉnh      | Chỉ giữ `cn`. Bỏ phần re-export định dạng (sẽ nằm ở `lib/format.ts`, B3) và `ensureHtml` (đi cùng trình soạn tin, G6). |
+| Tệp trong Hiflow                        | Trạng thái | Thay đổi                                                                                                                                                                                                                                                                               |
+| --------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/lib/utils.ts`             | chỉnh      | Chỉ giữ `cn`. Bỏ phần re-export định dạng (sẽ nằm ở `lib/format.ts`, B3) và `ensureHtml` (đi cùng trình soạn tin, G6).                                                                                                                                                                 |
+| `apps/web/src/components/ui/button.tsx` | chỉnh      | Dùng `<button>` thay cho primitive của `@base-ui/react` (G2 chọn Radix). Chỉ còn `primary`, `secondary`, `ghost`, `destructive`; cỡ `md`, `sm`, `icon-sm`. Màu theo token `hf`, bán kính 6px, bỏ kiểu dark. Mặc định `type="button"`. Trạng thái đang tải: `aria-busy` và vô hiệu hóa. |
