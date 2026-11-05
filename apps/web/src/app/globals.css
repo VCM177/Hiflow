@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '../styles/tokens.css';
+@import 'tw-animate-css';
 
 /* Tailwind utilities for the tokens: bg-hf-primary, text-hf-text-heading, rounded-hf-control, ... */
 @theme inline {
