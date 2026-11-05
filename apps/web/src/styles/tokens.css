@@ -45,6 +45,9 @@
   --hf-chart-4: var(--hf-destructive);
   --hf-chart-5: var(--hf-neutral);
 
+  /* Scrim behind dialogs */
+  --hf-scrim: rgb(15 23 42 / 0.4);
+
   /* Focus ring */
   --hf-ring: var(--hf-primary);
 
