@@ -1,6 +1,7 @@
 'use client';
 
-import { ChevronDown, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronDown, LogOut, UserRound } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -52,6 +53,12 @@ export function Topbar({ fullName, email, roleLabel, onSignOut }: TopbarProps) {
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/profile">
+              <UserRound aria-hidden="true" />
+              Hồ sơ cá nhân
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={onSignOut}>
             <LogOut aria-hidden="true" />
             Đăng xuất

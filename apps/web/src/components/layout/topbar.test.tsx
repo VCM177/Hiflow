@@ -38,6 +38,9 @@ describe('Topbar', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Đăng xuất' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Hồ sơ cá nhân' }),
+    ).toHaveAttribute('href', '/profile');
   });
 
   it('signs out from the menu', async () => {
@@ -56,7 +59,8 @@ describe('Topbar', () => {
     screen.getByRole('button', { name: /Tài khoản của/ }).focus();
     await user.keyboard('{Enter}');
     await screen.findByRole('menuitem', { name: 'Đăng xuất' });
-    await user.keyboard('{Enter}');
+    // The first entry is the profile link; the arrow moves on to "Đăng xuất".
+    await user.keyboard('{ArrowDown}{Enter}');
     expect(onSignOut).toHaveBeenCalledOnce();
   });
 });
