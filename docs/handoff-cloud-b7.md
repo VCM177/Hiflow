@@ -1,4 +1,4 @@
-# Handoff: web giai đoạn B, B7.1 đến B7.7 và B7.12 (phiên cloud)
+# Handoff: web giai đoạn B, B7.1 đến B7.8 và B7.12 (phiên cloud)
 
 Viết ngày 2026-11-06. Thay cho mục "B7" trong `docs/handoff-local-web-3.md` về trạng thái.
 
@@ -85,3 +85,26 @@ Dọn dẹp của spec: xóa hồ sơ và ứng viên `e2e-careers-*`; tin đã 
 - Màn ghi kết quả phỏng vấn, sửa và hủy lịch, danh sách và chi tiết lịch phỏng vấn: B7.8. Trong tab Phỏng vấn của hồ sơ hiện chỉ có xem và đặt lịch.
 - Hộp thoại thêm hồ sơ chỉ tìm tối đa 20 ứng viên mỗi lần gõ; chưa có nút "Thêm hồ sơ" ngay trên trang ứng viên (hộp thoại đã nhận `candidateId` sẵn).
 - Phiên kế tiếp theo kế hoạch: B7.8 (Lịch phỏng vấn), rồi B7.9 đến B7.11 (Tổng quan, Báo cáo, Nhật ký kiểm toán).
+
+## Phiên 9: B7.8 (2026-11-06)
+
+**Lịch phỏng vấn** (`features/interviews/`). `/interviews`: lọc kết quả, vòng, người phỏng vấn, khoảng ngày phỏng vấn; tìm theo ứng viên hoặc tin; mặc định sớm nhất trước (`sortDir=asc`); đọc `?result=PENDING` từ địa chỉ (trang đích của Phỏng vấn viên). `/interviews/[id]`: lịch, kết quả, CV và liên hệ, tin.
+
+- **Sửa lịch / Hủy lịch**: chỉ khi chờ kết quả và có `interview.item.update` / `.cancel` (Tuyển dụng, Admin). Hộp thoại sửa dùng chung `ScheduleDialog` với hộp thoại đặt lịch của hồ sơ, mở sẵn đúng giờ hiện tại (đổi sang giờ Việt Nam bằng `toVietnamLocal`). 409 trùng giờ trong 60 phút và "vòng đã có lịch" hiện trong hộp thoại, form giữ nguyên; giờ quá khứ bị chặn ở form bằng đúng câu của API.
+- **Ghi kết quả**: form chỉ hiện khi chờ kết quả, có `interview.result.record` và là người được xếp lịch hoặc Admin. Không đạt bắt buộc nhận xét. Sau khi form hợp lệ có một hộp xác nhận ("không thể thay đổi sau khi ghi"); 409 vì người khác ghi trước hiện trong hộp kèm nút Tải lại. HR xem được mọi lịch nhưng với lịch của người khác chỉ thấy câu giải thích, không có form.
+- **Bố cục**: màn hình rộng (≥1024px) hiện kết quả bên trái, CV và tin bên phải; hẹp hơn thì ba tab Kết quả (mặc định), CV, Tin. Chọn bằng `useMediaQuery` (`useSyncExternalStore`), nên chỉ một bố cục được dựng và không có id trùng.
+- **Tab Tin**: Phỏng vấn viên không có `job.list.view` nên không đọc được mô tả tin; họ thấy tên tin, trạng thái hồ sơ và một dòng giải thích. Các vai trò khác thấy mô tả (qua `sanitizeJobHtml`). Nếu muốn Phỏng vấn viên đọc mô tả thì cần quyền mới ở API (chưa làm, chưa hỏi chủ dự án).
+- Tab Phỏng vấn trong chi tiết hồ sơ giờ có liên kết sang từng vòng.
+- Phạm vi: Phỏng vấn viên và Trưởng bộ phận chỉ thấy lịch của mình, lịch khác trả 404 và trang hiện "Không tìm thấy trang".
+
+**Kiểm chứng.** `format:check`, `lint`, `typecheck`, `build` exit 0; `npm test` API 348, web 107 tệp. Playwright toàn bộ 50 test pass (thêm `interviews.spec.ts`, 5 test): Phỏng vấn viên vào danh sách chờ kết quả chỉ thấy lịch của mình, lịch của HR trả 404, ghi Không đạt (cần nhận xét, có xác nhận) và hồ sơ vẫn bị khóa ở Đề nghị; Tuyển dụng sửa lịch gặp trùng giờ và giờ quá khứ trong hộp thoại, đổi giờ thành công, hủy lịch rồi đặt lại được; HR không có form ở lịch người khác và có form ở lịch của mình; điện thoại 390px có ba tab; TBP không thấy lịch của người khác.
+
+**Đã sửa trong spec cũ.** `applications.spec.ts` chọn khung giờ phỏng vấn trong khoảng quá nhỏ (vài chục ngày × vài giờ), và lịch phỏng vấn đã có kết quả không xóa được, nên các lần chạy lặp lại sớm muộn trùng nhau (409) và test hỏng chập chờn. Cả hai spec giờ dùng `randomFutureHour()` (ngẫu nhiên trong vài năm). Quy tắc chung: mọi spec đặt lịch phải dùng hàm này.
+
+**Dữ liệu spec để lại.** Mỗi lần chạy `interviews.spec.ts` còn một yêu cầu đã duyệt, một tin, ba hồ sơ, ba ứng viên và bốn lịch phỏng vấn (một đã hủy, một Không đạt) tên `E2E-...`. Xóa bằng role owner nếu cần DB sạch.
+
+**Chưa làm / cần xác nhận.**
+
+- Danh sách lịch chưa có thao tác ngay trên dòng (sửa, hủy); mọi thao tác ở trang chi tiết.
+- Chưa lọc theo `applicationId` bằng giao diện (API nhận, địa chỉ `?applicationId=` có tác dụng).
+- Phiên kế tiếp theo kế hoạch: B7.9 đến B7.11 (Tổng quan, Báo cáo, Nhật ký kiểm toán).
