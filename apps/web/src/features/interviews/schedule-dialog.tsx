@@ -8,10 +8,15 @@ import { RHFTextField } from '@/components/shared/form/rhf-text-field';
 import { FormDialog } from '@/components/shared/form-dialog';
 import { useUserOptions } from '@/features/users/options';
 
-import { scheduleSchema, type ScheduleValues } from './schedule-schema';
+import type { Interview } from './interview-api';
+import {
+  scheduleSchema,
+  toVietnamLocal,
+  type ScheduleValues,
+} from './schedule-schema';
 
 /**
- * Book an interview. A clash with the interviewer's other interviews (60 minutes) and a
+ * Book an interview, or change one that still waits for its result (`interview` given). A clash with the interviewer's other interviews (60 minutes) and a
  * round that already exists come back as 409 and show here, with the form as it was.
  */
 export function ScheduleDialog({
@@ -19,25 +24,31 @@ export function ScheduleDialog({
   onOpenChange,
   onSubmit,
   nextRound,
+  interview = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: ScheduleValues) => Promise<void>;
   /** The round the server will pick when the box is left blank, shown as the hint. */
   nextRound: number;
+  interview?: Interview | null;
 }) {
   const interviewers = useUserOptions('INTERVIEWER');
   const form = useForm<ScheduleValues>({
     resolver: zodResolver(scheduleSchema),
-    defaultValues: { interviewerId: '', scheduledAt: '', round: '' },
+    defaultValues: {
+      interviewerId: interview?.interviewer?.id ?? '',
+      scheduledAt: interview ? toVietnamLocal(interview.scheduledAt) : '',
+      round: interview ? String(interview.round) : '',
+    },
   });
   return (
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Đặt lịch phỏng vấn"
+      title={interview ? 'Sửa lịch phỏng vấn' : 'Đặt lịch phỏng vấn'}
       description="Giờ nhập theo múi giờ Việt Nam."
-      submitLabel="Đặt lịch"
+      submitLabel={interview ? 'Lưu thay đổi' : 'Đặt lịch'}
       form={form}
       onSubmit={onSubmit}
     >

@@ -4,6 +4,7 @@ import {
   scheduleSchema,
   toScheduleBody,
   toVietnamIso,
+  toVietnamLocal,
 } from './schedule-schema';
 
 const future = new Date(Date.now() + 3 * 86_400_000);
@@ -67,5 +68,18 @@ describe('toScheduleBody', () => {
         round: '2',
       }).round,
     ).toBe(2);
+  });
+});
+
+describe('toVietnamLocal', () => {
+  it('shows an instant in Vietnam time whatever the browser zone', () => {
+    expect(toVietnamLocal('2026-10-01T02:00:00.000Z')).toBe('2026-10-01T09:00');
+    expect(toVietnamLocal('2026-10-01T20:30:00.000Z')).toBe('2026-10-02T03:30');
+  });
+  it('round-trips with toVietnamIso', () => {
+    const local = '2026-10-01T09:00';
+    expect(toVietnamLocal(new Date(toVietnamIso(local)).toISOString())).toBe(
+      local,
+    );
   });
 });

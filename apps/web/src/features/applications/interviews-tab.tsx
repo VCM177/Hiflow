@@ -6,6 +6,7 @@ import {
   InterviewResult,
   PERMISSIONS,
 } from '@hiflow/shared-types';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ import {
 } from '@/features/interviews/schedule-schema';
 import { formatDateTime } from '@/lib/format';
 import { queryKeys } from '@/lib/query/keys';
+import { useSession } from '@/providers/session-provider';
 
 import type { ApplicationFull } from './application-api';
 import { INTERVIEW_RESULT_MAP } from './constants';
@@ -32,6 +34,7 @@ export function InterviewsTab({
   application: ApplicationFull;
 }) {
   const queryClient = useQueryClient();
+  const { can } = useSession();
   const [dialogKey, setDialogKey] = React.useState<number | null>(null);
   const [open, setOpen] = React.useState(false);
 
@@ -85,7 +88,16 @@ export function InterviewsTab({
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-medium text-hf-text-heading">
-                  Vòng {item.round} · {formatDateTime(item.scheduledAt)}
+                  {can(PERMISSIONS.interview.listView) ? (
+                    <Link
+                      href={`/interviews/${item.id}`}
+                      className="text-hf-primary hover:underline"
+                    >
+                      Vòng {item.round} · {formatDateTime(item.scheduledAt)}
+                    </Link>
+                  ) : (
+                    `Vòng ${item.round} · ${formatDateTime(item.scheduledAt)}`
+                  )}
                 </p>
                 <StatusBadge status={item.result} map={INTERVIEW_RESULT_MAP} />
               </div>
