@@ -6,9 +6,8 @@ import { siteUrl } from '@/server/site-url';
 export default function robots(): MetadataRoute.Robots {
   const base = siteUrl();
   return {
-    rules: [
-      { userAgent: '*', allow: '/careers', disallow: ['/api/', '/login'] },
-    ],
+    // Longest match wins, so /careers stays open although everything else is closed.
+    rules: [{ userAgent: '*', allow: '/careers', disallow: '/' }],
     ...(base ? { sitemap: `${base}/sitemap.xml` } : {}),
   };
 }
