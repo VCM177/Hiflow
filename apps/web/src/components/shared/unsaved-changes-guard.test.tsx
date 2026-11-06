@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import Link from 'next/link';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UnsavedChangesGuard } from './unsaved-changes-guard';
@@ -28,13 +29,13 @@ function renderGuard(dirty: boolean) {
   return render(
     <>
       <UnsavedChangesGuard dirty={dirty} />
-      <a href="/jobs">Tin tuyển dụng</a>
-      <a href="/jobs" target="_blank">
+      <Link href="/jobs">Tin tuyển dụng</Link>
+      <Link href="/jobs" target="_blank">
         Mở tab mới
-      </a>
+      </Link>
       <a href="https://example.com/x">Trang ngoài</a>
-      <a href="/">Cùng trang</a>
-      <a href="/#muc-2">Nhảy trong trang</a>
+      <Link href="/">Cùng trang</Link>
+      <Link href="/#muc-2">Nhảy trong trang</Link>
     </>,
   );
 }
