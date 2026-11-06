@@ -38,6 +38,18 @@ export async function userIdByEmail(
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 
+/** A random hour between 60 days and about 5 years ahead, fixed for this process. */
+const SLOT_BASE_MS = (() => {
+  const days = 60 + Math.floor(Math.random() * 1900);
+  const hours = Math.floor(Math.random() * 24);
+  return (
+    Date.now() +
+    days * DAY_MS +
+    hours * HOUR_MS -
+    ((Date.now() + days * DAY_MS) % HOUR_MS)
+  );
+})();
+
 // Shared by every flow in a file: two flows with the same tag must not hand
 // out the same candidate email or the same interview slot.
 let seq = 0;
@@ -59,11 +71,14 @@ export function createFlow(ctx: E2eContext, t: FlowTokens, tag: string) {
 
     post,
 
-    /** Evenly spaced future instants, never closer than two hours apart. */
+    /**
+     * Evenly spaced future instants, never closer than two hours apart, from a base chosen at
+     * random once per run. Interview results cannot be deleted, so a run leaves its interviews
+     * behind; a base taken from the clock would meet an earlier run's slots whenever two runs
+     * share a day. Two hours between slots keeps every slot of one run outside the others' hour.
+     */
     futureSlot(): string {
-      const start = Date.now() + 30 * DAY_MS;
-      const rounded = start - (start % HOUR_MS);
-      return new Date(rounded + ++slot * 2 * HOUR_MS).toISOString();
+      return new Date(SLOT_BASE_MS + ++slot * 2 * HOUR_MS).toISOString();
     },
 
     async openJob(
