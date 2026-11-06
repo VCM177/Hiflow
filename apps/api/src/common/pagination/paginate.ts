@@ -1,16 +1,9 @@
+import type { Paginated } from '@hiflow/shared-types';
 import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 
-export interface PageMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
-export interface Paginated<T> {
-  items: T[];
-  meta: PageMeta;
-}
+// The shape lives in shared-types so the web app reads the same one. Re-exported because
+// the services import it from here.
+export type { PageMeta, Paginated } from '@hiflow/shared-types';
 
 export function toPaginated<T>(
   items: T[],
