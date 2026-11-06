@@ -75,6 +75,12 @@ test.describe.serial('accessibility', () => {
     ).id;
   });
 
+  // Leave no interview waiting: it would block its interviewer's calendar for other suites.
+  test.afterAll(async ({ browser }) => {
+    const admin = await apiAs(browser, 'admin@hiflow.local');
+    await admin.post(`/api/interviews/${interviewId}/cancel`);
+  });
+
   test('the public job board and the sign-in page', async ({
     page,
     browser,

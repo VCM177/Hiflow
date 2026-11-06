@@ -100,6 +100,15 @@ test.describe.serial('interviews', () => {
     interview3 = (await book(app3, hrId, slot(2))).id;
   });
 
+  // A booked interview blocks its interviewer for an hour on either side, and the API's own
+  // e2e suite books the same people. Cancelled interviews do not block, so leave none waiting.
+  test.afterAll(async ({ browser }) => {
+    const admin = await apiAs(browser, 'admin@hiflow.local');
+    for (const id of [interview1, interview2, interview3]) {
+      await admin.post(`/api/interviews/${id}/cancel`);
+    }
+  });
+
   test('the interviewer lands on their pending list, sees only their own, and records a failed round', async ({
     browser,
   }) => {
