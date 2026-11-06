@@ -131,6 +131,10 @@ Căn cứ: Luật Bảo vệ dữ liệu cá nhân 2025 (hiệu lực 01/01/2026
 
 21. Chính sách lưu và xóa dữ liệu ứng viên ở mục 6b: giữ 12 tháng (cấu hình được), hết hạn thì ẩn danh chứ không xóa, Admin hoặc HR xử lý yêu cầu của ứng viên, người đã nhận việc nằm ngoài phạm vi. Đã cài.
 
+**Đã xác nhận (2026-11-06, khi kiểm định Cổng B):**
+
+22. Mã màu cứng trong `apps/web/src/app/global-error.tsx` được giữ như một ngoại lệ có chủ đích. Lý do: trang này thay layout gốc khi layout đó lỗi, nên không tải được token CSS. Đây là trang dự phòng cuối; mọi thành phần khác dùng token. Người phụ trách dự án xác nhận theo đề xuất trong `docs/gate-b-audit.md`.
+
 **Đã xác nhận (2026-09-24, khi kiểm định Cổng A):**
 
 8. Trưởng bộ phận gọi dữ liệu của phòng ban khác nhận **404**, không phải 403, để không lộ việc bản ghi có tồn tại. Thiếu quyền thì vẫn là 403.
