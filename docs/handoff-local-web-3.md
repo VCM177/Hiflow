@@ -2,9 +2,22 @@
 
 Viết ngày 2026-11-06. Dành cho phiên khác làm tiếp. Đọc hết trước khi chạy lệnh nào. Thay cho `docs/handoff-local-web-2.md` về trạng thái; các lưu ý ở mục 5 và 6 của tệp đó vẫn đúng.
 
-## 1. Việc đang chặn: kiểm tra với dữ liệu thật
+## 0. Cập nhật 2026-11-06: B5 đã đóng
 
-B5 chưa đóng hẳn vì **chưa chạy trang Danh mục với API thật trong trình duyệt**. API không khởi động được trên máy này:
+Chủ dự án tạo một **nhánh Neon riêng cho integration test** (thông tin kết nối nằm trong `apps/api/.env.integration`, được git bỏ qua). Trên nhánh đó:
+
+- 3 migration đã chạy (`AddCandidateAnonymizedAt`, `CreateAuditTrail`, `EnforceAuditCapture`), role `hiflow_app` đã được tạo, `seed:base` chạy không thêm dòng nào (nhánh copy dữ liệu từ DB gốc).
+- Playwright: 19 test pass (14 của `session.spec.ts` cũ, 5 của `catalogs.spec.ts` mới): tạo, tìm, sửa, xóa qua hộp xác nhận; mã quá ngắn bị chặn ở form; tab Vị trí; địa chỉ danh mục lạ trả 404; recruiter thấy "Không có quyền truy cập".
+- e2e của API: 649 pass, 1 hỏng. Chỗ hỏng là `throttle-redis.e2e-spec.ts` (không kết nối được Redis từ máy này, `MaxRetriesPerRequestError`), đúng mục SKIPPED còn mở ở Gate A. Cả bộ chạy 1703 s trên Neon.
+- Sau khi chạy: không còn bản ghi `E2E-`/`e2e-` nào, 5 tài khoản demo còn nguyên, 3 phòng ban và 8 vị trí như seed, không còn dòng audit gắn thẻ `e2e`.
+
+**Chưa làm: DB gốc (`apps/api/.env`) vẫn thiếu 3 migration đó và cũng chưa có role `hiflow_app`.** Cần chủ dự án quyết định riêng trước khi chạy `migration:run` ở đó (`EnforceAuditCapture` xóa bảng `activity_logs`).
+
+Cách chạy lại trên nhánh: nạp `DATABASE_URL` và `DATABASE_OWNER_URL` từ `apps/api/.env.integration` vào môi trường của tiến trình rồi chạy lệnh. **Không dùng `source` của bash**: chuỗi kết nối Neon có ký tự `&` nên bash cắt mất biến. Dùng một script Node (dotenv + `spawn`) hoặc `$env:` của PowerShell. Cài trình duyệt một lần bằng `npx playwright install chromium` trong `apps/web`.
+
+## 1. Việc đã chặn B5 (đã gỡ, giữ lại để tham khảo)
+
+B5 từng chưa đóng vì **chưa chạy trang Danh mục với API thật trong trình duyệt**. API không khởi động được trên DB gốc:
 
 - `npm run migration:show -w @hiflow/api` báo 3 migration chưa chạy: `AddCandidateAnonymizedAt`, `CreateAuditTrail`, `EnforceAuditCapture`. API chết khi khởi động với `relation "audit_events" does not exist`.
 - `EnforceAuditCapture.up()` chạy `DROP TABLE "activity_logs"`. Migration ghi rằng bảng đó chỉ chứa dữ liệu mẫu và dữ liệu test, nhưng chưa ai kiểm tra DB mà `apps/api/.env` trỏ tới. Vì vậy phiên này **không chạy `migration:run`**. Chủ dự án cần xác nhận: đây là DB nào, có mất `activity_logs` được không.
@@ -60,6 +73,6 @@ Trang xem thử `/dev/components` (chỉ dev) dùng dữ liệu mẫu cho phần
 
 ## 5. Việc tiếp theo
 
-1. Gỡ chặn mục 1, đóng B5 bằng e2e thật.
+1. ~~Đóng B5 bằng e2e thật~~ (xong, xem mục 0). Còn lại: chủ dự án quyết định có chạy 3 migration trên DB gốc không.
 2. Báo chủ dự án để quyết định merge `feat/web-ui-port` vào `develop` (merge sạch, `develop` không có commit nào nhánh thiếu).
 3. B7 (module quản trị) do phiên cloud làm khi B5 đóng.
