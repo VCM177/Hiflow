@@ -1,4 +1,4 @@
-# Handoff: web giai đoạn B, B7.1 đến B7.8 và B7.12 (phiên cloud)
+# Handoff: web giai đoạn B, toàn bộ B7 (phiên cloud)
 
 Viết ngày 2026-11-06. Thay cho mục "B7" trong `docs/handoff-local-web-3.md` về trạng thái.
 
@@ -108,3 +108,30 @@ Dọn dẹp của spec: xóa hồ sơ và ứng viên `e2e-careers-*`; tin đã 
 - Danh sách lịch chưa có thao tác ngay trên dòng (sửa, hủy); mọi thao tác ở trang chi tiết.
 - Chưa lọc theo `applicationId` bằng giao diện (API nhận, địa chỉ `?applicationId=` có tác dụng).
 - Phiên kế tiếp theo kế hoạch: B7.9 đến B7.11 (Tổng quan, Báo cáo, Nhật ký kiểm toán).
+
+## Phiên 10: B7.9, B7.10, B7.11 (2026-11-06) - B7 xong
+
+**B7.9 Tổng quan** (`/`, `features/dashboard/`). Chọn kỳ bằng hai ô ngày (mặc định 30 ngày gần nhất do API chọn, nút "Về 30 ngày gần nhất" khi đã lọc), lọc phòng ban (ẩn với Trưởng bộ phận). Năm thẻ số; phễu năm bậc cộng dồn; kết quả từ chối và rút; hộp việc theo `todo` của API (mỗi dòng là liên kết `href`, chỉ liên kết khi bắt đầu bằng `/` và không phải `//`); danh sách rỗng hiện "Không có việc cần xử lý."; kỳ không hợp lệ (quá 366 ngày) báo tại chỗ, bộ lọc vẫn còn.
+
+- Theo skill `dataviz`: phễu là các bậc có thứ tự của một đại lượng nên dùng **một màu** (primary) và thanh ngang cùng đường gốc, cao 20px, bo 4px ở đầu dữ liệu, giá trị ở đầu thanh, tooltip và `aria-label` nói rõ số hồ sơ và % so với bậc đầu, có nút "Xem dạng bảng". Hai con số từ chối/rút không vẽ biểu đồ mà là số liệu. Không dùng thư viện biểu đồ nên không có gì để tải lười (kế hoạch ghi tải lười); nếu sau này thêm biểu đồ theo thời gian thì tải lười khi đó. Không chạy `validate_palette` vì chỉ có một màu đã đạt tương phản ở `tokens.test.ts`.
+- Nhãn việc cần làm do API quyết định theo quyền: HR thấy "Yêu cầu tuyển dụng chờ duyệt", Tuyển dụng thấy "Hồ sơ mới chưa có người phụ trách".
+
+**B7.10 Báo cáo** (`/reports/[type]`, `features/reports/`). Ba tab là ba địa chỉ (`/reports` chuyển về tiến độ yêu cầu); bảng vẽ đúng `columns` và `rows` của API (cột đầu căn trái, các cột số căn phải); lọc kỳ, phòng ban, vị trí; tab mới giữ nguyên bộ lọc. **Xuất CSV** qua `lib/api/download.ts` (`downloadFile`: fetch, blob, thẻ `<a download>`, tên tệp theo `Content-Disposition`, lỗi thành `ApiError`), toast "Đã tải ...", ghi chú rằng mỗi lần xuất vào nhật ký kiểm toán. Chỉ Admin và HR; vai trò khác thấy "Không có quyền truy cập", loại báo cáo lạ trả 404.
+
+**B7.11 Nhật ký kiểm toán** (`/audit-events`, `/audit-events/[id]`, `features/audit/`). Lọc sự kiện (nhãn tiếng Việt từ `AUDIT_EVENTS`), đối tượng, người thực hiện (100 người đầu theo tên), nguồn, khoảng ngày, và `entityId`/`event` từ địa chỉ; tìm theo tên người thực hiện; mới nhất trước. Chi tiết: người thực hiện như lúc đó, nguồn, IP, trình duyệt, dữ liệu sự kiện, và các thay đổi dòng cùng giao dịch (Thêm dòng/Sửa dòng/Xóa dòng; sửa hiện `cũ → mới`; `[REDACTED]` giữ nguyên). Mọi giá trị là văn bản: có test và Playwright với tên ứng viên chứa `<b>` và `<img onerror>`. Xuất CSV theo bộ lọc hiện tại, có dòng "chứa dữ liệu cá nhân, chỉ Admin được đọc" và giới hạn 10.000 dòng.
+
+**Hai lỗi thật tìm ra khi chạy trình duyệt, đã sửa ở `useListParams`:**
+
+- Hai thay đổi liên tiếp trước khi URL kịp cập nhật (điền hai ô ngày) làm thay đổi sau xóa thay đổi trước, vì cùng dựa trên `params` cũ. Giờ thay đổi sau xây tiếp trên thay đổi trước (`pending`) cho đến khi URL đổi.
+- Danh sách không có phân trang (Tổng quan, Báo cáo) bị thêm `page=1` vào địa chỉ. Giờ chỉ đặt lại trang khi schema có `page`.
+- Thêm `queryString()` để liên kết mang bộ lọc sang trang khác (tab báo cáo) mà không đọc `window.location`.
+
+**Kiểm chứng.** `format:check`, `lint`, `typecheck`, `build` exit 0; `npm test` API 348, web 114 tệp. Playwright toàn bộ 59 test pass (thêm `overview-reports-audit.spec.ts`, 9 test). Không đổi API trong phiên này.
+
+**Dữ liệu spec để lại.** Một yêu cầu đã duyệt và một tin đã đăng tên `E2E-Tin tong quan ...` mỗi lần chạy (hồ sơ và ứng viên được xóa ở cuối). Sự kiện nhật ký do các spec tạo ra không xóa được qua API.
+
+**Chưa làm / cần xác nhận.**
+
+- Bộ lọc người thực hiện của nhật ký chỉ liệt kê 100 người đầu; nếu hệ thống đông hơn cần ô tìm kiếm.
+- Chưa có biểu đồ theo thời gian ở Tổng quan (API chỉ trả phễu).
+- B7 đã xong. Còn B8 (hoàn thiện): rà soát truy cập (`design:accessibility-review`), điện thoại, hiệu năng, ranh giới lỗi, danh sách kiểm sản xuất, cập nhật `CLAUDE.md` và `docs/handoff.md`, kiểm định Cổng B.
