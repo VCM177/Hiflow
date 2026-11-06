@@ -1,5 +1,5 @@
-import { PageHeader } from '@/components/layout/page-header';
+import { DashboardPage } from '@/features/dashboard/dashboard-page';
 
-export default function OverviewPage() {
-  return <PageHeader title="Tổng quan" />;
+export default function OverviewRoute() {
+  return <DashboardPage />;
 }
