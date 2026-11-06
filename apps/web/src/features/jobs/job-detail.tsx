@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { DetailField } from '@/components/shared/detail-field';
 import { ApiErrorView } from '@/components/layout/api-error-view';
 import { PageHeader } from '@/components/layout/page-header';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -42,21 +43,6 @@ import {
   type Job,
   type JobApplication,
 } from './job-api';
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-hf-text-muted">{label}</dt>
-      <dd className="mt-0.5 text-sm text-hf-text-body">{children ?? '—'}</dd>
-    </div>
-  );
-}
 
 function salaryText(min: number | null, max: number | null): string {
   if (min === null && max === null) return 'Thỏa thuận';
@@ -208,17 +194,19 @@ export function JobDetail({ id }: { id: string }) {
             actions={<StatusBadge status={job.status} map={JOB_STATUS_MAP} />}
           >
             <dl className="grid gap-4 sm:grid-cols-2">
-              <Field label="Phòng ban">{job.department?.name}</Field>
-              <Field label="Vị trí">{job.position?.name}</Field>
-              <Field label="Số lượng">{job.quantity}</Field>
-              <Field label="Địa điểm">{job.location}</Field>
-              <Field label="Mức lương">
+              <DetailField label="Phòng ban">
+                {job.department?.name}
+              </DetailField>
+              <DetailField label="Vị trí">{job.position?.name}</DetailField>
+              <DetailField label="Số lượng">{job.quantity}</DetailField>
+              <DetailField label="Địa điểm">{job.location}</DetailField>
+              <DetailField label="Mức lương">
                 {salaryText(job.salaryMin, job.salaryMax)}
-              </Field>
-              <Field label="Ngày đăng">
+              </DetailField>
+              <DetailField label="Ngày đăng">
                 {job.publishedAt ? formatDate(job.publishedAt) : null}
-              </Field>
-              <Field label="Người tạo">{job.createdBy?.name}</Field>
+              </DetailField>
+              <DetailField label="Người tạo">{job.createdBy?.name}</DetailField>
             </dl>
           </SectionCard>
           <SectionCard title="Mô tả công việc">

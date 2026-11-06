@@ -5,6 +5,7 @@ import { OfferStatus, PERMISSIONS } from '@hiflow/shared-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { DetailField } from '@/components/shared/detail-field';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { PermissionGate } from '@/components/shared/permission-gate';
 import { SectionCard } from '@/components/shared/section-card';
@@ -22,21 +23,6 @@ import {
 import { OFFER_STATUS_MAP } from './constants';
 import { OfferDialog } from './offer-dialog';
 import { isOfferExpired, toOfferBody, type OfferValues } from './offer-schema';
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-hf-text-muted">{label}</dt>
-      <dd className="mt-0.5 text-sm text-hf-text-body">{children ?? '—'}</dd>
-    </div>
-  );
-}
 
 type Answer = 'accept' | 'decline';
 
@@ -105,22 +91,22 @@ export function OfferTab({ application }: { application: ApplicationFull }) {
       ) : (
         <div className="flex flex-col gap-4">
           <dl className="grid gap-4 sm:grid-cols-2">
-            <Field label="Trạng thái">
+            <DetailField label="Trạng thái">
               <StatusBadge status={offer.status} map={OFFER_STATUS_MAP} />
-            </Field>
-            <Field label="Lương hằng tháng">
+            </DetailField>
+            <DetailField label="Lương hằng tháng">
               {formatCurrency(offer.salary)}
-            </Field>
-            <Field label="Ngày nhận việc">{formatDate(offer.startDate)}</Field>
-            <Field label="Hạn phản hồi">
+            </DetailField>
+            <DetailField label="Ngày nhận việc">
+              {formatDate(offer.startDate)}
+            </DetailField>
+            <DetailField label="Hạn phản hồi">
               {offer.expiresAt ? formatDate(offer.expiresAt) : null}
-            </Field>
+            </DetailField>
             {offer.note && (
-              <div className="sm:col-span-2">
-                <Field label="Ghi chú">
-                  <span className="whitespace-pre-wrap">{offer.note}</span>
-                </Field>
-              </div>
+              <DetailField label="Ghi chú" className="sm:col-span-2">
+                <span className="whitespace-pre-wrap">{offer.note}</span>
+              </DetailField>
             )}
           </dl>
           {pending && (

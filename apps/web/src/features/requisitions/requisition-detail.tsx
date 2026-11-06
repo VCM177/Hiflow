@@ -8,6 +8,7 @@ import { PERMISSIONS, RequisitionStatus } from '@hiflow/shared-types';
 import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { DetailField } from '@/components/shared/detail-field';
 import { ApiErrorView } from '@/components/layout/api-error-view';
 import { PageHeader } from '@/components/layout/page-header';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -43,21 +44,6 @@ import {
   submitRequisition,
   type Requisition,
 } from './requisition-api';
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-hf-text-muted">{label}</dt>
-      <dd className="mt-0.5 text-sm text-hf-text-body">{children ?? '—'}</dd>
-    </div>
-  );
-}
 
 function budgetText(min: number | null, max: number | null): string {
   if (min === null && max === null) return '—';
@@ -235,34 +221,38 @@ export function RequisitionDetail({ id }: { id: string }) {
           }
         >
           <dl className="grid gap-4 sm:grid-cols-2">
-            <Field label="Phòng ban">{requisition.department?.name}</Field>
-            <Field label="Vị trí">{requisition.position?.name}</Field>
-            <Field label="Số lượng">{requisition.quantity}</Field>
-            <Field label="Ngày bắt đầu mong muốn">
+            <DetailField label="Phòng ban">
+              {requisition.department?.name}
+            </DetailField>
+            <DetailField label="Vị trí">
+              {requisition.position?.name}
+            </DetailField>
+            <DetailField label="Số lượng">{requisition.quantity}</DetailField>
+            <DetailField label="Ngày bắt đầu mong muốn">
               {requisition.expectedStartDate
                 ? formatDate(requisition.expectedStartDate)
                 : null}
-            </Field>
-            <Field label="Ngân sách">
+            </DetailField>
+            <DetailField label="Ngân sách">
               {budgetText(requisition.budgetMin, requisition.budgetMax)}
-            </Field>
-            <Field label="Người tạo">{requisition.createdBy?.name}</Field>
+            </DetailField>
+            <DetailField label="Người tạo">
+              {requisition.createdBy?.name}
+            </DetailField>
             {requisition.approvedBy && (
-              <Field label="Người duyệt">
+              <DetailField label="Người duyệt">
                 {requisition.approvedBy.name}
                 {requisition.approvedAt &&
                   ` · ${formatDateTime(requisition.approvedAt)}`}
-              </Field>
+              </DetailField>
             )}
-            <div className="sm:col-span-2">
-              <Field label="Lý do tuyển dụng">
-                {requisition.reason && (
-                  <span className="whitespace-pre-wrap">
-                    {requisition.reason}
-                  </span>
-                )}
-              </Field>
-            </div>
+            <DetailField label="Lý do tuyển dụng" className="sm:col-span-2">
+              {requisition.reason && (
+                <span className="whitespace-pre-wrap">
+                  {requisition.reason}
+                </span>
+              )}
+            </DetailField>
           </dl>
         </SectionCard>
         <RelatedJobs requisitionId={id} />

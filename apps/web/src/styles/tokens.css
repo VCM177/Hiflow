@@ -15,7 +15,7 @@
   /* Text */
   --hf-text-heading: #0f172a;
   --hf-text-body: #334155;
-  --hf-text-muted: #64748b;
+  --hf-text-muted: #5f6f85;
 
   /* Borders: decorative edges vs. control edges (control needs 3:1 against card) */
   --hf-border: #e2e8f0;

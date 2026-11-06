@@ -7,6 +7,7 @@ import { InterviewResult, PERMISSIONS, UserRole } from '@hiflow/shared-types';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { DetailField } from '@/components/shared/detail-field';
 import { ApiErrorView } from '@/components/layout/api-error-view';
 import { PageHeader } from '@/components/layout/page-header';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -42,21 +43,6 @@ import {
 import { ResultForm } from './result-form';
 import { ScheduleDialog } from './schedule-dialog';
 import { toVietnamIso, type ScheduleValues } from './schedule-schema';
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-hf-text-muted">{label}</dt>
-      <dd className="mt-0.5 text-sm text-hf-text-body">{children ?? '—'}</dd>
-    </div>
-  );
-}
 
 function ResultSection({
   interview,
@@ -110,11 +96,15 @@ function CvSection({ applicationId }: { applicationId: string }) {
       ) : (
         <div className="flex flex-col gap-3">
           <dl className="grid gap-3 sm:grid-cols-2">
-            <Field label="Ứng viên">{query.data.candidate?.fullName}</Field>
-            <Field label="Email">{query.data.candidate?.email}</Field>
-            <Field label="Số điện thoại">
+            <DetailField label="Ứng viên">
+              {query.data.candidate?.fullName}
+            </DetailField>
+            <DetailField label="Email">
+              {query.data.candidate?.email}
+            </DetailField>
+            <DetailField label="Số điện thoại">
               {query.data.candidateDetail?.phone}
-            </Field>
+            </DetailField>
           </dl>
           {query.data.hasCv ? (
             <div>
@@ -287,16 +277,18 @@ export function InterviewDetail({ id }: { id: string }) {
       <div className="flex max-w-6xl flex-col gap-6">
         <SectionCard title="Lịch phỏng vấn">
           <dl className="grid gap-4 sm:grid-cols-3">
-            <Field label="Giờ phỏng vấn">
+            <DetailField label="Giờ phỏng vấn">
               {formatDateTime(interview.scheduledAt)}
-            </Field>
-            <Field label="Người phỏng vấn">{interview.interviewer?.name}</Field>
-            <Field label="Kết quả">
+            </DetailField>
+            <DetailField label="Người phỏng vấn">
+              {interview.interviewer?.name}
+            </DetailField>
+            <DetailField label="Kết quả">
               <StatusBadge
                 status={interview.result}
                 map={INTERVIEW_RESULT_MAP}
               />
-            </Field>
+            </DetailField>
           </dl>
         </SectionCard>
 

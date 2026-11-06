@@ -89,7 +89,14 @@ export function DataTable<TRow>({
   const span = columns.length;
 
   return (
-    <div className="overflow-x-auto">
+    // A table wider than its card scrolls sideways: the region takes the keyboard focus so
+    // the arrow keys can scroll it, and has a name so a screen reader says what it is.
+    <div
+      className="overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-hf-ring focus-visible:ring-inset"
+      tabIndex={0}
+      role="region"
+      aria-label={caption}
+    >
       {isLoading && (
         <p role="status" className="sr-only">
           Đang tải dữ liệu

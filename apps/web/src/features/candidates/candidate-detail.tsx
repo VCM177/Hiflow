@@ -7,6 +7,7 @@ import { SOURCE_LABEL } from '@hiflow/shared-types';
 import { Info } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { DetailField } from '@/components/shared/detail-field';
 import { ApiErrorView } from '@/components/layout/api-error-view';
 import { PageHeader } from '@/components/layout/page-header';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -31,21 +32,6 @@ import { CandidateCvSection } from './candidate-cv-section';
 import { CandidateFormDialog } from './candidate-form-dialog';
 import { toCandidateBody, type CandidateValues } from './candidate-schema';
 import { CANDIDATE_PERMISSION } from './constants';
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-hf-text-muted">{label}</dt>
-      <dd className="mt-0.5 text-sm text-hf-text-body">{children ?? '—'}</dd>
-    </div>
-  );
-}
 
 export function CandidateDetail({ id }: { id: string }) {
   const queryClient = useQueryClient();
@@ -122,16 +108,18 @@ export function CandidateDetail({ id }: { id: string }) {
         )}
         <SectionCard title="Thông tin">
           <dl className="grid gap-4 sm:grid-cols-2">
-            <Field label="Họ và tên">{candidate.fullName}</Field>
-            <Field label="Email">{candidate.email}</Field>
-            <Field label="Số điện thoại">{candidate.phone}</Field>
-            <Field label="Ngày sinh">
+            <DetailField label="Họ và tên">{candidate.fullName}</DetailField>
+            <DetailField label="Email">{candidate.email}</DetailField>
+            <DetailField label="Số điện thoại">{candidate.phone}</DetailField>
+            <DetailField label="Ngày sinh">
               {candidate.dob ? formatDate(candidate.dob) : null}
-            </Field>
-            <Field label="Nguồn">
+            </DetailField>
+            <DetailField label="Nguồn">
               {SOURCE_LABEL[candidate.source] ?? candidate.source}
-            </Field>
-            <Field label="Ngày tạo">{formatDate(candidate.createdAt)}</Field>
+            </DetailField>
+            <DetailField label="Ngày tạo">
+              {formatDate(candidate.createdAt)}
+            </DetailField>
           </dl>
         </SectionCard>
         <CandidateCvSection candidate={candidate} onChanged={refresh} />

@@ -18,7 +18,7 @@ import { SectionCard } from '@/components/shared/section-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   useDepartmentOptions,
   usePositionOptions,
@@ -147,83 +147,86 @@ export function ReportsPage({ type }: { type: ReportType }) {
             </TabsTrigger>
           ))}
         </TabsList>
-      </Tabs>
-
-      <div
-        className="my-4 flex flex-wrap items-end gap-3"
-        role="search"
-        aria-label="Lọc báo cáo"
-      >
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-hf-text-heading">
-          Từ ngày
-          <Input
-            type="date"
-            value={params.from ?? ''}
-            max={params.to}
-            onChange={(e) => setParams({ from: e.target.value || undefined })}
-          />
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm font-medium text-hf-text-heading">
-          Đến ngày
-          <Input
-            type="date"
-            value={params.to ?? ''}
-            min={params.from}
-            onChange={(e) => setParams({ to: e.target.value || undefined })}
-          />
-        </label>
-        <FilterSelect
-          label="Lọc theo phòng ban"
-          value={params.departmentId}
-          allLabel="Mọi phòng ban"
-          options={departments.options}
-          onChange={(next) => setParams({ departmentId: next })}
-        />
-        <FilterSelect
-          label="Lọc theo vị trí"
-          value={params.positionId}
-          allLabel="Mọi vị trí"
-          options={positions.options}
-          onChange={(next) => setParams({ positionId: next })}
-        />
-        {hasActiveFilters && (
-          <Button variant="ghost" onClick={resetFilters}>
-            Xóa bộ lọc
-          </Button>
-        )}
-      </div>
-      {periodError && (
-        <p role="alert" className="mb-4 text-sm text-hf-destructive-text">
-          {periodError}
-        </p>
-      )}
-
-      {query.error && !data && !periodError ? (
-        <ApiErrorView
-          error={query.error}
-          onRetry={() => void query.refetch()}
-        />
-      ) : (
-        <SectionCard flush>
-          <DataTable
-            caption={data?.title ?? REPORT_TAB_LABEL[type]}
-            columns={columns}
-            rows={data?.rows ?? []}
-            getRowKey={rowKey}
-            state={{
-              isLoading: query.isPending,
-              error: periodError ? undefined : query.error,
-              onRetry: () => void query.refetch(),
-            }}
-            empty={
-              <EmptyState
-                title="Không có số liệu"
-                description="Không có dữ liệu trong kỳ và bộ lọc này."
+        <TabsContent value={type}>
+          <div
+            className="my-4 flex flex-wrap items-end gap-3"
+            role="search"
+            aria-label="Lọc báo cáo"
+          >
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-hf-text-heading">
+              Từ ngày
+              <Input
+                type="date"
+                value={params.from ?? ''}
+                max={params.to}
+                onChange={(e) =>
+                  setParams({ from: e.target.value || undefined })
+                }
               />
-            }
-          />
-        </SectionCard>
-      )}
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-hf-text-heading">
+              Đến ngày
+              <Input
+                type="date"
+                value={params.to ?? ''}
+                min={params.from}
+                onChange={(e) => setParams({ to: e.target.value || undefined })}
+              />
+            </label>
+            <FilterSelect
+              label="Lọc theo phòng ban"
+              value={params.departmentId}
+              allLabel="Mọi phòng ban"
+              options={departments.options}
+              onChange={(next) => setParams({ departmentId: next })}
+            />
+            <FilterSelect
+              label="Lọc theo vị trí"
+              value={params.positionId}
+              allLabel="Mọi vị trí"
+              options={positions.options}
+              onChange={(next) => setParams({ positionId: next })}
+            />
+            {hasActiveFilters && (
+              <Button variant="ghost" onClick={resetFilters}>
+                Xóa bộ lọc
+              </Button>
+            )}
+          </div>
+          {periodError && (
+            <p role="alert" className="mb-4 text-sm text-hf-destructive-text">
+              {periodError}
+            </p>
+          )}
+
+          {query.error && !data && !periodError ? (
+            <ApiErrorView
+              error={query.error}
+              onRetry={() => void query.refetch()}
+            />
+          ) : (
+            <SectionCard flush>
+              <DataTable
+                caption={data?.title ?? REPORT_TAB_LABEL[type]}
+                columns={columns}
+                rows={data?.rows ?? []}
+                getRowKey={rowKey}
+                state={{
+                  isLoading: query.isPending,
+                  error: periodError ? undefined : query.error,
+                  onRetry: () => void query.refetch(),
+                }}
+                empty={
+                  <EmptyState
+                    title="Không có số liệu"
+                    description="Không có dữ liệu trong kỳ và bộ lọc này."
+                  />
+                }
+              />
+            </SectionCard>
+          )}
+        </TabsContent>
+      </Tabs>
       <p className="mt-3 text-xs text-hf-text-muted">
         Mỗi lần xuất CSV được ghi vào nhật ký kiểm toán.
       </p>

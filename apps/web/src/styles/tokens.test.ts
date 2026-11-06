@@ -40,6 +40,7 @@ function contrast(a: string, b: string): number {
 const tokens = readTokens();
 const card = tokens['hf-bg-card'];
 const page = tokens['hf-bg-page'];
+const surface = tokens['hf-bg-surface'];
 
 describe('design tokens: contrast', () => {
   it.each([
@@ -49,6 +50,10 @@ describe('design tokens: contrast', () => {
     ['heading text on page', 'hf-text-heading', page],
     ['body text on page', 'hf-text-body', page],
     ['muted text on page', 'hf-text-muted', page],
+    ['heading text on surface', 'hf-text-heading', surface],
+    ['body text on surface', 'hf-text-body', surface],
+    // The sidebar, table headers and the tab strip sit on the surface colour.
+    ['muted text on surface', 'hf-text-muted', surface],
     ['primary text on card', 'hf-primary', card],
     ['primary hover text on card', 'hf-primary-hover', card],
     ['warning status text on card', 'hf-warning-text', card],

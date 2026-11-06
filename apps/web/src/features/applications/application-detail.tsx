@@ -7,6 +7,7 @@ import { ApplicationStatus, PERMISSIONS } from '@hiflow/shared-types';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { DetailField } from '@/components/shared/detail-field';
 import { ApiErrorView } from '@/components/layout/api-error-view';
 import { PageHeader } from '@/components/layout/page-header';
 import { NotesSection } from '@/components/shared/notes-section';
@@ -35,21 +36,6 @@ import { APPLICATION_STATUS_MAP, isInProgress } from './constants';
 import { InterviewsTab } from './interviews-tab';
 import { OfferTab } from './offer-tab';
 import { ProgressTab } from './progress-tab';
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs text-hf-text-muted">{label}</dt>
-      <dd className="mt-0.5 text-sm text-hf-text-body">{children ?? '—'}</dd>
-    </div>
-  );
-}
 
 export function ApplicationDetail({ id }: { id: string }) {
   const queryClient = useQueryClient();
@@ -147,16 +133,22 @@ export function ApplicationDetail({ id }: { id: string }) {
           }
         >
           <dl className="grid gap-4 sm:grid-cols-2">
-            <Field label="Ứng viên">{candidateTitle}</Field>
-            <Field label="Email">{application.candidate?.email}</Field>
-            <Field label="Số điện thoại">
+            <DetailField label="Ứng viên">{candidateTitle}</DetailField>
+            <DetailField label="Email">
+              {application.candidate?.email}
+            </DetailField>
+            <DetailField label="Số điện thoại">
               {application.candidateDetail?.phone}
-            </Field>
-            <Field label="Tin tuyển dụng">{application.job?.title}</Field>
-            <Field label="Ngày nộp">{formatDate(application.appliedAt)}</Field>
-            <Field label="Người phụ trách">
+            </DetailField>
+            <DetailField label="Tin tuyển dụng">
+              {application.job?.title}
+            </DetailField>
+            <DetailField label="Ngày nộp">
+              {formatDate(application.appliedAt)}
+            </DetailField>
+            <DetailField label="Người phụ trách">
               {application.assignee?.name ?? 'Chưa phân công'}
-            </Field>
+            </DetailField>
           </dl>
         </SectionCard>
 

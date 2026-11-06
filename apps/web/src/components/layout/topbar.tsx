@@ -32,16 +32,20 @@ export function initialsOf(fullName: string): string {
 export function Topbar({ fullName, email, roleLabel, onSignOut }: TopbarProps) {
   return (
     <div className="flex h-14 shrink-0 items-center justify-end border-b border-hf-border bg-hf-bg-card px-4">
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" aria-label={`Tài khoản của ${fullName}`}>
+          <Button variant="ghost">
+            {/* The name comes from the content, so a screen reader and a voice-control user say the same words. */}
+            <span className="sr-only">Tài khoản của {fullName}</span>
             <span
               aria-hidden="true"
               className="flex size-7 items-center justify-center rounded-hf-control bg-hf-primary text-xs font-semibold text-hf-primary-foreground"
             >
               {initialsOf(fullName)}
             </span>
-            <span className="hidden text-sm sm:inline">{fullName}</span>
+            <span aria-hidden="true" className="hidden text-sm sm:inline">
+              {fullName}
+            </span>
             <ChevronDown aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>

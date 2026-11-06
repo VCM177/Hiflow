@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { USER_ROLE_LABEL, type UserRole } from '@hiflow/shared-types';
 
+import { DetailField } from '@/components/shared/detail-field';
 import { ApiErrorView } from '@/components/layout/api-error-view';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/shared/section-card';
@@ -15,23 +16,6 @@ import { queryKeys } from '@/lib/query/keys';
 import { fetchAuditEvent, type AuditEventFull } from './audit-api';
 import { ORIGIN_LABEL, ROW_OP_LABEL } from './constants';
 import { describeChanges } from './row-changes';
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-hf-text-muted">{label}</dt>
-      <dd className="mt-0.5 text-sm break-words text-hf-text-body">
-        {children ?? '—'}
-      </dd>
-    </div>
-  );
-}
 
 function RowChange({
   change,
@@ -114,29 +98,29 @@ export function AuditDetail({ id }: { id: string }) {
       <div className="flex max-w-4xl flex-col gap-6">
         <SectionCard title="Sự kiện">
           <dl className="grid gap-4 sm:grid-cols-2">
-            <Field label="Người thực hiện (lúc đó)">
+            <DetailField label="Người thực hiện (lúc đó)">
               {event.actor.name ?? 'Khách'}
               {event.actor.role &&
                 ` · ${USER_ROLE_LABEL[event.actor.role as UserRole] ?? event.actor.role}`}
-            </Field>
-            <Field label="Đối tượng">
+            </DetailField>
+            <DetailField label="Đối tượng">
               {event.entityType}
               {event.entityId && (
                 <span className="block text-xs text-hf-text-muted">
                   {event.entityId}
                 </span>
               )}
-            </Field>
-            <Field label="Nguồn">
+            </DetailField>
+            <DetailField label="Nguồn">
               {ORIGIN_LABEL[event.origin as keyof typeof ORIGIN_LABEL] ??
                 event.origin}
-            </Field>
-            <Field label="Địa chỉ IP">{event.ip}</Field>
-            <div className="sm:col-span-2">
-              <Field label="Trình duyệt">{event.userAgent}</Field>
-            </div>
-            <Field label="Mã giao dịch">{event.txId}</Field>
-            <Field label="Mã yêu cầu">{event.requestId}</Field>
+            </DetailField>
+            <DetailField label="Địa chỉ IP">{event.ip}</DetailField>
+            <DetailField label="Trình duyệt" className="sm:col-span-2">
+              {event.userAgent}
+            </DetailField>
+            <DetailField label="Mã giao dịch">{event.txId}</DetailField>
+            <DetailField label="Mã yêu cầu">{event.requestId}</DetailField>
           </dl>
         </SectionCard>
 
