@@ -53,6 +53,7 @@ export async function openJob(
   admin: APIRequestContext,
   title: string,
   quantity = 3,
+  departmentId?: string,
 ): Promise<{ jobId: string; requisitionId: string }> {
   const positions = await json<{ items: { id: string }[] }>(
     admin,
@@ -71,7 +72,7 @@ export async function openJob(
     {
       title,
       positionId: positions.items[0].id,
-      departmentId: departments.items[0].id,
+      departmentId: departmentId ?? departments.items[0].id,
       quantity,
     },
   );
