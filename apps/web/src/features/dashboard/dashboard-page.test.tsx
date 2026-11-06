@@ -27,7 +27,7 @@ vi.mock('@/providers/session-provider', () => ({
   useSession: () => {
     const granted = ROLE_PERMISSIONS[role] as readonly Permission[];
     return {
-      user: { id: 'me', role },
+      user: { id: 'me', role, permissions: granted },
       can: (p: Permission) => can(granted, p),
     };
   },
