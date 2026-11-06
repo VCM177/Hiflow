@@ -89,7 +89,7 @@ The backend passed its first gate (12 modules, 71 documented routes, 111 unit te
 
 **Next, in order:**
 
-1. Web infrastructure, ported per `docs/port-manifest.md`: theme tokens, ui primitives, API client and core libs, session and layout shell, shared components (nothing feature-specific until this is done). A dependency is added in the same commit as its first importer.
+1. Web infrastructure, ported per `docs/port-manifest.md`: theme tokens, ui primitives, API client and core libs, session and layout shell, shared components (nothing feature-specific until this is done). A dependency is added in the same commit as its first importer. **Status (2026-11-06):** all of it is written and unit-tested, including the sample Catalogs page; B5 closes when that page has run against a real API in the browser, which waits on three pending migrations (see `docs/handoff-local-web-3.md`).
 2. Web modules, one by one, in dependency order.
 
 ## Known gaps
