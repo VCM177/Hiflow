@@ -18,11 +18,12 @@ Chỉ web: `npm run dev -w @hiflow/web`. Web cần API chạy ở `API_ORIGIN`.
 
 Sao `.env.example` thành `.env.local` khi cần đổi giá trị. Không có biến nào có tiền tố `NEXT_PUBLIC_` chứa bí mật.
 
-| Biến                             | Phía      | Ý nghĩa                                                                                      |
-| -------------------------------- | --------- | -------------------------------------------------------------------------------------------- |
-| `API_ORIGIN`                     | máy chủ   | Địa chỉ gốc của API. Trình duyệt không gọi thẳng API, chỉ gọi `/api/*` của web.              |
-| `PROXY_SECRET`                   | máy chủ   | Cùng giá trị với `PROXY_SECRET` của API; route chuyển tiếp thêm vào `x-hiflow-proxy-secret`. |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | công khai | Khóa site của Cloudflare Turnstile (không phải khóa bí mật).                                 |
+| Biến                             | Phía      | Ý nghĩa                                                                                                                           |
+| -------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `API_ORIGIN`                     | máy chủ   | Địa chỉ gốc của API. Trình duyệt không gọi thẳng API, chỉ gọi `/api/*` của web.                                                   |
+| `PROXY_SECRET`                   | máy chủ   | Cùng giá trị với `PROXY_SECRET` của API; route chuyển tiếp thêm vào `x-hiflow-proxy-secret`.                                      |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | công khai | Khóa site của Cloudflare Turnstile (không phải khóa bí mật).                                                                      |
+| `SITE_URL`                       | máy chủ   | Địa chỉ công khai của web, không có dấu `/` cuối. Dùng cho sitemap, địa chỉ chuẩn và dữ liệu `JobPosting`; bắt buộc ở production. |
 
 ## Phiên đăng nhập và proxy
 
@@ -57,3 +58,18 @@ npm run test:e2e -w @hiflow/web
 - Kiểu, nhãn trạng thái và quyền lấy từ `@hiflow/shared-types`; không khai báo lại enum ở web.
 - Tầng giao diện dùng chung (`components/ui`, `components/layout`, `components/shared`, `lib`, `hooks`, `providers`) chỉ được port theo `docs/port-manifest.md`.
 - Phụ thuộc npm được thêm trong cùng commit với nơi dùng đầu tiên.
+
+## Triển khai
+
+Danh sách kiểm trước khi đưa lên production (đối chiếu `node_modules/next/dist/docs/01-app/02-guides/production-checklist.md`):
+
+| Hạng mục             | Việc cần làm                                                                                                                                                                                                                                                                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Biến môi trường      | Đặt `API_ORIGIN`, `PROXY_SECRET` (cùng giá trị với API), `SITE_URL`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`. Khóa Turnstile bí mật chỉ nằm ở API (`TURNSTILE_SECRET`). `.env*` đã được git bỏ qua.                                                                                              |
+| API                  | `NODE_ENV=production`, `WEB_ORIGIN` là địa chỉ web (danh sách đúng từng origin, không `*`), `PROXY_SECRET`, `TRUST_PROXY`, `REDIS_URL`, `TURNSTILE_SECRET`, `STORAGE_DRIVER=supabase`, `MAIL_DRIVER=resend` (xem `CLAUDE.md`, mục Environment).                                           |
+| `TRUST_PROXY`        | Bằng số lớp proxy giữa khách và API, **kể cả web**. Web gọi thẳng API thì là `1`; nếu có thêm CDN hay bộ cân bằng tải trước web thì cộng thêm. Sai số này thì giới hạn tốc độ tính nhầm địa chỉ (mọi khách chung một ngưỡng, hoặc khách giả được `X-Forwarded-For`).                      |
+| Nền tảng đứng trước  | Phải tự đặt lại `X-Forwarded-For` (Vercel và các nền tảng tương tự làm việc này). Web không được nhận kết nối trực tiếp từ Internet.                                                                                                                                                      |
+| HTTPS                | Bắt buộc. Web gửi `Strict-Transport-Security` khi `NODE_ENV=production`; cookie phiên có `Secure`.                                                                                                                                                                                        |
+| Tiêu đề bảo mật      | `next.config.ts` gửi `X-Frame-Options`, `Content-Security-Policy` (chỉ `frame-ancestors`, `base-uri`, `form-action`, `object-src`: không có `script-src` vì cần nonce cho từng yêu cầu, ghi ở `docs/gate-b-audit.md`), `Referrer-Policy`, `Permissions-Policy`, `X-Content-Type-Options`. |
+| Công cụ tìm kiếm     | `/robots.txt` chỉ cho đọc `/careers`; `/sitemap.xml` liệt kê tin đang tuyển (đọc từ API lúc yêu cầu). Cần `SITE_URL` để địa chỉ là tuyệt đối.                                                                                                                                             |
+| Kiểm tra sau khi lên | `npm run build`, rồi mở `/careers`, một tin, `/login`, và chạy `npm run test:e2e -w @hiflow/web` trên môi trường thử (API và Postgres riêng, không phải dữ liệu thật).                                                                                                                    |
