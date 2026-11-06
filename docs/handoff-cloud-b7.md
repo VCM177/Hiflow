@@ -1,4 +1,4 @@
-# Handoff: web giai đoạn B, B7.1 đến B7.5 và B7.12 (phiên cloud)
+# Handoff: web giai đoạn B, B7.1 đến B7.7 và B7.12 (phiên cloud)
 
 Viết ngày 2026-11-06. Thay cho mục "B7" trong `docs/handoff-local-web-3.md` về trạng thái.
 
@@ -63,3 +63,25 @@ Dọn dẹp của spec: xóa hồ sơ và ứng viên `e2e-careers-*`; tin đã 
 - Danh sách chưa lọc nhiều trạng thái cùng lúc (API nhận một).
 - Chưa thử Tiptap trên điện thoại thật; thanh công cụ xuống dòng khi hẹp.
 - Phiên kế tiếp theo kế hoạch: B7.6, B7.7 (Ứng viên, Hồ sơ ứng tuyển, Offer).
+
+## Phiên 8: B7.6 và B7.7 (2026-11-06)
+
+**B7.6 Ứng viên** (`features/candidates/`). `/candidates` (lọc nguồn, khoảng ngày tạo; tìm theo tên hoặc email; cột có CV; ứng viên đã ẩn danh có nhãn), hộp thoại tạo, `/candidates/[id]` (thông tin, CV, ghi chú, lịch sử ứng tuyển có liên kết sang hồ sơ). CV: tải bằng liên kết `/api/candidates/:id/cv` mở tab mới với `prefetch={false}` (nếu để Link prefetch thì mỗi lần hiện trang đã ghi một sự kiện tải CV); tải lên kiểm tra PDF/DOCX và 5 MB ở trình duyệt; xóa qua xác nhận. Sửa ghi chú dùng `NotesSection` (quyền `candidate.note.create`, API có endpoint riêng), nên hộp thoại sửa không có ô ghi chú. Ẩn danh (HR, Admin) có hộp thoại nói rõ hậu quả; 409 của API hiện nguyên văn trong hộp thoại. Ứng viên đã ẩn danh: biểu ngữ, ẩn mọi nút sửa, tải lên, xóa CV, ghi chú. Trưởng bộ phận không có trang; Phỏng vấn viên thấy danh sách (API tự giới hạn).
+
+**B7.7 Hồ sơ ứng tuyển** (`features/applications/`). `/applications` (lọc trạng thái, phòng ban, người phụ trách, khoảng ngày nộp; đọc `?status=` từ địa chỉ nên các liên kết của Tổng quan dùng được), hộp thoại thêm hồ sơ (tìm ứng viên bằng ô gõ, chỉ tin đang tuyển, người phụ trách mặc định là Tuyển dụng đang đăng nhập, trùng thì 409 trong hộp thoại), `/applications/[id]` bốn tab:
+
+- **Tiến trình**: nút chuyển bậc là `statusActionsFor` (đúng `APPLICATION_TRANSITIONS`, bỏ Nhận việc; Đề nghị khóa kèm lý do khi chưa có vòng Đạt hoặc còn vòng chờ; Từ chối cần lý do; Ứng viên rút cần xác nhận), timeline lịch sử.
+- **Phỏng vấn**: các vòng và nút Đặt lịch (chỉ ở bậc Phỏng vấn, không còn vòng chờ, có `interview.item.create`). Hộp thoại đặt lịch nằm ở `features/interviews/` để B7.8 dùng lại (giờ nhập là giờ Việt Nam, gửi kèm `+07:00`, chặn quá khứ).
+- **Offer**: chỉ hiện ở bậc Đề nghị hoặc khi đã có offer, và chỉ với ai có `offer.item.view` (HR không có). Tạo, sửa khi chờ phản hồi, ghi nhận chấp nhận (hồ sơ thành Nhận việc) hoặc từ chối (hồ sơ thành Ứng viên rút; hộp thoại nói rõ). Quá hạn thì ẩn Chấp nhận.
+- **Ghi chú**: `NotesSection`.
+  Nút tải CV theo `hasCv`; tên ứng viên chỉ là liên kết với ai có `candidate.list.view` (Trưởng bộ phận vẫn thấy tên, email, điện thoại, CV). Đổi người phụ trách qua hộp thoại. Thêm `useUserOptions` (`/users/options`, 100 người, không gọi nếu thiếu `user.options.view`) và `FilterSelect` đã dùng chung.
+
+**Kiểm chứng.** `format:check`, `lint`, `typecheck`, `build` exit 0; `npm test` API 348, web 103 tệp. Playwright toàn bộ 45 test pass, thêm `candidates.spec.ts` (4) và `applications.spec.ts` (4): thêm ứng viên và email trùng, sửa, CV (sai định dạng bị chặn, tải lên, tải về, xóa), ghi chú, HR ẩn danh; thêm hồ sơ và trùng, Sàng lọc → Phỏng vấn → đặt lịch (giờ quá khứ bị từ chối) → Đề nghị bị khóa đến khi Phỏng vấn viên ghi Đạt (qua API, vì màn ghi kết quả thuộc B7.8) → tạo offer (lương 0 và hạn phản hồi sau ngày nhận việc bị chặn) → chấp nhận → Nhận việc; hồ sơ B: HR không có tab Offer, Trưởng bộ phận không có liên kết sang ứng viên, ứng viên từ chối → Ứng viên rút; lọc danh sách; ẩn danh ứng viên A bị chặn (đã nhận việc), B thì được.
+
+**Dữ liệu spec để lại.** Hồ sơ đã chuyển bậc, tin đã đăng và yêu cầu đã duyệt không xóa được qua API: mỗi lần chạy `applications.spec.ts` còn lại một yêu cầu đã duyệt, một tin, hai hồ sơ và hai ứng viên tên `E2E-...` (B đã ẩn danh). `candidates.spec.ts` để lại một ứng viên đã ẩn danh. Xóa bằng role owner nếu cần DB sạch.
+
+**Chưa làm / cần xác nhận.**
+
+- Màn ghi kết quả phỏng vấn, sửa và hủy lịch, danh sách và chi tiết lịch phỏng vấn: B7.8. Trong tab Phỏng vấn của hồ sơ hiện chỉ có xem và đặt lịch.
+- Hộp thoại thêm hồ sơ chỉ tìm tối đa 20 ứng viên mỗi lần gõ; chưa có nút "Thêm hồ sơ" ngay trên trang ứng viên (hộp thoại đã nhận `candidateId` sẵn).
+- Phiên kế tiếp theo kế hoạch: B7.8 (Lịch phỏng vấn), rồi B7.9 đến B7.11 (Tổng quan, Báo cáo, Nhật ký kiểm toán).
