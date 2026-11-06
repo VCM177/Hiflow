@@ -1,4 +1,4 @@
-# Handoff: web giai đoạn B, B7.1 cổng công khai (phiên cloud)
+# Handoff: web giai đoạn B, B7.1 đến B7.3 và B7.12 (phiên cloud)
 
 Viết ngày 2026-11-06. Thay cho mục "B7" trong `docs/handoff-local-web-3.md` về trạng thái.
 
@@ -23,3 +23,21 @@ Dọn dẹp của spec: xóa hồ sơ và ứng viên `e2e-careers-*`; tin đã 
 - Spec Playwright chưa chạy ở chế độ có Turnstile thật; khóa kiểm thử của Cloudflare (`1x00000000000000000000AA`) luôn qua.
 - Chưa kiểm tra trên điện thoại thật (bố cục một cột, `max-w-3xl`).
 - B7.2 trở đi (Danh mục đã có trang mẫu B5; còn Người dùng, Hồ sơ cá nhân, Yêu cầu, Tin, Ứng viên, Hồ sơ ứng tuyển, Lịch phỏng vấn, Tổng quan, Báo cáo, Nhật ký). Theo `docs/web-plan-detail.md` mục 4, phiên 6 là B7.2, B7.3, B7.12.
+
+## Phiên 6: B7.2, B7.3, B7.12 (2026-11-06)
+
+**B7.2 Danh mục.** Trang đã có từ B5; thêm truy vấn tra cứu dùng chung `useDepartmentOptions` và `usePositionOptions` (`features/catalogs/options.ts`): `limit=100`, giữ 5 phút, **không gọi API** nếu vai trò thiếu `department.list.view` hoặc `position.list.view` (Phỏng vấn viên). `usePositionOptions` chưa có nơi dùng; B7.4 dùng.
+
+**B7.3 Người dùng** (`/users`, `features/users/`). Lọc vai trò, phòng ban, trạng thái; tìm theo tên và email; sắp xếp 4 cột; tạo, sửa, đổi vai trò, khóa/mở khóa (qua `ConfirmDialog`), đặt lại mật khẩu. Luật hiển thị gom ở `user-rules.ts`: không ai tự đổi vai trò hay tự khóa (nút khóa kèm lý do), HR không thấy nút nào trên tài khoản Admin và không có lựa chọn vai trò Admin. Phòng ban "không thuộc phòng ban nào" dùng giá trị chọn `none` (`NO_DEPARTMENT`), gửi `null` khi sửa và bỏ trường khi tạo.
+
+**B7.12 Hồ sơ cá nhân** (`/profile`, `features/profile/`). Sửa họ tên (cập nhật luôn tên ở thanh trên qua cache phiên), đổi mật khẩu: "mật khẩu hiện tại không đúng" hiện ở ô hiện tại và đưa focus về đó, mọi 400 khác hiện ở ô mật khẩu mới; mật khẩu mới trùng mật khẩu cũ bị chặn ở form. Thanh trên có mục "Hồ sơ cá nhân" (mục đầu của menu tài khoản; test bàn phím của thanh trên đã đổi theo).
+
+**Kiểm chứng.** `format:check`, `lint`, `typecheck`, `build` exit 0; `npm test` web 89 tệp, API 344 test. Playwright toàn bộ 32 test pass (session, catalogs, careers, users): `users.spec.ts` kiểm tra Admin sửa, đổi vai trò, khóa, mở khóa; không ai tự đổi vai trò hay tự khóa; HR với tài khoản Admin; recruiter không có trang; hồ sơ cá nhân đổi tên và mật khẩu rồi đăng nhập bằng mật khẩu mới ở trình duyệt khác.
+
+**Dữ liệu spec để lại.** API không xóa được tài khoản, nên `users.spec.ts` sở hữu đúng một tài khoản `e2e-users@example.com`: tạo nếu thiếu, đưa về trạng thái biết trước đầu mỗi lần chạy, và **khóa** sau khi chạy (nên chạy lại không sinh thêm tài khoản). Xóa bằng role owner nếu cần DB sạch.
+
+**Chưa làm / cần xác nhận.**
+
+- Đổi vai trò hay khóa người khác: giao diện chưa báo trước "người đó mất quyền ở lần gọi kế tiếp" ngoài câu trong hộp thoại; phía người bị tác động chỉ nhận 401 theo bảng 1.3.
+- Danh sách người dùng chưa lọc theo nhiều vai trò cùng lúc (API chỉ nhận một).
+- B7.4 trở đi chưa làm; phiên kế tiếp theo kế hoạch là B7.4, B7.5 (yêu cầu, tin tuyển dụng; B7.5 cần trình soạn mô tả Tiptap và làm sạch ở API).
