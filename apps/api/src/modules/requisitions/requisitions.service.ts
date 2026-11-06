@@ -210,9 +210,10 @@ export class RequisitionsService {
     apply('budgetMax', dto.budgetMax);
     apply(
       'expectedStartDate',
-      dto.expectedStartDate === undefined
-        ? undefined
-        : toDateOnly(dto.expectedStartDate),
+      // `null` clears the date; only a string has a date part to keep.
+      typeof dto.expectedStartDate === 'string'
+        ? toDateOnly(dto.expectedStartDate)
+        : dto.expectedStartDate,
     );
 
     if (changedFields.length > 0) {

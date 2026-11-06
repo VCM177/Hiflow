@@ -539,6 +539,35 @@ describe('Requisitions (e2e)', () => {
         .expect(400);
     });
 
+    it('clears optional fields when they are sent as null', async () => {
+      const req = await make('clear', manager, {
+        reason: 'Mở rộng',
+        expectedStartDate: '2027-01-15',
+        budgetMin: 5000000,
+        budgetMax: 9000000,
+      });
+
+      const cleared = (
+        await request(ctx.server)
+          .patch(`/requisitions/${req.id}`)
+          .set(bearer(manager))
+          .send({
+            reason: null,
+            expectedStartDate: null,
+            budgetMin: null,
+            budgetMax: null,
+          })
+          .expect(200)
+      ).body as Req & {
+        reason: string | null;
+        expectedStartDate: string | null;
+      };
+      expect(cleared.reason).toBeNull();
+      expect(cleared.expectedStartDate).toBeNull();
+      expect(cleared.budgetMin).toBeNull();
+      expect(cleared.budgetMax).toBeNull();
+    });
+
     it('cannot move a requisition to another department', async () => {
       const req = await make('no move');
 

@@ -158,6 +158,35 @@ describe('Jobs (e2e)', () => {
       expect(edited.description).toBe('<h2>Yêu cầu</h2>');
     });
 
+    it('clears optional details when they are sent as null', async () => {
+      const req = await approved(2);
+      const job = await makeJob(req, {
+        salaryMin: 5000000,
+        salaryMax: 9000000,
+        location: 'Hà Nội',
+        description: '<p>Mô tả</p>',
+      });
+      const cleared = (
+        await request(ctx.server)
+          .patch(`/jobs/${job.id}`)
+          .set(bearer(recruiter))
+          .send({
+            salaryMin: null,
+            salaryMax: null,
+            location: null,
+            description: null,
+          })
+          .expect(200)
+      ).body as JobBody & {
+        location: string | null;
+        description: string | null;
+      };
+      expect(cleared.salaryMin).toBeNull();
+      expect(cleared.salaryMax).toBeNull();
+      expect(cleared.location).toBeNull();
+      expect(cleared.description).toBeNull();
+    });
+
     it('refuses a requisition that is not approved', async () => {
       const draft = (
         await post(manager, '/requisitions', {
