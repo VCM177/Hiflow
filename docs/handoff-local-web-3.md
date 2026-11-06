@@ -11,7 +11,7 @@ Chủ dự án tạo một **nhánh Neon riêng cho integration test** (thông t
 - e2e của API: 649 pass, 1 hỏng. Chỗ hỏng là `throttle-redis.e2e-spec.ts` (không kết nối được Redis từ máy này, `MaxRetriesPerRequestError`), đúng mục SKIPPED còn mở ở Gate A. Cả bộ chạy 1703 s trên Neon.
 - Sau khi chạy: không còn bản ghi `E2E-`/`e2e-` nào, 5 tài khoản demo còn nguyên, 3 phòng ban và 8 vị trí như seed, không còn dòng audit gắn thẻ `e2e`.
 
-**Chưa làm: DB gốc (`apps/api/.env`) vẫn thiếu 3 migration đó và cũng chưa có role `hiflow_app`.** Cần chủ dự án quyết định riêng trước khi chạy `migration:run` ở đó (`EnforceAuditCapture` xóa bảng `activity_logs`).
+**DB gốc cũng đã được nâng cấp (2026-11-06, theo yêu cầu của chủ dự án).** Trước khi chạy: chỉ có 6 tài khoản demo, bảng `activity_logs` có 741 dòng log dev (20 đến 23/9). Đã sao lưu bảng đó ra một tệp JSON ngoài repo, tạo role `hiflow_app`, tách `apps/api/.env` thành `DATABASE_OWNER_URL` (owner) và `DATABASE_URL` (`hiflow_app`; bản `.env` cũ giữ ở `.env.before-audit-split`, git bỏ qua), rồi chạy 3 migration (exit 0). API khởi động bằng role giới hạn, `/health` 200, đăng nhập admin và `GET /departments` đều 200. Bảng `activity_logs` đã bị xóa theo thiết kế của `EnforceAuditCapture`.
 
 Cách chạy lại trên nhánh: nạp `DATABASE_URL` và `DATABASE_OWNER_URL` từ `apps/api/.env.integration` vào môi trường của tiến trình rồi chạy lệnh. **Không dùng `source` của bash**: chuỗi kết nối Neon có ký tự `&` nên bash cắt mất biến. Dùng một script Node (dotenv + `spawn`) hoặc `$env:` của PowerShell. Cài trình duyệt một lần bằng `npx playwright install chromium` trong `apps/web`.
 
@@ -73,6 +73,6 @@ Trang xem thử `/dev/components` (chỉ dev) dùng dữ liệu mẫu cho phần
 
 ## 5. Việc tiếp theo
 
-1. ~~Đóng B5 bằng e2e thật~~ (xong, xem mục 0). Còn lại: chủ dự án quyết định có chạy 3 migration trên DB gốc không.
-2. Báo chủ dự án để quyết định merge `feat/web-ui-port` vào `develop` (merge sạch, `develop` không có commit nào nhánh thiếu).
+1. ~~Đóng B5 bằng e2e thật~~ (xong, xem mục 0). 3 migration đã chạy trên cả nhánh test lẫn DB gốc.
+2. ~~Merge `feat/web-ui-port` vào `develop`~~ (xong, fast-forward).
 3. B7 (module quản trị) do phiên cloud làm khi B5 đóng.
