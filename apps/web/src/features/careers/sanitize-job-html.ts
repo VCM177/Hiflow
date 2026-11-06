@@ -1,3 +1,9 @@
+import {
+  JOB_HTML_ALLOWED_ATTRIBUTES,
+  JOB_HTML_ALLOWED_SCHEMES,
+  JOB_HTML_ALLOWED_TAGS,
+  JOB_HTML_LINK_ATTRIBUTES,
+} from '@hiflow/shared-types';
 import sanitizeHtml from 'sanitize-html';
 
 /**
@@ -6,33 +12,13 @@ import sanitizeHtml from 'sanitize-html';
  * handlers, iframes, styles, and any link that is not http(s) or mailto.
  */
 const OPTIONS: sanitizeHtml.IOptions = {
-  allowedTags: [
-    'p',
-    'br',
-    'strong',
-    'b',
-    'em',
-    'i',
-    'u',
-    's',
-    'ul',
-    'ol',
-    'li',
-    'h2',
-    'h3',
-    'h4',
-    'blockquote',
-    'a',
-  ],
-  allowedAttributes: { a: ['href', 'rel', 'target'] },
-  allowedSchemes: ['http', 'https', 'mailto'],
+  allowedTags: [...JOB_HTML_ALLOWED_TAGS],
+  allowedAttributes: { ...JOB_HTML_ALLOWED_ATTRIBUTES },
+  allowedSchemes: [...JOB_HTML_ALLOWED_SCHEMES],
   allowProtocolRelative: false,
   disallowedTagsMode: 'discard',
   transformTags: {
-    a: sanitizeHtml.simpleTransform('a', {
-      rel: 'noopener noreferrer nofollow',
-      target: '_blank',
-    }),
+    a: sanitizeHtml.simpleTransform('a', { ...JOB_HTML_LINK_ATTRIBUTES }),
   },
 };
 

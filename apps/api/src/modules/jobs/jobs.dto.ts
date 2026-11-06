@@ -14,6 +14,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { sanitizeJobHtmlTransform } from '../../common/sanitize-job-html';
 import { PaginationQueryDto } from '../../common/pagination/pagination-query.dto';
 
 const trim = ({ value }: { value: unknown }) =>
@@ -85,7 +86,9 @@ export class CreateJobDto {
   @MaxLength(200)
   location?: string;
 
+  /** Rich text; cleaned here so scripts never reach the database. */
   @IsOptional()
+  @Transform(sanitizeJobHtmlTransform)
   @IsString()
   @MaxLength(20000)
   description?: string;

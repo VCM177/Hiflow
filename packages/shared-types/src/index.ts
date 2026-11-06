@@ -7,3 +7,4 @@ export * from './jsonified';
 export * from './pagination';
 export * from './views';
 export * from './labels';
+export * from './job-html';

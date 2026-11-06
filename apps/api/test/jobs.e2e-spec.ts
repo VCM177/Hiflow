@@ -135,6 +135,29 @@ describe('Jobs (e2e)', () => {
       });
     });
 
+    it('strips scripts and handlers from the description on create and on edit', async () => {
+      const req = await approved(2);
+      const job = await makeJob(req, {
+        description:
+          '<p onclick="x()">Mô tả</p><script>alert(1)</script><a href="javascript:alert(1)">bấm</a>',
+      });
+      const stored = job as JobBody & { description: string };
+      expect(stored.description).toContain('<p>Mô tả</p>');
+      expect(stored.description).not.toMatch(/script|onclick|javascript/i);
+
+      const edited = (
+        await request(ctx.server)
+          .patch(`/jobs/${job.id}`)
+          .set(bearer(recruiter))
+          .send({
+            description:
+              '<h2>Yêu cầu</h2><iframe src="https://e.test"></iframe>',
+          })
+          .expect(200)
+      ).body as { description: string };
+      expect(edited.description).toBe('<h2>Yêu cầu</h2>');
+    });
+
     it('refuses a requisition that is not approved', async () => {
       const draft = (
         await post(manager, '/requisitions', {
