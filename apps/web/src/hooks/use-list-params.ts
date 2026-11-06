@@ -4,7 +4,11 @@ import { useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { z } from 'zod';
 
-import { parseListParams, serializeListParams } from '@/lib/list-params';
+import {
+  parseListParams,
+  serializeListParams,
+  type ParsedListParams,
+} from '@/lib/list-params';
 
 // Keys that are paging or sorting, not filters: they never count toward "active filters".
 const NON_FILTER_KEYS = new Set(['page', 'limit', 'sortBy', 'sortDir']);
@@ -79,5 +83,11 @@ export function useListParams<TShape extends Record<string, z.ZodType>>(
     });
   }, [shape, defaults, params, pathname, router]);
 
-  return { params, setParams, resetFilters, hasActiveFilters } as const;
+  return {
+    // Typed by the schema, so a page reads `params.page` as a number and `params.sortBy` as its union.
+    params: params as ParsedListParams<TShape>,
+    setParams,
+    resetFilters,
+    hasActiveFilters,
+  } as const;
 }

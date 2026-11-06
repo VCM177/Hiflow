@@ -18,6 +18,11 @@ export const listBaseShape = {
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
+/** The values of a list's parameters, each with the type its schema produces. */
+export type ParsedListParams<TShape extends Record<string, z.ZodType>> = {
+  [K in keyof TShape]: z.output<TShape[K]>;
+};
+
 /**
  * Reads the parameters from a URL. Each key is parsed with its own schema, so one
  * invalid filter is dropped and the others still apply. A key with no schema is ignored.
@@ -25,7 +30,7 @@ export type RawSearchParams = Record<string, string | string[] | undefined>;
 export function parseListParams<TShape extends Record<string, z.ZodType>>(
   raw: RawSearchParams,
   shape: TShape,
-): { [K in keyof TShape]: z.output<TShape[K]> } {
+): ParsedListParams<TShape> {
   const parsed: Record<string, unknown> = {};
   for (const key of Object.keys(shape)) {
     const schema = shape[key];
@@ -34,7 +39,7 @@ export function parseListParams<TShape extends Record<string, z.ZodType>>(
     const result = schema.safeParse(value);
     parsed[key] = result.success ? result.data : undefined;
   }
-  return parsed as { [K in keyof TShape]: z.output<TShape[K]> };
+  return parsed as ParsedListParams<TShape>;
 }
 
 /**

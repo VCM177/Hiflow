@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { listBaseShape } from '@/lib/list-params';
@@ -32,6 +32,15 @@ describe('useListParams', () => {
     expect(result.current.params.page).toBe(3);
     expect(result.current.params.status).toBeUndefined();
     expect(result.current.hasActiveFilters).toBe(false);
+  });
+
+  it('types each parameter by its schema, so a page needs no casts', () => {
+    const { result } = renderHook(() => useListParams(SHAPE));
+    expectTypeOf(result.current.params.page).toEqualTypeOf<number>();
+    expectTypeOf(result.current.params.search).toEqualTypeOf<string>();
+    expectTypeOf(result.current.params.status).toEqualTypeOf<
+      'new' | 'interview' | undefined
+    >();
   });
 
   it('reports an active filter when one is set', () => {
