@@ -21,7 +21,8 @@ import {
   type ApplicationInput,
   type ApplicationOutput,
 } from './application-schema';
-import { CONSENT_LABEL, CV_HINT } from './constants';
+import { CONSENT_LABEL } from './constants';
+import { CV_HINT } from '@/lib/validations';
 import { TurnstileWidget } from './turnstile-widget';
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;

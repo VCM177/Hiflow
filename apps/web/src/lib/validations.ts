@@ -93,6 +93,9 @@ export const offerSalarySchema = z
   .min(1, { error: 'Lương phải lớn hơn 0.' })
   .max(10_000_000_000, { error: 'Lương tối đa 10.000.000.000 ₫.' });
 
+/** Shown before a CV is chosen, so nobody picks a file that will be refused. */
+export const CV_HINT = 'PDF hoặc DOCX, tối đa 5 MB.';
+
 export const CV_MAX_BYTES = 5 * 1024 * 1024;
 const CV_EXTENSIONS = ['.pdf', '.docx'] as const;
 
