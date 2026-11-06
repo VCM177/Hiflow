@@ -34,10 +34,17 @@ export function RHFSelectField<TValues extends FieldValues>({
     options: readonly SelectOption[];
     placeholder?: string;
     disabled?: boolean;
+    /** Called with the new value after the form took it (to fill dependent fields). */
+    onValueChange?: (value: string) => void;
   };
 }) {
   const { field, fieldState } = useController({ control, name });
-  const { options, placeholder = 'Chọn...', disabled } = selectProps;
+  const {
+    options,
+    placeholder = 'Chọn...',
+    disabled,
+    onValueChange,
+  } = selectProps;
   return (
     <FormField
       label={label}
@@ -49,7 +56,10 @@ export function RHFSelectField<TValues extends FieldValues>({
         <Select
           name={field.name}
           value={(field.value as string | undefined) ?? ''}
-          onValueChange={field.onChange}
+          onValueChange={(next) => {
+            field.onChange(next);
+            onValueChange?.(next);
+          }}
           disabled={disabled}
         >
           <SelectTrigger {...control} ref={field.ref} onBlur={field.onBlur}>

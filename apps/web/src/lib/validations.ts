@@ -154,3 +154,46 @@ function startOfDay(date: Date): Date {
   copy.setHours(0, 0, 0, 0);
   return copy;
 }
+
+/** A whole-number count typed in a text box, from `min` to `max`: "5" → 5. */
+export function countSchema(min: number, max: number, label: string) {
+  const name = `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+  return z
+    .string()
+    .trim()
+    .min(1, { error: `Vui lòng nhập ${label}.` })
+    .transform((value, context) => {
+      const count = Number(value);
+      const problem = !Number.isFinite(count)
+        ? `${name} phải là số.`
+        : !Number.isInteger(count)
+          ? `${name} phải là số nguyên.`
+          : count < min
+            ? `${name} tối thiểu ${min}.`
+            : count > max
+              ? `${name} tối đa ${max}.`
+              : null;
+      if (problem) {
+        context.addIssue({ code: 'custom', message: problem });
+        return z.NEVER;
+      }
+      return count;
+    });
+}
+
+/** An optional amount of money in VND typed in a text box: blank → undefined, "5000000" → 5000000. */
+export const optionalAmountSchema = z
+  .string()
+  .trim()
+  .transform((value, context) => {
+    if (value === '') return undefined;
+    const amount = Number(value.replace(/[.,\s]/g, ''));
+    if (!Number.isInteger(amount) || amount < 0) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Số tiền phải là số nguyên không âm.',
+      });
+      return z.NEVER;
+    }
+    return amount;
+  });

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   categoryCodeSchema,
   consentSchema,
+  countSchema,
   cvFileError,
   emailSchema,
   internalFullNameSchema,
@@ -10,6 +11,7 @@ import {
   isOldEnough,
   offerDatesError,
   offerSalarySchema,
+  optionalAmountSchema,
   passwordSchema,
   phoneSchema,
   publicFullNameSchema,
@@ -225,5 +227,26 @@ describe('age and date rules', () => {
     expect(
       offerDatesError(start, new Date('2026-11-25T00:00:00+07:00'), now),
     ).toBe('Hạn phản hồi không được sau ngày nhận việc.');
+  });
+});
+
+describe('countSchema', () => {
+  const schema = countSchema(1, 1000, 'số lượng');
+  it('reads a whole number from text', () => {
+    expect(schema.parse(' 5 ')).toBe(5);
+  });
+  it.each(['', 'abc', '0', '1001', '2.5'])('refuses %j', (value) => {
+    expect(schema.safeParse(value).success).toBe(false);
+  });
+});
+
+describe('optionalAmountSchema', () => {
+  it('turns blank into undefined and text into a number', () => {
+    expect(optionalAmountSchema.parse('')).toBeUndefined();
+    expect(optionalAmountSchema.parse('15.000.000')).toBe(15_000_000);
+  });
+  it('refuses negatives and words', () => {
+    expect(optionalAmountSchema.safeParse('-1').success).toBe(false);
+    expect(optionalAmountSchema.safeParse('abc').success).toBe(false);
   });
 });

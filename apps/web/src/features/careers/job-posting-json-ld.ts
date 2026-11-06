@@ -1,6 +1,6 @@
 import type { PublicJob } from '@/server/public-jobs';
 
-import { jobHtmlToText, sanitizeJobHtml } from './sanitize-job-html';
+import { jobHtmlToText, sanitizeJobHtml } from '@/lib/sanitize-job-html';
 
 export const ORGANIZATION_NAME = 'Hiflow';
 

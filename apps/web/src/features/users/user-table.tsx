@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { DataTable, type DataColumn } from '@/components/shared/data-table';
 import { EmptyState } from '@/components/shared/empty-state';
+import { FilterSelect } from '@/components/shared/filter-select';
 import { FilterToolbar } from '@/components/shared/filter-toolbar';
 import { IconButton } from '@/components/shared/icon-button';
 import { ListPagination } from '@/components/shared/list-pagination';
@@ -15,13 +16,6 @@ import { PermissionGate } from '@/components/shared/permission-gate';
 import { SectionCard } from '@/components/shared/section-card';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useDepartmentOptions } from '@/features/catalogs/options';
 import { useListParams } from '@/hooks/use-list-params';
 import { formatDate } from '@/lib/format';
@@ -39,8 +33,6 @@ import {
 import { fetchUsers, type UserRow } from './user-api';
 import { rowRules } from './user-rules';
 
-const ALL = 'all';
-
 // A module constant: `useListParams` needs a stable schema object.
 const LIST_SHAPE = {
   ...listBaseShape,
@@ -56,39 +48,6 @@ export interface UserRowActions {
   onChangeRole: (user: UserRow) => void;
   onToggleActive: (user: UserRow) => void;
   onResetPassword: (user: UserRow) => void;
-}
-
-function FilterSelect({
-  label,
-  value,
-  allLabel,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string | undefined;
-  allLabel: string;
-  options: readonly { value: string; label: string }[];
-  onChange: (next: string | undefined) => void;
-}) {
-  return (
-    <Select
-      value={value ?? ALL}
-      onValueChange={(next) => onChange(next === ALL ? undefined : next)}
-    >
-      <SelectTrigger aria-label={label} className="w-44">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
 }
 
 const STATE_OPTIONS = [

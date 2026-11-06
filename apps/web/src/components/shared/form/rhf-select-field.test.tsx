@@ -84,4 +84,28 @@ describe('RHFSelectField', () => {
     expect(screen.getByRole('combobox', { name: /Phòng ban/ })).toBeInvalid();
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it('tells the caller the new value after a choice', async () => {
+    const onValueChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <FormHarness<Values>
+        schema={schema}
+        defaultValues={{ departmentId: '' }}
+        onSubmit={vi.fn()}
+      >
+        {(form) => (
+          <RHFSelectField
+            control={form.control}
+            name="departmentId"
+            label="Phòng ban"
+            selectProps={{ options: OPTIONS, onValueChange }}
+          />
+        )}
+      </FormHarness>,
+    );
+    await user.click(screen.getByRole('combobox', { name: /Phòng ban/ }));
+    await user.click(await screen.findByRole('option', { name: 'Nhân sự' }));
+    expect(onValueChange).toHaveBeenCalledWith('d2');
+  });
 });

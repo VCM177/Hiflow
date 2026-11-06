@@ -9,10 +9,7 @@ import {
   serializeJsonLd,
 } from '@/features/careers/job-posting-json-ld';
 import { jobPath, parseJobId } from '@/features/careers/job-url';
-import {
-  jobHtmlToText,
-  sanitizeJobHtml,
-} from '@/features/careers/sanitize-job-html';
+import { jobHtmlToText, sanitizeJobHtml } from '@/lib/sanitize-job-html';
 import { formatDate } from '@/lib/format';
 import { visitorForwardedFor } from '@/server/forwarded-for';
 import { fetchPublicJob } from '@/server/public-jobs';
