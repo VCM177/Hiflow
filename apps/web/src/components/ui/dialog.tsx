@@ -35,6 +35,30 @@ const DIALOG_SIZE_CLASSNAME = {
   xl: 'max-w-5xl',
 } as const;
 
+/** The last element that took focus outside any dialog. Tracked from the first use on, so a
+ * dialog can hand focus back to the control the person was on. */
+let lastOutside: HTMLElement | null = null;
+
+if (typeof document !== 'undefined') {
+  // `focus` in the capture phase: it reaches the document for every control, and jsdom does
+  // not always send `focusin`.
+  document.addEventListener(
+    'focus',
+    (event) => {
+      // Duck-typed: an `instanceof` check fails across realms (iframes, some test setups).
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        typeof target.closest === 'function' &&
+        !target.closest('[role="dialog"]')
+      ) {
+        lastOutside = target;
+      }
+    },
+    true,
+  );
+}
+
 interface DialogContentProps extends React.ComponentProps<
   typeof DialogPrimitive.Content
 > {
@@ -53,6 +77,7 @@ function DialogContent({
   preventDismiss = false,
   size = 'md',
   onEscapeKeyDown,
+  onCloseAutoFocus,
   ...props
 }: DialogContentProps) {
   return (
@@ -69,6 +94,16 @@ function DialogContent({
         onEscapeKeyDown={(event) => {
           if (preventDismiss) event.preventDefault();
           onEscapeKeyDown?.(event);
+        }}
+        onCloseAutoFocus={(event) => {
+          // Focus cannot leave the dialog while it is open (outside clicks are refused and Tab
+          // stays inside), so the last element focused outside is still the one that opened it.
+          const opener = lastOutside;
+          if (opener?.isConnected) {
+            event.preventDefault();
+            opener.focus();
+          }
+          onCloseAutoFocus?.(event);
         }}
         {...props}
       >

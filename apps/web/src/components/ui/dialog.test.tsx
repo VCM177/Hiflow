@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -103,5 +104,33 @@ describe('Dialog', () => {
     await user.click(screen.getByRole('button', { name: 'Xóa tin' }));
     await user.click(screen.getByRole('button', { name: 'Xác nhận xóa' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns focus to the control that opened it when it was opened from state', async () => {
+    function FromState() {
+      const [open, setOpen] = React.useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Mở hộp thoại
+          </button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent>
+              <DialogTitle>Từ trạng thái</DialogTitle>
+              <button type="button">Trong hộp</button>
+            </DialogContent>
+          </Dialog>
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<FromState />);
+    const opener = screen.getByRole('button', { name: 'Mở hộp thoại' });
+    await user.click(opener);
+    expect(
+      await screen.findByRole('dialog', { name: 'Từ trạng thái' }),
+    ).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(opener).toHaveFocus());
   });
 });
