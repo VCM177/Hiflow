@@ -93,4 +93,54 @@ describe('useListParams', () => {
     });
     expect(replace).toHaveBeenCalledWith('/candidates', { scroll: false });
   });
+
+  it('builds a second change on the first when the URL has not caught up yet', () => {
+    const { result } = renderHook(() => useListParams(SHAPE));
+    act(() => {
+      result.current.setParams({ search: 'an' });
+      result.current.setParams({ status: 'new' });
+    });
+    expect(replace).toHaveBeenLastCalledWith(
+      '/candidates?search=an&status=new',
+      { scroll: false },
+    );
+  });
+
+  it('starts from the URL again once it has changed', () => {
+    const { result, rerender } = renderHook(() => useListParams(SHAPE));
+    act(() => {
+      result.current.setParams({ search: 'an' });
+    });
+    currentQuery = 'status=interview';
+    rerender();
+    act(() => {
+      result.current.setParams({ search: 'binh' });
+    });
+    expect(replace).toHaveBeenLastCalledWith(
+      '/candidates?search=binh&status=interview',
+      { scroll: false },
+    );
+  });
+
+  it('does not invent a page for a list that has none', () => {
+    const { result } = renderHook(() =>
+      useListParams({ from: z.string().optional().catch(undefined) }),
+    );
+    act(() => {
+      result.current.setParams({ from: '2026-10-01' });
+    });
+    expect(replace).toHaveBeenCalledWith('/candidates?from=2026-10-01', {
+      scroll: false,
+    });
+  });
+
+  it('gives the query string with a change the URL has not caught up with', () => {
+    currentQuery = 'status=new';
+    const { result } = renderHook(() => useListParams(SHAPE));
+    expect(result.current.queryString()).toBe('status=new');
+    act(() => {
+      result.current.setParams({ search: 'an' });
+    });
+    expect(result.current.queryString()).toBe('search=an&status=new');
+  });
 });

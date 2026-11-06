@@ -64,7 +64,7 @@ export function ReportsPage({ type }: { type: ReportType }) {
   const departments = useDepartmentOptions();
   const positions = usePositionOptions();
   const [exporting, setExporting] = React.useState(false);
-  const { params, setParams, resetFilters, hasActiveFilters } =
+  const { params, setParams, resetFilters, queryString, hasActiveFilters } =
     useListParams(SHAPE);
   const request = {
     from: params.from,
@@ -135,9 +135,7 @@ export function ReportsPage({ type }: { type: ReportType }) {
         onValueChange={(next) => {
           if (isReportType(next)) {
             // The period and filters stay when the tab changes.
-            const search = new URLSearchParams(
-              window.location.search,
-            ).toString();
+            const search = queryString();
             router.push(`/reports/${next}${search ? `?${search}` : ''}`);
           }
         }}
