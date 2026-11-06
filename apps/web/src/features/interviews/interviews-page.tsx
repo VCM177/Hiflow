@@ -1,7 +1,7 @@
 'use client';
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { PERMISSIONS } from '@hiflow/shared-types';
+import { PERMISSIONS, USER_OPTION_PURPOSE } from '@hiflow/shared-types';
 import { z } from 'zod';
 
 import { ErrorView } from '@/components/layout/api-error-view';
@@ -65,7 +65,7 @@ const ROUND_OPTIONS = Array.from({ length: MAX_ROUND }, (_, index) => ({
 
 export function InterviewsPage() {
   const { can } = useSession();
-  const interviewers = useUserOptions('INTERVIEWER');
+  const interviewers = useUserOptions(USER_OPTION_PURPOSE.INTERVIEWER);
   const { params, setParams, resetFilters, hasActiveFilters } =
     useListParams(LIST_SHAPE);
   const { page, limit, search, sortBy, sortDir, scheduledFrom, scheduledTo } =

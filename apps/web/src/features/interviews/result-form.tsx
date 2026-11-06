@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { InterviewResult } from '@hiflow/shared-types';
 import { useForm } from 'react-hook-form';
 
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -10,12 +11,12 @@ import { RHFTextareaField } from '@/components/shared/form/rhf-textarea-field';
 import { SectionCard } from '@/components/shared/section-card';
 import { Button } from '@/components/ui/button';
 
-import { resultSchema, toResultBody, type ResultValues } from './result-schema';
-
-const RESULT_OPTIONS = [
-  { value: 'PASSED', label: 'Đạt' },
-  { value: 'FAILED', label: 'Không đạt' },
-];
+import {
+  RESULT_OPTIONS,
+  resultSchema,
+  toResultBody,
+  type ResultValues,
+} from './result-schema';
 
 /**
  * The interviewer's verdict. The form checks it, then asks once more: a result cannot be
@@ -71,7 +72,7 @@ export function ResultForm({
         onOpenChange={setOpen}
         title="Ghi kết quả phỏng vấn"
         description={
-          pending?.result === 'FAILED'
+          pending?.result === InterviewResult.FAILED
             ? 'Ghi kết quả Không đạt. Kết quả không thể thay đổi sau khi ghi.'
             : 'Ghi kết quả Đạt. Kết quả không thể thay đổi sau khi ghi.'
         }

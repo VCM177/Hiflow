@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { USER_OPTION_PURPOSE } from '@hiflow/shared-types';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -25,7 +26,7 @@ export function AssigneeDialog({
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: AssigneeValues) => Promise<void>;
 }) {
-  const assignees = useUserOptions('ASSIGNEE');
+  const assignees = useUserOptions(USER_OPTION_PURPOSE.ASSIGNEE);
   const form = useForm<AssigneeValues>({
     resolver: zodResolver(schema),
     defaultValues: { assigneeId: current ?? NO_ASSIGNEE },

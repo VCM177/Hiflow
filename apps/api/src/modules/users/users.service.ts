@@ -1,4 +1,9 @@
-import { UserRole, type UserOption, type UserView } from '@hiflow/shared-types';
+import {
+  USER_OPTION_PURPOSE,
+  UserRole,
+  type UserOption,
+  type UserView,
+} from '@hiflow/shared-types';
 import {
   BadRequestException,
   ForbiddenException,
@@ -86,9 +91,9 @@ export class UsersService {
    */
   async options(query: UserOptionsQueryDto): Promise<Paginated<UserOption>> {
     const roles =
-      query.purpose === 'ASSIGNEE'
+      query.purpose === USER_OPTION_PURPOSE.ASSIGNEE
         ? ASSIGNABLE_ROLES
-        : query.purpose === 'INTERVIEWER'
+        : query.purpose === USER_OPTION_PURPOSE.INTERVIEWER
           ? INTERVIEWER_ROLES
           : [...new Set([...ASSIGNABLE_ROLES, ...INTERVIEWER_ROLES])];
 

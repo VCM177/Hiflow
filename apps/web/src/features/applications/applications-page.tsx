@@ -7,7 +7,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { PERMISSIONS } from '@hiflow/shared-types';
+import { PERMISSIONS, USER_OPTION_PURPOSE } from '@hiflow/shared-types';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -75,7 +75,7 @@ export function ApplicationsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const departments = useDepartmentOptions();
-  const assignees = useUserOptions('ASSIGNEE');
+  const assignees = useUserOptions(USER_OPTION_PURPOSE.ASSIGNEE);
   const [dialogKey, setDialogKey] = React.useState<number | null>(null);
   const [open, setOpen] = React.useState(false);
   const { params, setParams, resetFilters, hasActiveFilters } =

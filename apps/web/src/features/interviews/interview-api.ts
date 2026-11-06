@@ -9,6 +9,9 @@ import { apiRequest } from '@/lib/api/client';
 
 export type Interview = Jsonified<InterviewView>;
 
+/** The two verdicts an interviewer can record. */
+export type RecordableResult = InterviewResult.PASSED | InterviewResult.FAILED;
+
 export const scheduleInterview = (body: {
   applicationId: string;
   interviewerId: string;
@@ -51,6 +54,6 @@ export const cancelInterview = (id: string): Promise<Interview> =>
 
 export const recordInterviewResult = (
   id: string,
-  body: { result: 'PASSED' | 'FAILED'; feedback?: string },
+  body: { result: RecordableResult; feedback?: string },
 ): Promise<Interview> =>
   apiRequest('POST', `/interviews/${id}/result`, { body });

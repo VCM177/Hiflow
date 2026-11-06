@@ -12,6 +12,16 @@ export interface UserView {
   createdAt: Date;
 }
 
+/** Who the caller is choosing a person for (`GET /users/options?purpose=`). */
+export const USER_OPTION_PURPOSE = {
+  ASSIGNEE: 'ASSIGNEE',
+  INTERVIEWER: 'INTERVIEWER',
+} as const;
+export type UserOptionPurpose =
+  (typeof USER_OPTION_PURPOSE)[keyof typeof USER_OPTION_PURPOSE];
+export const USER_OPTION_PURPOSES: readonly UserOptionPurpose[] =
+  Object.values(USER_OPTION_PURPOSE);
+
 /** The few fields needed to pick a person in a form; no contact details. */
 export interface UserOption {
   id: string;

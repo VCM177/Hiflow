@@ -4,14 +4,13 @@ import {
   type Jsonified,
   type Paginated,
   type UserOption,
+  type UserOptionPurpose,
 } from '@hiflow/shared-types';
 
 import type { SelectOption } from '@/components/shared/form/rhf-select-field';
 import { apiRequest } from '@/lib/api/client';
 import { queryKeys } from '@/lib/query/keys';
 import { useSession } from '@/providers/session-provider';
-
-export type UserOptionPurpose = 'ASSIGNEE' | 'INTERVIEWER';
 
 const OPTIONS_LIMIT = 100;
 const FIVE_MINUTES = 5 * 60 * 1000;

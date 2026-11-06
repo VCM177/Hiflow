@@ -1,4 +1,8 @@
-import { UserRole } from '@hiflow/shared-types';
+import {
+  USER_OPTION_PURPOSES,
+  UserRole,
+  type UserOptionPurpose,
+} from '@hiflow/shared-types';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
@@ -44,13 +48,10 @@ export class ListUsersQueryDto extends PaginationQueryDto {
   sortBy: 'fullName' | 'email' | 'role' | 'createdAt' = 'createdAt';
 }
 
-/** Who the caller is choosing a person for. */
-export const USER_OPTION_PURPOSES = ['ASSIGNEE', 'INTERVIEWER'] as const;
-
 export class UserOptionsQueryDto extends PaginationQueryDto {
   @IsOptional()
-  @IsIn(USER_OPTION_PURPOSES)
-  purpose?: (typeof USER_OPTION_PURPOSES)[number];
+  @IsIn([...USER_OPTION_PURPOSES])
+  purpose?: UserOptionPurpose;
 
   @IsIn(['fullName'])
   sortBy = 'fullName' as const;

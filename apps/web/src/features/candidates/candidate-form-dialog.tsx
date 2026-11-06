@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CandidateSource } from '@hiflow/shared-types';
 import { useForm } from 'react-hook-form';
 
 import { RHFDateField } from '@/components/shared/form/rhf-date-field';
@@ -35,7 +36,7 @@ export function CandidateFormDialog({
       email: candidate?.email ?? '',
       phone: candidate?.phone ?? '',
       dob: candidate?.dob?.slice(0, 10) ?? '',
-      source: candidate?.source ?? 'OTHER',
+      source: candidate?.source ?? CandidateSource.OTHER,
       note: '',
     },
   });

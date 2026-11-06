@@ -37,6 +37,7 @@ import {
   recordInterviewResult,
   updateInterview,
   type Interview,
+  type RecordableResult,
 } from './interview-api';
 import { ResultForm } from './result-form';
 import { ScheduleDialog } from './schedule-dialog';
@@ -67,7 +68,7 @@ function ResultSection({
   canRecord: boolean;
   onReload: () => void;
   onRecord: (body: {
-    result: 'PASSED' | 'FAILED';
+    result: RecordableResult;
     feedback?: string;
   }) => Promise<void>;
 }) {

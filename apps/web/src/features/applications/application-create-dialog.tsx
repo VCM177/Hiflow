@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserRole, JobStatus } from '@hiflow/shared-types';
+import { UserRole, JobStatus, USER_OPTION_PURPOSE } from '@hiflow/shared-types';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -58,7 +58,7 @@ export function ApplicationCreateDialog({
   candidateId?: string;
 }) {
   const { user } = useSession();
-  const assignees = useUserOptions('ASSIGNEE');
+  const assignees = useUserOptions(USER_OPTION_PURPOSE.ASSIGNEE);
   const [term, setTerm] = React.useState('');
   const search = useDebouncedValue(term.trim(), 300);
 

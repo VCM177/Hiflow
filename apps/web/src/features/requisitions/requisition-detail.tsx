@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { PERMISSIONS } from '@hiflow/shared-types';
+import { PERMISSIONS, RequisitionStatus } from '@hiflow/shared-types';
 import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -164,7 +164,9 @@ export function RequisitionDetail({ id }: { id: string }) {
     delete: <Button onClick={() => ask('delete')}>Xóa</Button>,
     submit: (
       <Button variant="primary" onClick={() => ask('submit')}>
-        {requisition.status === 'REJECTED' ? 'Gửi duyệt lại' : 'Gửi duyệt'}
+        {requisition.status === RequisitionStatus.REJECTED
+          ? 'Gửi duyệt lại'
+          : 'Gửi duyệt'}
       </Button>
     ),
     approve: (
@@ -205,23 +207,24 @@ export function RequisitionDetail({ id }: { id: string }) {
         ))}
       />
       <div className="flex max-w-3xl flex-col gap-6">
-        {requisition.status === 'REJECTED' && requisition.rejectReason && (
-          <div
-            role="alert"
-            className="flex gap-3 rounded-hf-container border border-hf-destructive bg-hf-destructive/10 p-4 text-sm text-hf-destructive-text"
-          >
-            <AlertTriangle
-              aria-hidden="true"
-              className="mt-0.5 size-4 shrink-0"
-            />
-            <div>
-              <p className="font-semibold">Yêu cầu bị từ chối</p>
-              <p className="mt-1 whitespace-pre-wrap">
-                {requisition.rejectReason}
-              </p>
+        {requisition.status === RequisitionStatus.REJECTED &&
+          requisition.rejectReason && (
+            <div
+              role="alert"
+              className="flex gap-3 rounded-hf-container border border-hf-destructive bg-hf-destructive/10 p-4 text-sm text-hf-destructive-text"
+            >
+              <AlertTriangle
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0"
+              />
+              <div>
+                <p className="font-semibold">Yêu cầu bị từ chối</p>
+                <p className="mt-1 whitespace-pre-wrap">
+                  {requisition.rejectReason}
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
         <SectionCard
           title="Thông tin"
           actions={

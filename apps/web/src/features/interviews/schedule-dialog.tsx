@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { USER_OPTION_PURPOSE } from '@hiflow/shared-types';
 import { useForm } from 'react-hook-form';
 
 import { RHFSelectField } from '@/components/shared/form/rhf-select-field';
@@ -33,7 +34,7 @@ export function ScheduleDialog({
   nextRound: number;
   interview?: Interview | null;
 }) {
-  const interviewers = useUserOptions('INTERVIEWER');
+  const interviewers = useUserOptions(USER_OPTION_PURPOSE.INTERVIEWER);
   const form = useForm<ScheduleValues>({
     resolver: zodResolver(scheduleSchema),
     defaultValues: {

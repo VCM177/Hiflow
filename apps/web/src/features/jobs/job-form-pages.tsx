@@ -1,7 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { PERMISSIONS, RequisitionStatus } from '@hiflow/shared-types';
+import {
+  JobStatus,
+  PERMISSIONS,
+  RequisitionStatus,
+} from '@hiflow/shared-types';
 
 import { ApiErrorView, ErrorView } from '@/components/layout/api-error-view';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -77,7 +81,7 @@ export function EditJobPage({ id }: { id: string }) {
       <ApiErrorView error={query.error} onRetry={() => void query.refetch()} />
     );
   }
-  if (query.data.status === 'CLOSED') {
+  if (query.data.status === JobStatus.CLOSED) {
     return <ErrorView kind="forbidden" />;
   }
   return <JobForm job={query.data} requisitions={[]} preselected={null} />;
