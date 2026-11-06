@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
+import { siteUrl } from '@/server/site-url';
 import { QueryProvider } from '@/providers/query-provider';
 import './globals.css';
 
@@ -10,7 +11,10 @@ const inter = Inter({
   subsets: ['latin', 'vietnamese'],
 });
 
+const base = siteUrl();
+
 export const metadata: Metadata = {
+  ...(base ? { metadataBase: new URL(base) } : {}),
   title: 'Hiflow',
   description: 'Hệ thống quản lý tuyển dụng Hiflow',
 };

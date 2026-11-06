@@ -11,6 +11,7 @@ import {
 import { jobPath, parseJobId } from '@/features/careers/job-url';
 import { jobHtmlToText, sanitizeJobHtml } from '@/lib/sanitize-job-html';
 import { formatDate } from '@/lib/format';
+import { absoluteUrl } from '@/server/site-url';
 import { visitorForwardedFor } from '@/server/forwarded-for';
 import { fetchPublicJob } from '@/server/public-jobs';
 
@@ -52,7 +53,9 @@ export default async function JobPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: serializeJsonLd(jobPostingJsonLd(job, canonical)),
+          __html: serializeJsonLd(
+            jobPostingJsonLd(job, absoluteUrl(canonical)),
+          ),
         }}
       />
       <header>
