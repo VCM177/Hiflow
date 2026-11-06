@@ -1,5 +1,7 @@
 # Bàn giao Hiflow
 
+**Cập nhật 2026-11-06 (mới nhất):** web đã xong toàn bộ B7 và B8 (xem `docs/handoff-cloud-b7.md`, phiên 6 đến 11). Cổng B chưa đóng: các việc còn mở và bằng chứng nằm ở `docs/gate-b-audit.md`. Cổng A vẫn còn `throttle-redis` (cần Redis thật trên máy người dùng, mục 2 bên dưới). Phần dưới đây là trạng thái ngày 2026-11-04, giữ để tham khảo.
+
 Cập nhật 2026-11-04, nhánh `claude/jolly-hawking-58ad29` (đã push, cây làm việc sạch; `develop` chưa có các commit B0 và B6). Tài liệu này chỉ ghi trạng thái và việc kế tiếp; quy tắc làm việc nằm ở `CLAUDE.md`, nghiệp vụ ở `docs/business-flow.md`.
 
 ## 0. Phiên sau làm gì đầu tiên
