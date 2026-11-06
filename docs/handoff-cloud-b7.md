@@ -1,4 +1,4 @@
-# Handoff: web giai đoạn B, B7.1 đến B7.3 và B7.12 (phiên cloud)
+# Handoff: web giai đoạn B, B7.1 đến B7.5 và B7.12 (phiên cloud)
 
 Viết ngày 2026-11-06. Thay cho mục "B7" trong `docs/handoff-local-web-3.md` về trạng thái.
 
@@ -41,3 +41,25 @@ Dọn dẹp của spec: xóa hồ sơ và ứng viên `e2e-careers-*`; tin đã 
 - Đổi vai trò hay khóa người khác: giao diện chưa báo trước "người đó mất quyền ở lần gọi kế tiếp" ngoài câu trong hộp thoại; phía người bị tác động chỉ nhận 401 theo bảng 1.3.
 - Danh sách người dùng chưa lọc theo nhiều vai trò cùng lúc (API chỉ nhận một).
 - B7.4 trở đi chưa làm; phiên kế tiếp theo kế hoạch là B7.4, B7.5 (yêu cầu, tin tuyển dụng; B7.5 cần trình soạn mô tả Tiptap và làm sạch ở API).
+
+## Phiên 7: B7.4 và B7.5 (2026-11-06)
+
+**B7.4 Yêu cầu tuyển dụng** (`features/requisitions/`). `/requisitions` (lọc trạng thái, phòng ban, khoảng ngày tạo trong hộp "Lọc theo ngày tạo"; tìm theo mã hoặc tiêu đề; 5 cột sắp xếp), `/requisitions/new`, `/requisitions/[id]`, `/requisitions/[id]/edit`. Hành động theo trạng thái nằm ở `actionsFor` (`constants.ts`, có test đối chiếu với `REQUISITION_TRANSITIONS`), quyền ở `REQUISITION_ACTION_PERMISSION`. Form toàn trang có `UnsavedChangesGuard`, hai nút Lưu nháp (khi sửa: Lưu thay đổi) và Lưu và gửi duyệt; nếu lưu được nhưng gửi duyệt lỗi thì toast báo rõ và vẫn mở bản ghi đã lưu. Trưởng bộ phận không thấy ô phòng ban. Lý do từ chối nổi bật ở đầu trang chi tiết, timeline mới nhất trước, danh sách tin sinh ra từ yêu cầu (chỉ khi có `job.list.view`). Phòng ban của yêu cầu không sửa được (API không nhận), nên form sửa chỉ hiển thị.
+
+**B7.5 Tin tuyển dụng** (`features/jobs/`). `/jobs` (lọc trạng thái, phòng ban, vị trí, ngày tạo; cột số hồ sơ), `/jobs/new?requisitionId=`, `/jobs/[id]` (tab Thông tin và Hồ sơ đã nộp), `/jobs/[id]/edit` (tin đã đóng không sửa). Chọn yêu cầu khác trong form tạo thì điền lại tiêu đề và số lượng, trừ khi người dùng đã tự đổi. 409 "vượt quá số lượng đã duyệt" hiện ở ô số lượng và đưa focus về đó. Mô tả soạn bằng Tiptap (`components/shared/rich-text-editor.tsx`, tải lười bằng `next/dynamic`), chỉ có các thẻ trong `JOB_HTML_ALLOWED_TAGS`; hiển thị lại luôn qua `sanitizeJobHtml` (đã chuyển sang `lib/sanitize-job-html.ts`). Nút trên thanh công cụ "Tiêu đề mục" (không phải "Tiêu đề") để không trùng nhãn ô tiêu đề.
+
+**Thay đổi ở API** (phát hiện khi chạy thật):
+
+- Chính sách làm sạch mô tả nằm ở `shared-types` (`job-html.ts`); API làm sạch khi lưu (`sanitizeJobHtmlTransform` trên `description` của `CreateJobDto`), có unit test và e2e. `sanitize-html` ghim 2.13.1 ở cả hai ứng dụng (bản mới kéo `htmlparser2` chỉ có ESM, Jest và Node 20 không `require` được).
+- `PATCH /requisitions/:id` trả 500 khi gửi `expectedStartDate: null`; đã sửa, và e2e kiểm tra `null` xóa được lý do, ngày bắt đầu, ngân sách (yêu cầu) và lương, địa điểm, mô tả (tin).
+
+**Kiểm chứng.** `format:check`, `lint`, `typecheck`, `build` exit 0; `npm test` API 348, web 97 tệp. Playwright toàn bộ 37 test pass, gồm `requisitions-jobs.spec.ts` (5 test): TBP tạo và gửi, HR từ chối cần lý do, TBP sửa và gửi lại, HR duyệt, lịch sử đủ hai quyết định; TD tạo tin (số lượng quá lớn bị từ chối ở ô số lượng), tin nháp chưa công khai, đăng thì cổng công khai hiện mô tả in đậm, ngừng đăng thì cổng trả 404, HR đóng yêu cầu; xóa bản nháp qua xác nhận; recruiter không tạo được yêu cầu, interviewer không có trang tin. e2e API đầy đủ: 652 pass, 1 hỏng là `throttle-redis` (không tới được Redis, mục SKIPPED còn mở của Cổng A).
+
+**Dữ liệu spec để lại.** Tin đã đăng và yêu cầu đã duyệt không xóa được qua API (chỉ xóa được bản nháp), nên mỗi lần chạy `requisitions-jobs.spec.ts` còn lại một yêu cầu đã đóng và một tin đã đóng tiêu đề `E2E-Yeu cau <mã>` / `E2E-Tin <mã>`. Xóa bằng role owner nếu cần DB sạch.
+
+**Chưa làm / cần xác nhận.**
+
+- Tab Hồ sơ đã nộp của tin chưa có liên kết sang chi tiết hồ sơ (trang đó thuộc B7.7).
+- Danh sách chưa lọc nhiều trạng thái cùng lúc (API nhận một).
+- Chưa thử Tiptap trên điện thoại thật; thanh công cụ xuống dòng khi hẹp.
+- Phiên kế tiếp theo kế hoạch: B7.6, B7.7 (Ứng viên, Hồ sơ ứng tuyển, Offer).
