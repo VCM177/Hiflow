@@ -91,3 +91,16 @@ export const PDF = {
   mimeType: 'application/pdf',
   buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'),
 };
+
+/**
+ * An hour far in the future, picked at random from several years of hours. Interviews stay in
+ * the database after a run (an interview with a result cannot be deleted), and the API
+ * refuses two interviews for one person within an hour, so a slot chosen from a small range
+ * would sooner or later meet an earlier run's.
+ */
+export function randomFutureHour(): Date {
+  const days = 60 + Math.floor(Math.random() * 2000);
+  const date = new Date(Date.now() + days * 86_400_000);
+  date.setUTCHours(1 + Math.floor(Math.random() * 20), 0, 0, 0);
+  return date;
+}

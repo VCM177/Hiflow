@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
 
-import { apiAs, json, openAs, openJob } from './helpers';
+import { apiAs, json, openAs, openJob, randomFutureHour } from './helpers';
 
 // Runs against a real API seeded with `seed:base`. It follows two applications of one job:
 // A goes screening → interview → offer → hired through the browser; B reaches the offer step
@@ -13,11 +13,10 @@ const NAME_A = `E2E-Ung vien A ${RUN}`;
 const NAME_B = `E2E-Ung vien B ${RUN}`;
 
 const pad = (n: number) => String(n).padStart(2, '0');
-/** A local date-time text a few days ahead, at a different hour each run, for the datetime box. */
+/** A local date-time text far ahead, at a random hour, for the datetime box (Vietnam time). */
 function futureSlot(): string {
-  const date = new Date(Date.now() + (3 + (Date.now() % 20)) * 86_400_000);
-  const hour = 8 + (Date.now() % 9);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(hour)}:00`;
+  const shown = new Date(randomFutureHour().getTime() + 7 * 3_600_000);
+  return shown.toISOString().slice(0, 16);
 }
 const dayAhead = (days: number) => {
   const date = new Date(Date.now() + days * 86_400_000);
@@ -213,8 +212,7 @@ test.describe.serial('applications', () => {
       'get',
       '/users/options?purpose=INTERVIEWER&limit=1',
     );
-    const slot = new Date(Date.now() + (25 + (Date.now() % 20)) * 86_400_000);
-    slot.setUTCHours(1 + (Date.now() % 8), 0, 0, 0);
+    const slot = randomFutureHour();
     const interview = await json<{ id: string }>(
       recruiterApi,
       'post',
