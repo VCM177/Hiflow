@@ -19,6 +19,7 @@ function FileInput({
   emptyLabel = 'Chưa chọn tệp',
   onChange,
   id,
+  'aria-describedby': describedBy,
   ...props
 }: FileInputProps) {
   const [fileName, setFileName] = React.useState<string>('');
@@ -29,7 +30,8 @@ function FileInput({
       <input
         id={id}
         type="file"
-        aria-describedby={hintId}
+        // The file name hint first, then whatever the caller adds (a form field's hint or error).
+        aria-describedby={[hintId, describedBy].filter(Boolean).join(' ')}
         onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           setFileName(file ? file.name : '');

@@ -47,4 +47,17 @@ describe('FileInput', () => {
     expect(input).toBeDisabled();
     expect(input).toHaveAttribute('aria-describedby');
   });
+
+  it('keeps the file name in its description when the caller adds more', () => {
+    render(
+      <>
+        <label htmlFor="cv2">CV</label>
+        <p id="extra">Tối đa 5 MB</p>
+        <FileInput id="cv2" aria-describedby="extra" />
+      </>,
+    );
+    expect(screen.getByLabelText('CV')).toHaveAccessibleDescription(
+      'Chưa chọn tệp Tối đa 5 MB',
+    );
+  });
 });
